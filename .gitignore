@@ -1,0 +1,26 @@
+
+# Environment and configuration
+.env
+.env.local
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.vscode/
+.idea/
+
+# XAMPP temporary files
+*.pid
