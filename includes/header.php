@@ -71,11 +71,7 @@ $isAccountPage = $isStudent && in_array(
                 <?= $currentPage === 'records.php' ? 'aria-current="page"' : '' ?>
             >Student Records</a>
 
-            <a
-                href="<?= BASE_URL ?>/announcements.php"
-                class="<?= $currentPage === 'announcements.php' ? 'active' : '' ?>"
-                <?= $currentPage === 'announcements.php' ? 'aria-current="page"' : '' ?>
-            >Announcements</a>
+         
 
            <!-- ACCOUNT ICON: ALWAYS LAST -->
             <button
