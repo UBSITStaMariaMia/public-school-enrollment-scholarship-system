@@ -1,0 +1,13 @@
+# Local configuration files
+/config/config.php
+/config/local.php
+
+# Uploaded files
+/uploads/*
+!/uploads/.gitkeep
+
+# Operating system files
+.DS_Store
+Thumbs.db
+# Local one-time administrator setup
+/setup_admin.php
