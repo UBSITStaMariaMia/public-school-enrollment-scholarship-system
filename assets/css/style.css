@@ -2494,3 +2494,49 @@ body.reminder-modal-open {
         transition: none !important;
     }
 }
+
+
+/* REGISTRATION REMINDER - VISIBILITY AND SMOOTH ANIMATION */
+
+.registration-reminder-overlay {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .3s ease, visibility .3s ease;
+}
+
+.registration-reminder-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.registration-reminder-modal {
+    opacity: 0;
+    transform: translateY(18px) scale(.98);
+    transition:
+        opacity .35s ease,
+        transform .35s ease;
+}
+
+.registration-reminder-overlay.is-visible .registration-reminder-modal {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .registration-reminder-overlay,
+    .registration-reminder-modal {
+        transition: none !important;
+    }
+}
+
+/* REGISTRATION PAGE - SIMPLIFIED HEADER */
+
+.registration-page .main-nav,
+.registration-page .header-actions,
+.registration-page .main-sidebar,
+.registration-page .main-sidebar-overlay {
+    display: none !important;
+}
+
