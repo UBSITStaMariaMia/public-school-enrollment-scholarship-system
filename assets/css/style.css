@@ -2320,3 +2320,177 @@ body.sidebar-open {
 .profile-editing .form-grid .phone-input-readonly .phone-divider {
     background: #d7dbe1;
 }
+
+/* =========================================
+   BCNHS STUDENT REGISTRATION REMINDER MODAL
+   ========================================= */
+
+.registration-reminder-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(20, 24, 32, .65);
+    backdrop-filter: blur(3px);
+}
+
+.registration-reminder-modal {
+    width: min(100%, 650px);
+    max-height: 85vh;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 18px 55px rgba(0, 0, 0, .28);
+}
+
+.registration-reminder-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 17px 24px;
+    border-bottom: 1px solid var(--line);
+}
+
+.registration-reminder-header h2 {
+    margin: 0;
+    color: var(--maroon-dark);
+    font-size: 1.15rem;
+    line-height: 1.35;
+}
+
+.registration-reminder-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.registration-reminder-close:hover {
+    background: #f4f5f7;
+    color: var(--maroon);
+}
+
+.registration-reminder-body {
+    padding: 22px 26px 26px;
+    line-height: 1.6;
+}
+
+.registration-reminder-body > p {
+    margin: 0 0 16px;
+    color: var(--muted);
+}
+
+.registration-reminder-body ul {
+    margin: 0;
+    padding-left: 22px;
+}
+
+.registration-reminder-body li {
+    margin: 0 0 12px;
+}
+
+.registration-reminder-body li:last-child {
+    margin-bottom: 0;
+}
+
+.registration-reminder-body li ul {
+    margin-top: 8px;
+}
+
+.registration-reminder-body li ul li {
+    margin-bottom: 5px;
+}
+
+.registration-reminder-note {
+    margin-top: 20px;
+    padding: 14px 16px;
+    border-left: 4px solid var(--maroon);
+    border-radius: 7px;
+    background: #f8f1f4;
+    color: #4b2634;
+}
+
+.registration-reminder-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 22px;
+}
+
+.registration-reminder-confirm {
+    min-height: 44px;
+    padding: 10px 22px;
+    border: 1px solid var(--maroon);
+    border-radius: 8px;
+    background: var(--maroon);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.registration-reminder-confirm:hover {
+    border-color: var(--maroon-dark);
+    background: var(--maroon-dark);
+}
+
+.registration-reminder-close:focus-visible,
+.registration-reminder-confirm:focus-visible {
+    outline: 3px solid rgba(100, 27, 50, .25);
+    outline-offset: 3px;
+}
+
+body.reminder-modal-open {
+    overflow: hidden;
+}
+
+@media (max-width: 600px) {
+    .registration-reminder-overlay {
+        padding: 12px;
+    }
+
+    .registration-reminder-modal {
+        max-height: 90vh;
+        border-radius: 12px;
+    }
+
+    .registration-reminder-header {
+        padding: 14px 17px;
+    }
+
+    .registration-reminder-body {
+        padding: 18px 18px 20px;
+        font-size: .93rem;
+    }
+
+    .registration-reminder-actions {
+        justify-content: stretch;
+    }
+
+    .registration-reminder-confirm {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .registration-reminder-overlay,
+    .registration-reminder-modal {
+        scroll-behavior: auto;
+        transition: none !important;
+    }
+}
