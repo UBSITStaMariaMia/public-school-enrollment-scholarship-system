@@ -17,6 +17,7 @@ $isStaff = $user && in_array($roleName, [
 $isAdmin = $roleName === 'System Administrator';
 
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
+$isRegistrationPage = $currentPage === 'register.php';
 
 $isAccountPage = $isStudent && in_array(
     $currentPage,
@@ -65,7 +66,7 @@ function header_link_active(string $page, array $pages): string
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
 </head>
 
-<body class="<?= $isStudent ? 'student-portal' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?>">
+<body class="<?= $isStudent ? 'student-portal' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?> <?= $isRegistrationPage ? 'registration-page' : '' ?>">
 
 <header class="site-header">
 
@@ -83,6 +84,15 @@ function header_link_active(string $page, array $pages): string
 
         <span>Baguio City National High School Portal</span>
     </a>
+
+    <?php if ($isRegistrationPage): ?>
+    <a
+        href="<?= BASE_URL ?>/index.php"
+        class="button button-outline registration-back-button"
+    >
+        &larr; Back to Home
+    </a>
+<?php endif; ?>
 
 
     <!-- DESKTOP NAVIGATION -->
