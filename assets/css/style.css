@@ -2540,3 +2540,85 @@ body.reminder-modal-open {
     display: none !important;
 }
 
+
+
+/* STUDENT DASHBOARD SERVICE CARDS */
+.dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+}
+
+.dashboard-card {
+    min-height: 205px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.dashboard-card h2 {
+    margin-top: 8px;
+}
+
+.dashboard-card p {
+    flex: 1;
+}
+
+.dashboard-card-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    color: var(--maroon);
+    font-size: .92rem;
+    font-weight: 700;
+}
+
+.dashboard-card:hover .dashboard-card-action {
+    color: var(--maroon-dark);
+    text-decoration: underline;
+}
+
+.applications-back-button {
+    margin-bottom: 22px;
+}
+
+@media (max-width: 900px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-card {
+        min-height: 185px;
+    }
+}
+
+/* Student navigation is shown in the hamburger sidebar only. */
+@media (min-width: 1051px) {
+    .student-portal .student-main-nav {
+        display: none !important;
+    }
+}
+
+
+/* STUDENT PORTAL: SHOW MAIN NAVIGATION HAMBURGER ON DESKTOP AND MOBILE */
+.student-portal .menu-toggle {
+    display: flex !important;
+    flex-shrink: 0;
+}
+
+.student-portal .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.student-portal .student-main-nav {
+    display: none !important;
+}
