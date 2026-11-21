@@ -5,10 +5,10 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_role('Student');
 
 $userId = (int) current_user()['user_id'];
-
 $errors = [];
 $success = '';
 
+/* Get student information */
 $studentQuery = $pdo->prepare(
     'SELECT s.*, u.email
      FROM students s
@@ -16,6 +16,7 @@ $studentQuery = $pdo->prepare(
      WHERE s.user_id = :user_id
      LIMIT 1'
 );
+
 $studentQuery->execute(['user_id' => $userId]);
 $student = $studentQuery->fetch();
 
@@ -26,17 +27,18 @@ if (!$student) {
 
 $studentId = (int) $student['student_id'];
 
-// Get mother and father information.
+/* Get parent information */
 $parentQuery = $pdo->prepare(
     'SELECT *
      FROM student_parent_information
      WHERE student_id = :student_id
      LIMIT 1'
 );
+
 $parentQuery->execute(['student_id' => $studentId]);
 $parents = $parentQuery->fetch() ?: [];
 
-// Get the primary additional guardian.
+/* Get primary guardian information */
 $guardianQuery = $pdo->prepare(
     'SELECT *
      FROM student_guardians
@@ -45,88 +47,115 @@ $guardianQuery = $pdo->prepare(
      ORDER BY guardian_id DESC
      LIMIT 1'
 );
+
 $guardianQuery->execute(['student_id' => $studentId]);
 $guardian = $guardianQuery->fetch() ?: [];
 
-// Default form values.
+/* Convert Philippine phone numbers to 10-digit format */
+function phone_digits_for_display($phone): string
+{
+    $digits = preg_replace('/\D+/', '', (string) $phone);
+
+    if (strlen($digits) === 12 && str_starts_with($digits, '63')) {
+        $digits = substr($digits, 2);
+    } elseif (strlen($digits) === 11 && str_starts_with($digits, '0')) {
+        $digits = substr($digits, 1);
+    }
+
+    return $digits;
+}
+
+/* Prepare editable contact information */
 $values = [
-    'first_name' => $student['first_name'],
-    'middle_name' => $student['middle_name'] ?? '',
-    'last_name' => $student['last_name'],
-    'lrn' => $student['lrn'] ?? '',
-    'email' => $student['email'],
-    'birth_date' => $student['birth_date'] ?? '',
-    'birthplace' => $student['birthplace'] ?? '',
-    'sex' => $student['sex'] ?? '',
-    'civil_status' => $student['civil_status'] ?? '',
-    'nationality' => $student['nationality'] ?? '',
-    'religion' => $student['religion'] ?? '',
-    'contact_number' => $student['contact_number'] ?? '',
-    'current_address' => $student['current_address'] ?? '',
-    'permanent_address' => $student['permanent_address'] ?? '',
+    'email' => $student['email'] ?? '',
+    'contact_number' => phone_digits_for_display($student['contact_number'] ?? ''),
 
-    'mother_name' => $parents['mother_name'] ?? '',
-    'mother_occupation' => $parents['mother_occupation'] ?? '',
-    'mother_contact_number' => $parents['mother_contact_number'] ?? '',
     'mother_email' => $parents['mother_email'] ?? '',
-    'mother_address' => $parents['mother_address'] ?? '',
+    'mother_contact_number' => phone_digits_for_display($parents['mother_contact_number'] ?? ''),
 
-    'father_name' => $parents['father_name'] ?? '',
-    'father_occupation' => $parents['father_occupation'] ?? '',
-    'father_contact_number' => $parents['father_contact_number'] ?? '',
     'father_email' => $parents['father_email'] ?? '',
-    'father_address' => $parents['father_address'] ?? '',
+    'father_contact_number' => phone_digits_for_display($parents['father_contact_number'] ?? ''),
 
-    'guardian_name' => $guardian['full_name'] ?? '',
-    'guardian_relationship' => $guardian['relationship'] ?? '',
-    'guardian_contact_number' => $guardian['contact_number'] ?? '',
     'guardian_email' => $guardian['email'] ?? '',
-    'guardian_occupation' => $guardian['occupation'] ?? '',
-    'guardian_address' => $guardian['address'] ?? '',
+    'guardian_contact_number' => phone_digits_for_display($guardian['contact_number'] ?? '')
 ];
 
+$isEditing = isset($_GET['edit']) && $_GET['edit'] === '1';
+
+/* Handle profile update */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    foreach ($values as $field => $oldValue) {
+    $isEditing = true;
+
+    $emailFields = [
+        'email' => 'Student',
+        'mother_email' => 'Mother',
+        'father_email' => 'Father',
+        'guardian_email' => 'Guardian'
+    ];
+
+    $phoneFields = [
+        'contact_number' => 'Student',
+        'mother_contact_number' => 'Mother',
+        'father_contact_number' => 'Father',
+        'guardian_contact_number' => 'Guardian'
+    ];
+
+    foreach ($emailFields as $field => $person) {
         $values[$field] = trim($_POST[$field] ?? '');
     }
 
-    // CSRF validation.
+    foreach ($phoneFields as $field => $person) {
+        $values[$field] = trim($_POST[$field] ?? '');
+    }
+
+    /* CSRF validation */
     if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Please refresh the page and try again.';
     }
 
-    // Required student information.
-    if ($values['first_name'] === '' || $values['last_name'] === '') {
-        $errors[] = 'First name and last name are required.';
-    }
+    /* Validate all four Gmail addresses */
+    foreach ($emailFields as $field => $person) {
 
-    if (!filter_var($values['email'], FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Enter a valid student email address.';
-    }
+        $email = $values[$field];
 
-    if ($values['email'] !== '' && strlen($values['email']) > 150) {
-        $errors[] = 'Student email must not exceed 150 characters.';
-    }
+        /* Student email is required; family emails are optional. */
+        if ($field === 'email' && $email === '') {
+            $errors[] = 'Student email address is required.';
+            continue;
+        }
 
-    // Validate sex against the database enum.
-    $allowedSex = ['', 'Male', 'Female', 'Prefer not to say'];
+        if ($email === '') {
+            continue;
+        }
 
-    if (!in_array($values['sex'], $allowedSex, true)) {
-        $errors[] = 'Select a valid sex option.';
-    }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = $person . ' email address is invalid.';
+        } elseif (strlen($email) > 150) {
+            $errors[] = $person . ' email address must not exceed 150 characters.';
+        } else {
+            $emailDomain = strtolower(substr(strrchr($email, '@'), 1));
 
-    // Validate birth date.
-    if ($values['birth_date'] !== '') {
-        $date = DateTime::createFromFormat('!Y-m-d', $values['birth_date']);
-
-        if (!$date || $date->format('Y-m-d') !== $values['birth_date']) {
-            $errors[] = 'Enter a valid birth date.';
+            if ($emailDomain !== 'gmail.com') {
+                $errors[] = $person . ' email must be a valid Gmail address ending in @gmail.com.';
+            }
         }
     }
 
-    // Check duplicate email.
+    /* Validate all four Philippine phone numbers */
+    foreach ($phoneFields as $field => $person) {
+
+        if (
+            $values[$field] !== '' &&
+            !preg_match('/^9[0-9]{9}$/', $values[$field])
+        ) {
+            $errors[] = $person . ' phone number must contain exactly 10 digits after +63.';
+        }
+    }
+
+    /* Check duplicate student login email */
     if (!$errors) {
+
         $emailCheck = $pdo->prepare(
             'SELECT COUNT(*)
              FROM users
@@ -140,67 +169,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         if ((int) $emailCheck->fetchColumn() > 0) {
-            $errors[] = 'That email address is already being used by another account.';
+            $errors[] = 'That student email address is already being used by another account.';
         }
     }
 
-    // Check duplicate LRN.
-    if (!$errors && $values['lrn'] !== '') {
-        $lrnCheck = $pdo->prepare(
-            'SELECT COUNT(*)
-             FROM students
-             WHERE lrn = :lrn
-               AND student_id <> :student_id'
-        );
-
-        $lrnCheck->execute([
-            'lrn' => $values['lrn'],
-            'student_id' => $studentId
-        ]);
-
-        if ((int) $lrnCheck->fetchColumn() > 0) {
-            $errors[] = 'That LRN is already registered to another student.';
-        }
-    }
-
-    // Validate parent email addresses when provided.
-    foreach (['mother_email', 'father_email', 'guardian_email'] as $emailField) {
-        if (
-            $values[$emailField] !== '' &&
-            !filter_var($values[$emailField], FILTER_VALIDATE_EMAIL)
-        ) {
-            $errors[] = 'Please enter a valid email address for ' .
-                str_replace('_', ' ', $emailField) . '.';
-        }
-    }
-
-    // Validate additional guardian name.
-    $guardianHasInformation = false;
-
-    foreach ([
-        'guardian_name',
-        'guardian_relationship',
-        'guardian_contact_number',
-        'guardian_email',
-        'guardian_occupation',
-        'guardian_address'
-    ] as $field) {
-        if ($values[$field] !== '') {
-            $guardianHasInformation = true;
-            break;
-        }
-    }
-
-    if ($guardianHasInformation && $values['guardian_name'] === '') {
-        $errors[] = 'Enter the full name of the additional guardian.';
-    }
-
-    // Save all profile sections.
+    /* Save contact information */
     if (!$errors) {
+
         try {
+
             $pdo->beginTransaction();
 
-            // Update student account email.
+            /* Update student email */
             $updateUser = $pdo->prepare(
                 'UPDATE users
                  SET email = :email
@@ -212,182 +192,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'user_id' => $userId
             ]);
 
-            // Update student personal and contact information.
+            /* Update student phone number */
             $updateStudent = $pdo->prepare(
                 'UPDATE students
-                 SET
-                    first_name = :first_name,
-                    middle_name = :middle_name,
-                    last_name = :last_name,
-                    lrn = :lrn,
-                    birth_date = :birth_date,
-                    birthplace = :birthplace,
-                    sex = :sex,
-                    civil_status = :civil_status,
-                    nationality = :nationality,
-                    religion = :religion,
-                    contact_number = :contact_number,
-                    current_address = :current_address,
-                    permanent_address = :permanent_address
+                 SET contact_number = :contact_number
                  WHERE student_id = :student_id'
             );
 
             $updateStudent->execute([
-                'first_name' => $values['first_name'],
-                'middle_name' => $values['middle_name'] ?: null,
-                'last_name' => $values['last_name'],
-                'lrn' => $values['lrn'] ?: null,
-                'birth_date' => $values['birth_date'] ?: null,
-                'birthplace' => $values['birthplace'] ?: null,
-                'sex' => $values['sex'] ?: null,
-                'civil_status' => $values['civil_status'] ?: null,
-                'nationality' => $values['nationality'] ?: null,
-                'religion' => $values['religion'] ?: null,
-                'contact_number' => $values['contact_number'] ?: null,
-                'current_address' => $values['current_address'] ?: null,
-                'permanent_address' => $values['permanent_address'] ?: null,
+                'contact_number' => $values['contact_number'] !== ''
+                    ? '+63' . $values['contact_number']
+                    : null,
                 'student_id' => $studentId
             ]);
 
-            // Save mother and father information.
-            $parentData = [
-                'mother_name' => $values['mother_name'] ?: null,
-                'mother_occupation' => $values['mother_occupation'] ?: null,
-                'mother_contact_number' => $values['mother_contact_number'] ?: null,
-                'mother_email' => $values['mother_email'] ?: null,
-                'mother_address' => $values['mother_address'] ?: null,
+            /* Update mother's email and phone number */
+            if (!empty($parents)) {
 
-                'father_name' => $values['father_name'] ?: null,
-                'father_occupation' => $values['father_occupation'] ?: null,
-                'father_contact_number' => $values['father_contact_number'] ?: null,
-                'father_email' => $values['father_email'] ?: null,
-                'father_address' => $values['father_address'] ?: null,
-            ];
-
-            if ($parents) {
-                $parentUpdate = $pdo->prepare(
+                $updateMother = $pdo->prepare(
                     'UPDATE student_parent_information
-                     SET
-                        mother_name = :mother_name,
-                        mother_occupation = :mother_occupation,
-                        mother_contact_number = :mother_contact_number,
-                        mother_email = :mother_email,
-                        mother_address = :mother_address,
-                        father_name = :father_name,
-                        father_occupation = :father_occupation,
-                        father_contact_number = :father_contact_number,
-                        father_email = :father_email,
-                        father_address = :father_address
+                     SET mother_email = :email,
+                         mother_contact_number = :contact_number
                      WHERE student_id = :student_id'
                 );
 
-                $parentUpdate->execute(
-                    $parentData + ['student_id' => $studentId]
-                );
-            } else {
-                $parentInsert = $pdo->prepare(
-                    'INSERT INTO student_parent_information (
-                        student_id,
-                        mother_name,
-                        mother_occupation,
-                        mother_contact_number,
-                        mother_email,
-                        mother_address,
-                        father_name,
-                        father_occupation,
-                        father_contact_number,
-                        father_email,
-                        father_address
-                    ) VALUES (
-                        :student_id,
-                        :mother_name,
-                        :mother_occupation,
-                        :mother_contact_number,
-                        :mother_email,
-                        :mother_address,
-                        :father_name,
-                        :father_occupation,
-                        :father_contact_number,
-                        :father_email,
-                        :father_address
-                    )'
+                $updateMother->execute([
+                    'email' => $values['mother_email'] !== ''
+                        ? $values['mother_email']
+                        : null,
+                    'contact_number' => $values['mother_contact_number'] !== ''
+                        ? '+63' . $values['mother_contact_number']
+                        : null,
+                    'student_id' => $studentId
+                ]);
+
+                /* Update father's email and phone number */
+                $updateFather = $pdo->prepare(
+                    'UPDATE student_parent_information
+                     SET father_email = :email,
+                         father_contact_number = :contact_number
+                     WHERE student_id = :student_id'
                 );
 
-                $parentInsert->execute(
-                    $parentData + ['student_id' => $studentId]
-                );
+                $updateFather->execute([
+                    'email' => $values['father_email'] !== ''
+                        ? $values['father_email']
+                        : null,
+                    'contact_number' => $values['father_contact_number'] !== ''
+                        ? '+63' . $values['father_contact_number']
+                        : null,
+                    'student_id' => $studentId
+                ]);
             }
 
-            // Save the primary additional guardian.
-            if ($values['guardian_name'] !== '') {
+            /* Update guardian email and phone number */
+            if (!empty($guardian) && !empty($guardian['guardian_id'])) {
 
-                $guardianData = [
-                    'full_name' => $values['guardian_name'],
-                    'relationship' => $values['guardian_relationship'] ?: null,
-                    'contact_number' => $values['guardian_contact_number'] ?: null,
-                    'email' => $values['guardian_email'] ?: null,
-                    'occupation' => $values['guardian_occupation'] ?: null,
-                    'address' => $values['guardian_address'] ?: null,
-                ];
-
-                if ($guardian) {
-                    $guardianUpdate = $pdo->prepare(
-                        'UPDATE student_guardians
-                         SET
-                            full_name = :full_name,
-                            relationship = :relationship,
-                            contact_number = :contact_number,
-                            email = :email,
-                            occupation = :occupation,
-                            address = :address,
-                            is_primary = 1
-                         WHERE guardian_id = :guardian_id
-                           AND student_id = :student_id'
-                    );
-
-                    $guardianUpdate->execute(
-                        $guardianData + [
-                            'guardian_id' => $guardian['guardian_id'],
-                            'student_id' => $studentId
-                        ]
-                    );
-                } else {
-                    $guardianInsert = $pdo->prepare(
-                        'INSERT INTO student_guardians (
-                            student_id,
-                            full_name,
-                            relationship,
-                            contact_number,
-                            email,
-                            occupation,
-                            address,
-                            is_primary
-                        ) VALUES (
-                            :student_id,
-                            :full_name,
-                            :relationship,
-                            :contact_number,
-                            :email,
-                            :occupation,
-                            :address,
-                            1
-                        )'
-                    );
-
-                    $guardianInsert->execute(
-                        $guardianData + ['student_id' => $studentId]
-                    );
-                }
-
-            } elseif ($guardian) {
-                // Remove the primary additional guardian if the form is cleared.
-                $guardianDelete = $pdo->prepare(
-                    'DELETE FROM student_guardians
+                $updateGuardian = $pdo->prepare(
+                    'UPDATE student_guardians
+                     SET email = :email,
+                         contact_number = :contact_number
                      WHERE guardian_id = :guardian_id
                        AND student_id = :student_id'
                 );
 
-                $guardianDelete->execute([
+                $updateGuardian->execute([
+                    'email' => $values['guardian_email'] !== ''
+                        ? $values['guardian_email']
+                        : null,
+                    'contact_number' => $values['guardian_contact_number'] !== ''
+                        ? '+63' . $values['guardian_contact_number']
+                        : null,
                     'guardian_id' => $guardian['guardian_id'],
                     'student_id' => $studentId
                 ]);
@@ -395,12 +270,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->commit();
 
-            // Update the email displayed in the current session.
             $_SESSION['user']['email'] = $values['email'];
 
-            $success = 'Your student profile has been updated successfully.';
+            $success = 'Your contact information has been updated successfully.';
 
-            // Refresh stored profile information.
+            /* Refresh student information */
             $studentQuery->execute(['user_id' => $userId]);
             $student = $studentQuery->fetch();
 
@@ -410,26 +284,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $guardianQuery->execute(['student_id' => $studentId]);
             $guardian = $guardianQuery->fetch() ?: [];
 
+            /* Refresh editable values */
+            $values = [
+                'email' => $student['email'] ?? '',
+                'contact_number' => phone_digits_for_display($student['contact_number'] ?? ''),
+
+                'mother_email' => $parents['mother_email'] ?? '',
+                'mother_contact_number' => phone_digits_for_display($parents['mother_contact_number'] ?? ''),
+
+                'father_email' => $parents['father_email'] ?? '',
+                'father_contact_number' => phone_digits_for_display($parents['father_contact_number'] ?? ''),
+
+                'guardian_email' => $guardian['email'] ?? '',
+                'guardian_contact_number' => phone_digits_for_display($guardian['contact_number'] ?? '')
+            ];
+
+            $isEditing = false;
+
         } catch (Throwable $exception) {
+
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
 
             error_log('Student profile update error: ' . $exception->getMessage());
+
             $errors[] = 'Your profile could not be saved. Please try again.';
         }
     }
 }
 
+/* Student personal information */
+$personalInformation = [
+    'Learner Reference Number (LRN)' => $student['lrn'] ?? '',
+    'First Name' => $student['first_name'] ?? '',
+    'Middle Name' => $student['middle_name'] ?? '',
+    'Last Name' => $student['last_name'] ?? '',
+    'Date of Birth' => $student['birth_date'] ?? '',
+    'Place of Birth' => $student['birthplace'] ?? '',
+    'Sex' => $student['sex'] ?? '',
+    'Civil Status' => $student['civil_status'] ?? '',
+    'Nationality' => $student['nationality'] ?? '',
+    'Religion' => $student['religion'] ?? ''
+];
+
 $pageTitle = 'My Profile';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<section class="form-card form-card-wide">
+<section class="form-card form-card-wide <?= $isEditing ? 'profile-editing' : '' ?>">
+
     <p class="eyebrow">Student Information</p>
+
     <h1>My Profile</h1>
+
     <p class="muted">
-        View, edit, and save your personal information and parent or guardian details.
+        View your personal information and contact details.
+        You can update your email addresses and the contact numbers listed in your profile.
     </p>
 
     <?php if ($success): ?>
@@ -446,210 +357,328 @@ require_once __DIR__ . '/../includes/header.php';
 
     <form method="post" class="form-grid">
 
-        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+        <?php if ($isEditing): ?>
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= e(csrf_token()) ?>"
+            >
+        <?php endif; ?>
 
+        <!-- 1. Student Personal Information -->
         <h2>1. Student Personal Information</h2>
 
-        <label>
-            Learner Reference Number (LRN)
-            <input type="text" name="lrn" maxlength="20"
-                value="<?= e($values['lrn']) ?>">
-        </label>
+        <?php foreach ($personalInformation as $label => $value): ?>
+            <label>
+                <?= e($label) ?>
 
-        <label>
-            First Name
-            <input type="text" name="first_name" maxlength="100"
-                value="<?= e($values['first_name']) ?>" required>
-        </label>
+                <input
+                    type="text"
+                    value="<?= e($value !== '' ? $value : 'Not provided') ?>"
+                    disabled
+                >
+            </label>
+        <?php endforeach; ?>
 
-        <label>
-            Middle Name
-            <input type="text" name="middle_name" maxlength="100"
-                value="<?= e($values['middle_name']) ?>">
-        </label>
-
-        <label>
-            Last Name
-            <input type="text" name="last_name" maxlength="100"
-                value="<?= e($values['last_name']) ?>" required>
-        </label>
-
-        <label>
-            Email Address
-            <input type="email" name="email" maxlength="150"
-                value="<?= e($values['email']) ?>" required>
-        </label>
-
-        <label>
-            Date of Birth
-            <input type="date" name="birth_date"
-                value="<?= e($values['birth_date']) ?>">
-        </label>
-
-        <label>
-            Place of Birth
-            <input type="text" name="birthplace" maxlength="150"
-                value="<?= e($values['birthplace']) ?>">
-        </label>
-
-        <label>
-            Sex
-            <select name="sex">
-                <option value="">Select</option>
-                <option value="Male" <?= $values['sex'] === 'Male' ? 'selected' : '' ?>>Male</option>
-                <option value="Female" <?= $values['sex'] === 'Female' ? 'selected' : '' ?>>Female</option>
-                <option value="Prefer not to say" <?= $values['sex'] === 'Prefer not to say' ? 'selected' : '' ?>>Prefer not to say</option>
-            </select>
-        </label>
-
-        <label>
-            Civil Status
-            <input type="text" name="civil_status" maxlength="40"
-                value="<?= e($values['civil_status']) ?>">
-        </label>
-
-        <label>
-            Nationality
-            <input type="text" name="nationality" maxlength="80"
-                value="<?= e($values['nationality']) ?>">
-        </label>
-
-        <label>
-            Religion
-            <input type="text" name="religion" maxlength="100"
-                value="<?= e($values['religion']) ?>">
-        </label>
-
+        <!-- 2. Student Contact Information -->
         <h2>2. Contact Information</h2>
 
         <label>
-            Contact Number
-            <input type="text" name="contact_number" maxlength="30"
-                value="<?= e($values['contact_number']) ?>">
+            Email Address
+
+            <input
+                type="email"
+                name="email"
+                maxlength="150"
+                pattern="^[^@\s]+@gmail\.com$"
+                title="Enter a valid Gmail address ending in @gmail.com."
+                placeholder="example@gmail.com"
+                value="<?= e($values['email']) ?>"
+                <?= !$isEditing ? 'disabled' : 'required' ?>
+            >
         </label>
 
         <label>
-            Current Address
-            <textarea name="current_address" rows="3"><?= e($values['current_address']) ?></textarea>
+            Phone Number
+
+            <div class="phone-input-wrapper">
+                <span class="phone-prefix">+63</span>
+                <span class="phone-divider" aria-hidden="true"></span>
+
+                <input
+                    type="tel"
+                    name="contact_number"
+                    inputmode="numeric"
+                    pattern="9[0-9]{9}"
+                    minlength="10"
+                    maxlength="10"
+                    placeholder="9123456789"
+                    value="<?= e($values['contact_number']) ?>"
+                    <?= !$isEditing ? 'disabled' : '' ?>
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                >
+            </div>
         </label>
 
-        <label>
-            Permanent Address
-            <textarea name="permanent_address" rows="3"><?= e($values['permanent_address']) ?></textarea>
-        </label>
-
+        <!-- 3. Mother's Information -->
         <h2>3. Mother's Information</h2>
 
         <label>
             Mother's Full Name
-            <input type="text" name="mother_name" maxlength="150"
-                value="<?= e($values['mother_name']) ?>">
-        </label>
 
-        <label>
-            Occupation
-            <input type="text" name="mother_occupation" maxlength="150"
-                value="<?= e($values['mother_occupation']) ?>">
+            <input
+                type="text"
+                value="<?= e(($parents['mother_name'] ?? '') ?: 'Not provided') ?>"
+                disabled
+            >
         </label>
 
         <label>
             Contact Number
-            <input type="text" name="mother_contact_number" maxlength="30"
-                value="<?= e($values['mother_contact_number']) ?>">
+
+            <div class="phone-input-wrapper">
+                <span class="phone-prefix">+63</span>
+                <span class="phone-divider" aria-hidden="true"></span>
+
+                <input
+                    type="tel"
+                    name="mother_contact_number"
+                    inputmode="numeric"
+                    pattern="9[0-9]{9}"
+                    minlength="10"
+                    maxlength="10"
+                    placeholder="9123456789"
+                    value="<?= e($values['mother_contact_number']) ?>"
+                    <?= !$isEditing ? 'disabled' : '' ?>
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                >
+            </div>
+        </label>
+
+        <label>
+            Occupation
+
+            <input
+                type="text"
+                value="<?= e(($parents['mother_occupation'] ?? '') ?: 'Not provided') ?>"
+                disabled
+            >
         </label>
 
         <label>
             Email Address
-            <input type="email" name="mother_email" maxlength="150"
-                value="<?= e($values['mother_email']) ?>">
+
+            <input
+                type="email"
+                name="mother_email"
+                maxlength="150"
+                pattern="^[^@\s]+@gmail\.com$"
+                title="Enter a valid Gmail address ending in @gmail.com."
+                placeholder="example@gmail.com"
+                value="<?= e($values['mother_email']) ?>"
+                <?= !$isEditing ? 'disabled' : '' ?>
+            >
         </label>
 
         <label>
             Address
-            <textarea name="mother_address" rows="3"><?= e($values['mother_address']) ?></textarea>
+
+            <input
+                type="text"
+                value="<?= e(($parents['mother_address'] ?? '') ?: 'Not provided') ?>"
+                disabled
+            >
         </label>
 
+        <!-- 4. Father's Information -->
         <h2>4. Father's Information</h2>
 
         <label>
             Father's Full Name
-            <input type="text" name="father_name" maxlength="150"
-                value="<?= e($values['father_name']) ?>">
-        </label>
 
-        <label>
-            Occupation
-            <input type="text" name="father_occupation" maxlength="150"
-                value="<?= e($values['father_occupation']) ?>">
+            <input
+                type="text"
+                value="<?= e(($parents['father_name'] ?? '') ?: 'Not provided') ?>"
+                disabled
+            >
         </label>
 
         <label>
             Contact Number
-            <input type="text" name="father_contact_number" maxlength="30"
-                value="<?= e($values['father_contact_number']) ?>">
+
+            <div class="phone-input-wrapper">
+                <span class="phone-prefix">+63</span>
+                <span class="phone-divider" aria-hidden="true"></span>
+
+                <input
+                    type="tel"
+                    name="father_contact_number"
+                    inputmode="numeric"
+                    pattern="9[0-9]{9}"
+                    minlength="10"
+                    maxlength="10"
+                    placeholder="9123456789"
+                    value="<?= e($values['father_contact_number']) ?>"
+                    <?= !$isEditing ? 'disabled' : '' ?>
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                >
+            </div>
+        </label>
+
+        <label>
+            Occupation
+
+            <input
+                type="text"
+                value="<?= e(($parents['father_occupation'] ?? '') ?: 'Not provided') ?>"
+                disabled
+            >
         </label>
 
         <label>
             Email Address
-            <input type="email" name="father_email" maxlength="150"
-                value="<?= e($values['father_email']) ?>">
+
+            <input
+                type="email"
+                name="father_email"
+                maxlength="150"
+                pattern="^[^@\s]+@gmail\.com$"
+                title="Enter a valid Gmail address ending in @gmail.com."
+                placeholder="example@gmail.com"
+                value="<?= e($values['father_email']) ?>"
+                <?= !$isEditing ? 'disabled' : '' ?>
+            >
         </label>
 
         <label>
             Address
-            <textarea name="father_address" rows="3"><?= e($values['father_address']) ?></textarea>
+
+            <input
+                type="text"
+                value="<?= e(($parents['father_address'] ?? '') ?: 'Not provided') ?>"
+                disabled
+            >
         </label>
 
+        <!-- 5. Additional Guardian Information -->
         <h2>5. Additional Guardian Information</h2>
 
         <p class="muted">
-            Use this section if someone other than the mother or father
-            is responsible for the student's care.
-            This does not create a separate guardian account.
+            This section displays the additional guardian information
+            provided during student enrollment.
         </p>
 
         <label>
             Guardian's Full Name
-            <input type="text" name="guardian_name" maxlength="150"
-                value="<?= e($values['guardian_name']) ?>">
-        </label>
 
-        <label>
-            Relationship to Student
-            <input type="text" name="guardian_relationship" maxlength="60"
-                value="<?= e($values['guardian_relationship']) ?>">
+            <input
+                type="text"
+                value="<?= e(($guardian['full_name'] ?? '') ?: 'Not provided') ?>"
+                disabled
+            >
         </label>
 
         <label>
             Contact Number
-            <input type="text" name="guardian_contact_number" maxlength="30"
-                value="<?= e($values['guardian_contact_number']) ?>">
+
+            <div class="phone-input-wrapper">
+                <span class="phone-prefix">+63</span>
+                <span class="phone-divider" aria-hidden="true"></span>
+
+                <input
+                    type="tel"
+                    name="guardian_contact_number"
+                    inputmode="numeric"
+                    pattern="9[0-9]{9}"
+                    minlength="10"
+                    maxlength="10"
+                    placeholder="9123456789"
+                    value="<?= e($values['guardian_contact_number']) ?>"
+                    <?= !$isEditing ? 'disabled' : '' ?>
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                >
+            </div>
+        </label>
+
+        <label>
+            Relationship to Student
+
+            <input
+                type="text"
+                value="<?= e(($guardian['relationship'] ?? '') ?: 'Not provided') ?>"
+                disabled
+            >
         </label>
 
         <label>
             Email Address
-            <input type="email" name="guardian_email" maxlength="150"
-                value="<?= e($values['guardian_email']) ?>">
+
+            <input
+                type="email"
+                name="guardian_email"
+                maxlength="150"
+                pattern="^[^@\s]+@gmail\.com$"
+                title="Enter a valid Gmail address ending in @gmail.com."
+                placeholder="example@gmail.com"
+                value="<?= e($values['guardian_email']) ?>"
+                <?= !$isEditing ? 'disabled' : '' ?>
+            >
         </label>
 
         <label>
             Occupation
-            <input type="text" name="guardian_occupation" maxlength="150"
-                value="<?= e($values['guardian_occupation']) ?>">
+
+            <input
+                type="text"
+                value="<?= e(($guardian['occupation'] ?? '') ?: 'Not provided') ?>"
+                disabled
+            >
         </label>
 
         <label>
             Address
-            <textarea name="guardian_address" rows="3"><?= e($values['guardian_address']) ?></textarea>
+
+            <input
+                type="text"
+                value="<?= e(($guardian['address'] ?? '') ?: 'Not provided') ?>"
+                disabled
+            >
         </label>
 
+        <!-- Profile actions -->
         <div class="form-actions">
-            <button class="button button-primary" type="submit">
-                Save Profile
-            </button>
+
+            <?php if ($isEditing): ?>
+
+                <button
+                    class="button button-primary"
+                    type="submit"
+                >
+                    Save Changes
+                </button>
+
+                <a
+                    href="profile.php"
+                    class="button button-secondary"
+                >
+                    Cancel
+                </a>
+
+            <?php else: ?>
+
+                <a
+                    href="profile.php?edit=1"
+                    class="button button-primary"
+                >
+                    Edit Profile
+                </a>
+
+            <?php endif; ?>
+
         </div>
 
     </form>
+
 </section>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
