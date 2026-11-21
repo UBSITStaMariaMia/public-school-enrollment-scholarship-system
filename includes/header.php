@@ -42,6 +42,11 @@ $staffLinks = [
     ['Reports', '/staff/reports.php', ['reports.php']]
 ];
 
+$adminLinks = [
+    ['Dashboard', '/admin/dashboard.php', ['dashboard.php']],
+    ['User Management', '/admin/user_management.php', ['user_management.php']]
+];
+
 function header_link_active(string $page, array $pages): string
 {
     return in_array($page, $pages, true) ? 'active' : '';
@@ -103,6 +108,18 @@ function header_link_active(string $page, array $pages): string
                 Announcements
             </a>
 
+        <?php elseif ($isAdmin): ?>
+
+            <?php foreach ($adminLinks as $link): ?>
+                <a
+                    href="<?= BASE_URL . $link[1] ?>"
+                    class="<?= header_link_active($currentPage, $link[2]) ?>"
+                    <?= header_link_active($currentPage, $link[2]) ? 'aria-current="page"' : '' ?>
+                >
+                    <?= e($link[0]) ?>
+                </a>
+            <?php endforeach; ?>
+
         <?php elseif ($isStaff): ?>
 
             <?php foreach ($staffLinks as $link): ?>
@@ -121,10 +138,6 @@ function header_link_active(string $page, array $pages): string
             >
                 Announcements
             </a>
-
-            <?php if ($isAdmin): ?>
-                <a href="<?= BASE_URL ?>/staff/users.php">User Management</a>
-            <?php endif; ?>
 
         <?php else: ?>
 
@@ -273,6 +286,17 @@ function header_link_active(string $page, array $pages): string
                 Change Password
             </a>
 
+        <?php elseif ($isAdmin): ?>
+
+            <?php foreach ($adminLinks as $link): ?>
+                <a
+                    href="<?= BASE_URL . $link[1] ?>"
+                    class="<?= header_link_active($currentPage, $link[2]) ?>"
+                >
+                    <?= e($link[0]) ?>
+                </a>
+            <?php endforeach; ?>
+
         <?php elseif ($isStaff): ?>
 
             <?php foreach ($staffLinks as $link): ?>
@@ -287,10 +311,6 @@ function header_link_active(string $page, array $pages): string
             >
                 Announcements
             </a>
-
-            <?php if ($isAdmin): ?>
-                <a href="<?= BASE_URL ?>/staff/users.php">User Management</a>
-            <?php endif; ?>
 
         <?php else: ?>
 
