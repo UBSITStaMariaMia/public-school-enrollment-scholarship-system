@@ -3,7 +3,19 @@
 $user = current_user();
 $pageTitle = $pageTitle ?? 'Baguio City National High School Portal';
 
-$isStudent = $user && ($user['role_name'] ?? '') === 'Student';
+$roleName = $user['role_name'] ?? '';
+$isStudent = $user && $roleName === 'Student';
+
+$isStaff = $user && in_array($roleName, [
+    'Enrollment Committee',
+    'Scholarship Coordinator',
+    'School Registrar',
+    'System Administrator',
+    'Teacher'
+], true);
+
+$isAdmin = $roleName === 'System Administrator';
+
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 
 $isAccountPage = $isStudent && in_array(
@@ -11,6 +23,29 @@ $isAccountPage = $isStudent && in_array(
     ['profile.php', 'change_password.php'],
     true
 );
+
+$studentLinks = [
+    ['Dashboard', '/student/dashboard.php', ['dashboard.php']],
+    ['Enrollment', '/student/new_enrollment.php', ['new_enrollment.php', 'edit_enrollment.php']],
+    ['My Applications', '/student/my_applications.php', ['my_applications.php']],
+    ['Student Records', '/student/records.php', ['records.php']]
+];
+
+$staffLinks = [
+    ['Dashboard', '/staff/dashboard.php', ['dashboard.php']],
+    ['Subject Management', '/staff/subjects.php', ['subjects.php']],
+    ['Student Records', '/staff/student_records.php', ['student_records.php']],
+    ['Staff Records', '/staff/staff_records.php', ['staff_records.php']],
+    ['Sections', '/staff/sections.php', ['sections.php']],
+    ['Teacher Assignments', '/staff/teacher_assignments.php', ['teacher_assignments.php']],
+    ['Scholarships', '/staff/scholarship_programs.php', ['scholarship_programs.php']],
+    ['Reports', '/staff/reports.php', ['reports.php']]
+];
+
+function header_link_active(string $page, array $pages): string
+{
+    return in_array($page, $pages, true) ? 'active' : '';
+}
 ?>
 
 <!DOCTYPE html>
@@ -28,10 +63,11 @@ $isAccountPage = $isStudent && in_array(
 
 <header class="site-header">
 
+    <!-- SCHOOL BRAND -->
     <a
         class="brand"
         href="<?= $user
-            ? BASE_URL . dashboard_path_for_role($user['role_name'])
+            ? BASE_URL . dashboard_path_for_role($roleName)
             : BASE_URL . '/index.php' ?>"
     >
         <img
@@ -42,41 +78,90 @@ $isAccountPage = $isStudent && in_array(
         <span>Baguio City National High School Portal</span>
     </a>
 
-    <?php if ($isStudent): ?>
 
-        <!-- STUDENT TOP NAVIGATION -->
-        <nav class="main-nav student-main-nav" aria-label="Student navigation">
+    <!-- DESKTOP NAVIGATION -->
+    <nav class="main-nav <?= $isStudent ? 'student-main-nav' : '' ?>"
+         aria-label="Main navigation">
 
-            <a
-                href="<?= BASE_URL ?>/student/dashboard.php"
-                class="<?= $currentPage === 'dashboard.php' ? 'active' : '' ?>"
-                <?= $currentPage === 'dashboard.php' ? 'aria-current="page"' : '' ?>
-            >Dashboard</a>
+        <?php if ($isStudent): ?>
 
-            <a
-                href="<?= BASE_URL ?>/student/new_enrollment.php"
-                class="<?= in_array($currentPage, ['new_enrollment.php', 'edit_enrollment.php'], true) ? 'active' : '' ?>"
-                <?= in_array($currentPage, ['new_enrollment.php', 'edit_enrollment.php'], true) ? 'aria-current="page"' : '' ?>
-            >Enrollment</a>
+            <?php foreach ($studentLinks as $link): ?>
+                <a
+                    href="<?= BASE_URL . $link[1] ?>"
+                    class="<?= header_link_active($currentPage, $link[2]) ?>"
+                    <?= header_link_active($currentPage, $link[2]) ? 'aria-current="page"' : '' ?>
+                >
+                    <?= e($link[0]) ?>
+                </a>
+            <?php endforeach; ?>
 
-            <a
-                href="<?= BASE_URL ?>/student/my_applications.php"
-                class="<?= $currentPage === 'my_applications.php' ? 'active' : '' ?>"
-                <?= $currentPage === 'my_applications.php' ? 'aria-current="page"' : '' ?>
-            >My Applications</a>
+        <?php elseif ($isStaff): ?>
 
-            <a
-                href="<?= BASE_URL ?>/student/records.php"
-                class="<?= $currentPage === 'records.php' ? 'active' : '' ?>"
-                <?= $currentPage === 'records.php' ? 'aria-current="page"' : '' ?>
-            >Student Records</a>
+            <?php foreach ($staffLinks as $link): ?>
+                <a
+                    href="<?= BASE_URL . $link[1] ?>"
+                    class="<?= header_link_active($currentPage, $link[2]) ?>"
+                >
+                    <?= e($link[0]) ?>
+                </a>
+            <?php endforeach; ?>
 
-            <!-- ACCOUNT ICON: ALWAYS LAST -->
+            <?php if ($isAdmin): ?>
+                <a href="<?= BASE_URL ?>/staff/users.php">User Management</a>
+            <?php endif; ?>
+
+        <?php else: ?>
+
+    <a
+        href="<?= BASE_URL ?>/index.php"
+        class="<?= header_link_active($currentPage, ['index.php']) ?>"
+    >
+        Home
+    </a>
+
+    <a
+        href="<?= BASE_URL ?>/login.php"
+        class="<?= header_link_active($currentPage, ['login.php']) ?>"
+    >
+        Log In
+    </a>
+
+    <a
+        href="<?= BASE_URL ?>/register.php"
+        class="nav-register <?= header_link_active($currentPage, ['register.php']) ?>"
+    >
+        Student Registration
+    </a>
+
+<?php endif; ?>
+
+        <?php if ($user && !$isStudent): ?>
+            <a href="#" class="nav-logout" data-logout-trigger>
+                <img
+                    src="<?= BASE_URL ?>/assets/images/logout.png"
+                    alt=""
+                    class="logout-icon"
+                >
+                Logout
+            </a>
+        <?php endif; ?>
+
+    </nav>
+
+
+    <!-- HEADER ACTIONS -->
+    <div class="header-actions">
+
+        <?php if ($isStudent): ?>
+
+            <!-- PROFILE ICON: OPENS ACCOUNT SIDEBAR -->
             <button
                 type="button"
                 class="profile-icon-link"
                 id="accountIcon"
                 aria-label="Open account menu"
+                aria-controls="profileSidebar"
+                aria-expanded="false"
                 title="Account Menu"
             >
                 <img
@@ -86,72 +171,128 @@ $isAccountPage = $isStudent && in_array(
                 >
             </button>
 
-        </nav>
+        <?php endif; ?>
 
-    <?php else: ?>
 
-        <!-- STAFF AND PUBLIC NAVIGATION -->
-        <nav class="main-nav" aria-label="Main navigation">
+        <!-- HAMBURGER BUTTON -->
+        <button
+            type="button"
+            class="menu-toggle"
+            id="menuToggle"
+            aria-label="Open navigation menu"
+            aria-controls="mainSidebar"
+            aria-expanded="false"
+        >
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
 
-            <?php if ($user && in_array(
-                $user['role_name'],
-                ['Staff', 'Admin'],
-                true
-            )): ?>
-
-                <a href="<?= BASE_URL ?>/staff/dashboard.php">Dashboard</a>
-
-                <?php if ($user['role_name'] === 'Admin'): ?>
-                    <a href="<?= BASE_URL ?>/staff/users.php">User Management</a>
-                <?php endif; ?>
-
-                <a href="<?= BASE_URL ?>/staff/subjects.php">Subject Management</a>
-                <a href="<?= BASE_URL ?>/staff/student_records.php">Student Records</a>
-                <a href="<?= BASE_URL ?>/staff/staff_records.php">Staff Records</a>
-                <a href="<?= BASE_URL ?>/staff/sections.php">Sections</a>
-                <a href="<?= BASE_URL ?>/staff/teacher_assignments.php">Teacher Assignments</a>
-                <a href="<?= BASE_URL ?>/staff/scholarship_programs.php">Scholarships</a>
-                <a href="<?= BASE_URL ?>/staff/reports.php">Reports</a>
-
-            <?php elseif (!$user): ?>
-
-                <a href="<?= BASE_URL ?>/index.php">Home</a>
-                <a href="<?= BASE_URL ?>/announcements.php">Announcements</a>
-                <a href="<?= BASE_URL ?>/login.php">Log In</a>
-
-                <a class="nav-register" href="<?= BASE_URL ?>/register.php">
-                    Student Registration
-                </a>
-
-            <?php endif; ?>
-
-            <?php if ($user): ?>
-                <a href="#" class="nav-logout" data-logout-trigger>
-                    <img
-                        src="<?= BASE_URL ?>/assets/images/logout.png"
-                        alt=""
-                        class="logout-icon"
-                    >
-                    Logout
-                </a>
-            <?php endif; ?>
-
-        </nav>
-
-    <?php endif; ?>
+    </div>
 
 </header>
 
+
+<!-- MAIN NAVIGATION OVERLAY -->
+<div
+    class="main-sidebar-overlay"
+    id="mainSidebarOverlay"
+    aria-hidden="true"
+></div>
+
+
+<!-- MAIN NAVIGATION SIDEBAR -->
+<aside
+    class="main-sidebar"
+    id="mainSidebar"
+    aria-label="Main navigation menu"
+    aria-hidden="true"
+>
+
+    <div class="main-sidebar-header">
+        <h2>Navigation</h2>
+
+        <button
+            type="button"
+            class="main-sidebar-close"
+            id="mainSidebarClose"
+            aria-label="Close navigation menu"
+        >&times;</button>
+    </div>
+
+    <nav class="main-sidebar-nav">
+
+        <?php if ($isStudent): ?>
+
+            <?php foreach ($studentLinks as $link): ?>
+                <a
+                    href="<?= BASE_URL . $link[1] ?>"
+                    class="<?= header_link_active($currentPage, $link[2]) ?>"
+                >
+                    <?= e($link[0]) ?>
+                </a>
+            <?php endforeach; ?>
+
+            <div class="sidebar-divider"></div>
+
+            <a href="<?= BASE_URL ?>/student/profile.php">
+                My Profile
+            </a>
+
+            <a href="<?= BASE_URL ?>/student/change_password.php">
+                Change Password
+            </a>
+
+        <?php elseif ($isStaff): ?>
+
+            <?php foreach ($staffLinks as $link): ?>
+                <a href="<?= BASE_URL . $link[1] ?>">
+                    <?= e($link[0]) ?>
+                </a>
+            <?php endforeach; ?>
+
+            <?php if ($isAdmin): ?>
+                <a href="<?= BASE_URL ?>/staff/users.php">User Management</a>
+            <?php endif; ?>
+
+        <?php else: ?>
+
+            <a href="<?= BASE_URL ?>/index.php">Home</a>
+            <a href="<?= BASE_URL ?>/login.php">Log In</a>
+
+            <a href="<?= BASE_URL ?>/register.php">
+                Student Registration
+            </a>
+
+        <?php endif; ?>
+
+    </nav>
+
+    <?php if ($user): ?>
+        <div class="main-sidebar-footer">
+            <a href="#" class="nav-logout" data-logout-trigger>
+                <img
+                    src="<?= BASE_URL ?>/assets/images/logout.png"
+                    alt=""
+                    class="logout-icon"
+                >
+                Logout
+            </a>
+        </div>
+    <?php endif; ?>
+
+</aside>
+
+
+<!-- STUDENT ACCOUNT SIDEBAR -->
 <?php if ($isStudent): ?>
 
-    <!-- SIDEBAR OVERLAY -->
     <div
         class="profile-sidebar-overlay"
         id="profileSidebarOverlay"
         aria-hidden="true"
     ></div>
 
-    <!-- COLLAPSIBLE ACCOUNT SIDEBAR -->
     <aside
         class="profile-sidebar"
         id="profileSidebar"
@@ -175,7 +316,6 @@ $isAccountPage = $isStudent && in_array(
             <a
                 href="<?= BASE_URL ?>/student/profile.php"
                 class="<?= $currentPage === 'profile.php' ? 'active' : '' ?>"
-                <?= $currentPage === 'profile.php' ? 'aria-current="page"' : '' ?>
             >
                 My Profile
             </a>
@@ -183,7 +323,6 @@ $isAccountPage = $isStudent && in_array(
             <a
                 href="<?= BASE_URL ?>/student/change_password.php"
                 class="<?= $currentPage === 'change_password.php' ? 'active' : '' ?>"
-                <?= $currentPage === 'change_password.php' ? 'aria-current="page"' : '' ?>
             >
                 Change Password
             </a>
@@ -205,14 +344,12 @@ $isAccountPage = $isStudent && in_array(
 
 <?php endif; ?>
 
+
+<!-- LOGOUT CONFIRMATION MODAL -->
 <?php if ($user): ?>
 
-    <!-- LOGOUT CONFIRMATION MODAL -->
-    <div
-        class="logout-modal"
-        id="logoutModal"
-        aria-hidden="true"
-    >
+    <div class="logout-modal" id="logoutModal" aria-hidden="true">
+
         <div
             class="logout-modal-content"
             role="dialog"
@@ -238,7 +375,6 @@ $isAccountPage = $isStudent && in_array(
             </div>
 
             <div class="logout-modal-body">
-
                 <h3 id="logoutTitle">
                     Are you sure you want to log out?
                 </h3>
@@ -247,7 +383,6 @@ $isAccountPage = $isStudent && in_array(
                     You will be signed out of your account and redirected
                     to the portal's homepage.
                 </p>
-
             </div>
 
             <div class="logout-modal-actions">
@@ -256,10 +391,8 @@ $isAccountPage = $isStudent && in_array(
                     Cancel
                 </button>
 
-                <form
-                    method="POST"
-                    action="<?= BASE_URL ?>/logout.php"
-                >
+                <form method="POST" action="<?= BASE_URL ?>/logout.php">
+
                     <input
                         type="hidden"
                         name="csrf_token"
@@ -269,63 +402,139 @@ $isAccountPage = $isStudent && in_array(
                     <button type="submit" class="confirm-logout-button">
                         Yes, Log Out
                     </button>
+
                 </form>
 
             </div>
 
         </div>
+
     </div>
 
 <?php endif; ?>
 
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    // ACCOUNT SIDEBAR
+    // MAIN HAMBURGER SIDEBAR
+    const menuToggle = document.getElementById('menuToggle');
+    const mainSidebar = document.getElementById('mainSidebar');
+    const mainSidebarClose = document.getElementById('mainSidebarClose');
+    const mainSidebarOverlay = document.getElementById('mainSidebarOverlay');
+
+    // STUDENT ACCOUNT SIDEBAR
     const accountIcon = document.getElementById('accountIcon');
-    const sidebar = document.getElementById('profileSidebar');
-    const sidebarClose = document.getElementById('profileSidebarClose');
-    const sidebarOverlay = document.getElementById('profileSidebarOverlay');
+    const profileSidebar = document.getElementById('profileSidebar');
+    const profileSidebarClose = document.getElementById('profileSidebarClose');
+    const profileSidebarOverlay = document.getElementById('profileSidebarOverlay');
 
-    if (accountIcon && sidebar && sidebarClose && sidebarOverlay) {
+    function openMainSidebar() {
+        if (!mainSidebar || !mainSidebarOverlay) return;
 
-        function openSidebar() {
-            sidebar.classList.add('active');
-            sidebarOverlay.classList.add('active');
+        closeAccountSidebar();
 
-            sidebar.setAttribute('aria-hidden', 'false');
-            sidebarOverlay.setAttribute('aria-hidden', 'false');
+        mainSidebar.classList.add('active');
+        mainSidebarOverlay.classList.add('active');
 
-            document.body.classList.add('sidebar-open');
+        mainSidebar.setAttribute('aria-hidden', 'false');
+        mainSidebarOverlay.setAttribute('aria-hidden', 'false');
+
+        if (menuToggle) {
+            menuToggle.setAttribute('aria-expanded', 'true');
         }
 
-        function closeSidebar() {
-            sidebar.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
+        document.body.classList.add('main-sidebar-open');
+    }
 
-            sidebar.setAttribute('aria-hidden', 'true');
-            sidebarOverlay.setAttribute('aria-hidden', 'true');
+    function closeMainSidebar() {
+        if (!mainSidebar || !mainSidebarOverlay) return;
 
-            document.body.classList.remove('sidebar-open');
+        mainSidebar.classList.remove('active');
+        mainSidebarOverlay.classList.remove('active');
+
+        mainSidebar.setAttribute('aria-hidden', 'true');
+        mainSidebarOverlay.setAttribute('aria-hidden', 'true');
+
+        if (menuToggle) {
+            menuToggle.setAttribute('aria-expanded', 'false');
         }
 
-        // Open sidebar when account icon is clicked.
-        accountIcon.addEventListener('click', openSidebar);
+        document.body.classList.remove('main-sidebar-open');
+    }
 
-        // Close sidebar.
-        sidebarClose.addEventListener('click', closeSidebar);
-        sidebarOverlay.addEventListener('click', closeSidebar);
+    function openAccountSidebar() {
+        if (!profileSidebar || !profileSidebarOverlay) return;
 
-        // Close sidebar using Escape.
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                closeSidebar();
-            }
+        closeMainSidebar();
+
+        profileSidebar.classList.add('active');
+        profileSidebarOverlay.classList.add('active');
+
+        profileSidebar.setAttribute('aria-hidden', 'false');
+        profileSidebarOverlay.setAttribute('aria-hidden', 'false');
+
+        if (accountIcon) {
+            accountIcon.setAttribute('aria-expanded', 'true');
+        }
+
+        document.body.classList.add('sidebar-open');
+    }
+
+    function closeAccountSidebar() {
+        if (!profileSidebar || !profileSidebarOverlay) return;
+
+        profileSidebar.classList.remove('active');
+        profileSidebarOverlay.classList.remove('active');
+
+        profileSidebar.setAttribute('aria-hidden', 'true');
+        profileSidebarOverlay.setAttribute('aria-hidden', 'true');
+
+        if (accountIcon) {
+            accountIcon.setAttribute('aria-expanded', 'false');
+        }
+
+        document.body.classList.remove('sidebar-open');
+    }
+    // EVENT LISTENERS
+    if (menuToggle) {
+        menuToggle.addEventListener('click', openMainSidebar);
+    }
+
+    if (mainSidebarClose) {
+        mainSidebarClose.addEventListener('click', closeMainSidebar);
+    }
+
+    if (mainSidebarOverlay) {
+        mainSidebarOverlay.addEventListener('click', closeMainSidebar);
+    }
+
+    if (accountIcon) {
+        accountIcon.addEventListener('click', openAccountSidebar);
+    }
+
+    if (profileSidebarClose) {
+        profileSidebarClose.addEventListener('click', closeAccountSidebar);
+    }
+
+    if (profileSidebarOverlay) {
+        profileSidebarOverlay.addEventListener('click', closeAccountSidebar);
+    }
+
+    // CLOSE SIDEBARS AFTER NAVIGATION
+    if (mainSidebar) {
+        mainSidebar.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                if (!link.hasAttribute('data-logout-trigger')) {
+                    closeMainSidebar();
+                }
+            });
         });
+    }
 
-        // Close sidebar when navigating through its links.
-        sidebar.querySelectorAll('nav a').forEach(function (link) {
-            link.addEventListener('click', closeSidebar);
+    if (profileSidebar) {
+        profileSidebar.querySelectorAll('nav a').forEach(function (link) {
+            link.addEventListener('click', closeAccountSidebar);
         });
     }
 
@@ -334,42 +543,52 @@ document.addEventListener('DOMContentLoaded', function () {
     const triggers = document.querySelectorAll('[data-logout-trigger]');
     const cancelButton = document.getElementById('cancelLogout');
 
-    if (!modal || !cancelButton) {
-        return;
-    }
-
-    function openModal(event) {
+    function openLogoutModal(event) {
         event.preventDefault();
+
+        closeMainSidebar();
+        closeAccountSidebar();
+
+        if (!modal) return;
 
         modal.classList.add('active');
         modal.setAttribute('aria-hidden', 'false');
 
-        cancelButton.focus();
+        if (cancelButton) {
+            cancelButton.focus();
+        }
     }
 
-    function closeModal() {
+    function closeLogoutModal() {
+        if (!modal) return;
+
         modal.classList.remove('active');
         modal.setAttribute('aria-hidden', 'true');
     }
 
     triggers.forEach(function (trigger) {
-        trigger.addEventListener('click', openModal);
+        trigger.addEventListener('click', openLogoutModal);
     });
 
-    cancelButton.addEventListener('click', closeModal);
+    if (cancelButton) {
+        cancelButton.addEventListener('click', closeLogoutModal);
+    }
 
-    modal.addEventListener('click', function (event) {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
+    if (modal) {
+        modal.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                closeLogoutModal();
+            }
+        });
+    }
 
+
+    // ESCAPE KEY
     document.addEventListener('keydown', function (event) {
-        if (
-            event.key === 'Escape' &&
-            modal.classList.contains('active')
-        ) {
-            closeModal();
+        if (event.key === 'Escape') {
+            closeMainSidebar();
+            closeAccountSidebar();
+            closeLogoutModal();
         }
     });
 
