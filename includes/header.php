@@ -71,9 +71,7 @@ $isAccountPage = $isStudent && in_array(
                 <?= $currentPage === 'records.php' ? 'aria-current="page"' : '' ?>
             >Student Records</a>
 
-         
-
-           <!-- ACCOUNT ICON: ALWAYS LAST -->
+            <!-- ACCOUNT ICON: ALWAYS LAST -->
             <button
                 type="button"
                 class="profile-icon-link"
@@ -145,7 +143,6 @@ $isAccountPage = $isStudent && in_array(
 </header>
 
 <?php if ($isStudent): ?>
-    
 
     <!-- SIDEBAR OVERLAY -->
     <div
@@ -285,52 +282,52 @@ $isAccountPage = $isStudent && in_array(
 document.addEventListener('DOMContentLoaded', function () {
 
     // ACCOUNT SIDEBAR
-const accountIcon = document.getElementById('accountIcon');
-const sidebar = document.getElementById('profileSidebar');
-const sidebarClose = document.getElementById('profileSidebarClose');
-const sidebarOverlay = document.getElementById('profileSidebarOverlay');
+    const accountIcon = document.getElementById('accountIcon');
+    const sidebar = document.getElementById('profileSidebar');
+    const sidebarClose = document.getElementById('profileSidebarClose');
+    const sidebarOverlay = document.getElementById('profileSidebarOverlay');
 
-if (accountIcon && sidebar && sidebarClose && sidebarOverlay) {
+    if (accountIcon && sidebar && sidebarClose && sidebarOverlay) {
 
-    function openSidebar() {
-        sidebar.classList.add('active');
-        sidebarOverlay.classList.add('active');
+        function openSidebar() {
+            sidebar.classList.add('active');
+            sidebarOverlay.classList.add('active');
 
-        sidebar.setAttribute('aria-hidden', 'false');
-        sidebarOverlay.setAttribute('aria-hidden', 'false');
+            sidebar.setAttribute('aria-hidden', 'false');
+            sidebarOverlay.setAttribute('aria-hidden', 'false');
 
-        document.body.classList.add('sidebar-open');
-    }
-
-    function closeSidebar() {
-        sidebar.classList.remove('active');
-        sidebarOverlay.classList.remove('active');
-
-        sidebar.setAttribute('aria-hidden', 'true');
-        sidebarOverlay.setAttribute('aria-hidden', 'true');
-
-        document.body.classList.remove('sidebar-open');
-    }
-
-    // Open sidebar when account icon is clicked.
-    accountIcon.addEventListener('click', openSidebar);
-
-    // Close sidebar.
-    sidebarClose.addEventListener('click', closeSidebar);
-    sidebarOverlay.addEventListener('click', closeSidebar);
-
-    // Close sidebar using Escape.
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            closeSidebar();
+            document.body.classList.add('sidebar-open');
         }
-    });
 
-    // Close sidebar when navigating through its links.
-    sidebar.querySelectorAll('nav a').forEach(function (link) {
-        link.addEventListener('click', closeSidebar);
-    });
-}
+        function closeSidebar() {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+
+            sidebar.setAttribute('aria-hidden', 'true');
+            sidebarOverlay.setAttribute('aria-hidden', 'true');
+
+            document.body.classList.remove('sidebar-open');
+        }
+
+        // Open sidebar when account icon is clicked.
+        accountIcon.addEventListener('click', openSidebar);
+
+        // Close sidebar.
+        sidebarClose.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        // Close sidebar using Escape.
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeSidebar();
+            }
+        });
+
+        // Close sidebar when navigating through its links.
+        sidebar.querySelectorAll('nav a').forEach(function (link) {
+            link.addEventListener('click', closeSidebar);
+        });
+    }
 
     // LOGOUT CONFIRMATION MODAL
     const modal = document.getElementById('logoutModal');
