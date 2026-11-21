@@ -44,9 +44,10 @@ $staffLinks = [
 
 $adminLinks = [
     ['Dashboard', '/admin/dashboard.php', ['dashboard.php']],
-    ['User Management', '/admin/user_management.php', ['user_management.php']]
+    ['User Management', '/admin/user_management.php', ['user_management.php']],
+    ['Student Records', '/admin/student_records.php', ['student_records.php']],
+    ['Teacher and Staff Records', '/admin/staff_records.php', ['staff_records.php']]
 ];
-
 function header_link_active(string $page, array $pages): string
 {
     return in_array($page, $pages, true) ? 'active' : '';
