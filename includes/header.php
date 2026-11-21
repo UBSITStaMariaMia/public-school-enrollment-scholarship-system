@@ -95,6 +95,14 @@ function header_link_active(string $page, array $pages): string
                 </a>
             <?php endforeach; ?>
 
+            <a
+                href="<?= BASE_URL ?>/announcements.php"
+                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
+                <?= header_link_active($currentPage, ['announcements.php']) ? 'aria-current="page"' : '' ?>
+            >
+                Announcements
+            </a>
+
         <?php elseif ($isStaff): ?>
 
             <?php foreach ($staffLinks as $link): ?>
@@ -105,6 +113,14 @@ function header_link_active(string $page, array $pages): string
                     <?= e($link[0]) ?>
                 </a>
             <?php endforeach; ?>
+
+            <a
+                href="<?= BASE_URL ?>/announcements.php"
+                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
+                <?= header_link_active($currentPage, ['announcements.php']) ? 'aria-current="page"' : '' ?>
+            >
+                Announcements
+            </a>
 
             <?php if ($isAdmin): ?>
                 <a href="<?= BASE_URL ?>/staff/users.php">User Management</a>
@@ -119,6 +135,13 @@ function header_link_active(string $page, array $pages): string
         Home
     </a>
 
+            <a
+                href="<?= BASE_URL ?>/announcements.php"
+                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
+                <?= header_link_active($currentPage, ['announcements.php']) ? 'aria-current="page"' : '' ?>
+            >
+                Announcements
+            </a>
     <a
         href="<?= BASE_URL ?>/login.php"
         class="<?= header_link_active($currentPage, ['login.php']) ?>"
@@ -233,6 +256,13 @@ function header_link_active(string $page, array $pages): string
                 </a>
             <?php endforeach; ?>
 
+            <a
+                href="<?= BASE_URL ?>/announcements.php"
+                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
+            >
+                Announcements
+            </a>
+
             <div class="sidebar-divider"></div>
 
             <a href="<?= BASE_URL ?>/student/profile.php">
@@ -251,6 +281,13 @@ function header_link_active(string $page, array $pages): string
                 </a>
             <?php endforeach; ?>
 
+            <a
+                href="<?= BASE_URL ?>/announcements.php"
+                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
+            >
+                Announcements
+            </a>
+
             <?php if ($isAdmin): ?>
                 <a href="<?= BASE_URL ?>/staff/users.php">User Management</a>
             <?php endif; ?>
@@ -258,6 +295,12 @@ function header_link_active(string $page, array $pages): string
         <?php else: ?>
 
             <a href="<?= BASE_URL ?>/index.php">Home</a>
+            <a
+                href="<?= BASE_URL ?>/announcements.php"
+                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
+            >
+                Announcements
+            </a>
             <a href="<?= BASE_URL ?>/login.php">Log In</a>
 
             <a href="<?= BASE_URL ?>/register.php">
