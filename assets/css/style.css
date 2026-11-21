@@ -2222,3 +2222,101 @@ body.sidebar-open {
 .site-header .main-nav a:hover {
     color: var(--maroon) !important;
 }
+
+/* =========================================
+   MERGED FROM CURRENT BRANCH: PHONE NUMBER AND PROFILE EDIT STYLES
+   ========================================= */
+
+/* =========================================
+   UNIFIED PHILIPPINE PHONE NUMBER FIELDS
+   ========================================= */
+
+.phone-input-wrapper {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 45px;
+    border: 1px solid #cfd4dc;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.phone-input-wrapper:focus-within {
+    outline: 3px solid rgba(100, 27, 50, .12);
+    border-color: var(--maroon);
+}
+
+.phone-prefix {
+    flex: 0 0 auto;
+    padding: 10px 0 10px 12px;
+    color: var(--ink);
+    font: inherit;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.phone-divider {
+    flex: 0 0 1px;
+    height: 24px;
+    margin: 0 12px;
+    background: var(--line);
+}
+
+.phone-input-wrapper input {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    margin: 0;
+    padding: 10px 12px 10px 0;
+    border: 0;
+    border-radius: 0;
+    outline: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.phone-input-wrapper input:focus {
+    border: 0;
+    outline: 0;
+    box-shadow: none;
+}
+
+.phone-input-wrapper input:disabled {
+    opacity: 1;
+    color: var(--ink);
+    -webkit-text-fill-color: var(--ink);
+    cursor: default;
+}
+
+.phone-input-readonly {
+    background: #fff;
+}
+
+
+/* STUDENT PROFILE: VISUALLY DISABLE NON-EDITABLE FIELDS IN EDIT MODE */
+.profile-editing .form-grid input:disabled,
+.profile-editing .form-grid textarea:disabled,
+.profile-editing .form-grid select:disabled {
+    background: #eef0f3;
+    border-color: #d7dbe1;
+    color: #737b86;
+    -webkit-text-fill-color: #737b86;
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+.profile-editing .form-grid .phone-input-readonly {
+    background: #eef0f3;
+    border-color: #d7dbe1;
+    cursor: not-allowed;
+}
+
+.profile-editing .form-grid .phone-input-readonly .phone-prefix {
+    color: #737b86;
+}
+
+.profile-editing .form-grid .phone-input-readonly .phone-divider {
+    background: #d7dbe1;
+}
