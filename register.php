@@ -108,6 +108,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Email address must not exceed 150 characters.';
     }
 
+    // Validate LRN: optional, but exactly 12 digits when provided.
+    if ($values['lrn'] !== '' && !preg_match('/^[0-9]{12}$/', $values['lrn'])) {
+        $errors[] = 'LRN must contain exactly 12 digits.';
+    }
+
     // Validate sex.
     $allowedSex = ['', 'Male', 'Female', 'Prefer not to say'];
 
@@ -135,6 +140,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ) {
             $errors[] = 'Enter a valid email address for ' .
                 str_replace('_', ' ', $field) . '.';
+        }
+    }
+
+    // Validate Philippine contact numbers (10 digits after the +63 prefix).
+    $phoneFields = [
+        'contact_number' => 'Student',
+        'mother_contact_number' => 'Mother',
+        'father_contact_number' => 'Father',
+        'guardian_contact_number' => 'Guardian'
+    ];
+
+    foreach ($phoneFields as $field => $person) {
+        if (
+            $values[$field] !== '' &&
+            !preg_match('/^9[0-9]{9}$/', $values[$field])
+        ) {
+            $errors[] = $person . ' contact number must contain exactly 10 digits after +63.';
         }
     }
 
@@ -254,6 +276,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Validate LRN when provided. DepEd LRNs contain exactly 12 digits.
+    if (
+        $values['lrn'] !== '' &&
+        !preg_match('/^[0-9]{12}$/', $values['lrn'])
+    ) {
+        $errors[] = 'LRN must contain exactly 12 digits.';
+    }
+
     // Check duplicate LRN when provided.
     if (!$errors && $values['lrn'] !== '') {
         $lrnCheck = $pdo->prepare(
@@ -367,7 +397,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'civil_status' => $values['civil_status'] ?: null,
                 'nationality' => $values['nationality'] ?: null,
                 'religion' => $values['religion'] ?: null,
-                'contact_number' => $values['contact_number'] ?: null,
+                'contact_number' => $values['contact_number'] !== '' ? '+63' . $values['contact_number'] : null,
                 'current_address' => $values['current_address'] ?: null,
                 'permanent_address' => $values['permanent_address'] ?: null
             ]);
@@ -407,12 +437,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'student_id' => $studentId,
                 'mother_name' => $values['mother_name'] ?: null,
                 'mother_occupation' => $values['mother_occupation'] ?: null,
-                'mother_contact_number' => $values['mother_contact_number'] ?: null,
+                'mother_contact_number' => $values['mother_contact_number'] !== '' ? '+63' . $values['mother_contact_number'] : null,
                 'mother_email' => $values['mother_email'] ?: null,
                 'mother_address' => $values['mother_address'] ?: null,
                 'father_name' => $values['father_name'] ?: null,
                 'father_occupation' => $values['father_occupation'] ?: null,
-                'father_contact_number' => $values['father_contact_number'] ?: null,
+                'father_contact_number' => $values['father_contact_number'] !== '' ? '+63' . $values['father_contact_number'] : null,
                 'father_email' => $values['father_email'] ?: null,
                 'father_address' => $values['father_address'] ?: null
             ]);
@@ -445,7 +475,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'student_id' => $studentId,
                     'full_name' => $values['guardian_name'],
                     'relationship' => $values['guardian_relationship'] ?: null,
-                    'contact_number' => $values['guardian_contact_number'] ?: null,
+                    'contact_number' => $values['guardian_contact_number'] !== '' ? '+63' . $values['guardian_contact_number'] : null,
                     'email' => $values['guardian_email'] ?: null,
                     'occupation' => $values['guardian_occupation'] ?: null,
                     'address' => $values['guardian_address'] ?: null
@@ -485,6 +515,148 @@ $pageTitle = 'Student Registration';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
+<style>
+    .registration-form-grid {
+        row-gap: 24px;
+        column-gap: 24px;
+    }
+
+    .registration-form-grid > label {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .registration-form-grid > label input,
+    .registration-form-grid > label select,
+    .registration-form-grid > label textarea {
+        margin-top: 0;
+    }
+
+    /* Prevent users from manually resizing address textareas. */
+    .registration-form-grid textarea {
+        resize: none;
+    }
+
+    .registration-form-grid > h2 {
+        margin-top: 12px;
+        margin-bottom: 0;
+    }
+
+    .registration-form-grid .inline-label {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+
+    .registration-form-grid .inline-label .muted {
+        display: inline;
+        margin: 0;
+    }
+
+    .registration-form-grid .phone-input-wrapper {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 48px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .registration-form-grid .phone-prefix {
+        padding: 0 12px;
+        color: #374151;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .registration-form-grid .phone-divider {
+        width: 1px;
+        align-self: stretch;
+        background: #cbd5e1;
+    }
+
+    .registration-form-grid .phone-input-wrapper input {
+        flex: 1;
+        min-width: 0;
+        width: 100%;
+        border: 0;
+        outline: 0;
+        box-shadow: none;
+        margin: 0;
+    }
+
+    .registration-form-grid .phone-input-wrapper:focus-within {
+        border-color: #7b1e3a;
+        box-shadow: 0 0 0 3px rgba(123, 30, 58, 0.12);
+    }
+
+
+    /* Registration reminder modal: self-contained so it works even if style.css is cached or not updated. */
+    .registration-reminder-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(20, 24, 32, .70);
+        backdrop-filter: blur(3px);
+        animation: reminderFadeIn 260ms ease-out both;
+    }
+    .registration-reminder-modal {
+        width: min(100%, 650px);
+        max-height: 85vh;
+        overflow-y: auto;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        background: #fff;
+        color: #1f2937;
+        box-shadow: 0 18px 55px rgba(0, 0, 0, .28);
+        animation: reminderSlideIn 320ms cubic-bezier(.2, .8, .2, 1) both;
+        transform-origin: center;
+    }
+    @keyframes reminderFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @keyframes reminderSlideIn {
+        from { opacity: 0; transform: translateY(18px) scale(.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .registration-reminder-overlay,
+        .registration-reminder-modal { animation: none; }
+    }
+    .registration-reminder-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 17px 24px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .registration-reminder-header h2 { margin: 0; color: #64152d; font-size: 1.15rem; line-height: 1.35; }
+    .registration-reminder-close {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 36px; height: 36px; padding: 0; border: 0; border-radius: 8px;
+        background: transparent; color: #6b7280; font-size: 1.8rem; line-height: 1; cursor: pointer;
+    }
+    .registration-reminder-body { padding: 22px 26px 26px; line-height: 1.6; }
+    .registration-reminder-body > p { margin: 0 0 16px; color: #6b7280; }
+    .registration-reminder-body ul { margin: 0; padding-left: 22px; }
+    .registration-reminder-body li { margin: 0 0 12px; }
+    .registration-reminder-note { margin-top: 20px; padding: 14px 16px; border-left: 4px solid #7b1e3a; border-radius: 7px; background: #f8f1f4; color: #4b2634; }
+    .registration-reminder-actions { display: flex; justify-content: flex-end; margin-top: 22px; }
+    .registration-reminder-confirm { border: 0; border-radius: 8px; padding: 11px 20px; background: #7b1e3a; color: #fff; font-weight: 600; cursor: pointer; }
+    body.reminder-modal-open { overflow: hidden; }
+    @media (max-width: 600px) { .registration-reminder-overlay { padding: 12px; } .registration-reminder-modal { max-height: 90vh; } .registration-reminder-body { padding: 18px; } }
+</style>
+
 <section class="form-card form-card-wide">
 
     <p class="eyebrow">Create an account</p>
@@ -521,7 +693,7 @@ require_once __DIR__ . '/includes/header.php';
 
     <?php if (!$success): ?>
 
-        <form method="post" class="form-grid">
+        <form method="post" class="form-grid registration-form-grid">
 
             <input
                 type="hidden"
@@ -536,7 +708,11 @@ require_once __DIR__ . '/includes/header.php';
                 <input
                     type="text"
                     name="lrn"
-                    maxlength="20"
+                    inputmode="numeric"
+                    maxlength="12"
+                    pattern="[0-9]{12}"
+                    title="LRN must contain exactly 12 digits."
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 12)"
                     value="<?= e($values['lrn']) ?>"
                 >
             </label>
@@ -554,8 +730,10 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Middle Name
-                <span class="muted">(Optional)</span>
+                <span class="inline-label">
+                    <span>Middle Name</span>
+                    <span class="muted">(Optional)</span>
+                </span>
                 <input
                     type="text"
                     name="middle_name"
@@ -652,12 +830,22 @@ require_once __DIR__ . '/includes/header.php';
 
             <label>
                 Contact Number
-                <input
-                    type="text"
-                    name="contact_number"
-                    maxlength="30"
-                    value="<?= e($values['contact_number']) ?>"
-                >
+                <div class="phone-input-wrapper">
+                    <span class="phone-prefix">+63</span>
+                    <span class="phone-divider" aria-hidden="true"></span>
+                    <input
+                        type="tel"
+                        name="contact_number"
+                        inputmode="numeric"
+                        pattern="9[0-9]{9}"
+                        minlength="10"
+                        maxlength="10"
+                        placeholder="9123456789"
+                        title="Enter exactly 10 digits after +63."
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                        value="<?= e($values['contact_number']) ?>"
+                    >
+                </div>
             </label>
 
             <label>
@@ -694,12 +882,22 @@ require_once __DIR__ . '/includes/header.php';
 
             <label>
                 Contact Number
-                <input
-                    type="text"
-                    name="mother_contact_number"
-                    maxlength="30"
-                    value="<?= e($values['mother_contact_number']) ?>"
-                >
+                <div class="phone-input-wrapper">
+                    <span class="phone-prefix">+63</span>
+                    <span class="phone-divider" aria-hidden="true"></span>
+                    <input
+                        type="tel"
+                        name="mother_contact_number"
+                        inputmode="numeric"
+                        pattern="9[0-9]{9}"
+                        minlength="10"
+                        maxlength="10"
+                        placeholder="9123456789"
+                        title="Enter exactly 10 digits after +63."
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                        value="<?= e($values['mother_contact_number']) ?>"
+                    >
+                </div>
             </label>
 
             <label>
@@ -741,12 +939,22 @@ require_once __DIR__ . '/includes/header.php';
 
             <label>
                 Contact Number
-                <input
-                    type="text"
-                    name="father_contact_number"
-                    maxlength="30"
-                    value="<?= e($values['father_contact_number']) ?>"
-                >
+                <div class="phone-input-wrapper">
+                    <span class="phone-prefix">+63</span>
+                    <span class="phone-divider" aria-hidden="true"></span>
+                    <input
+                        type="tel"
+                        name="father_contact_number"
+                        inputmode="numeric"
+                        pattern="9[0-9]{9}"
+                        minlength="10"
+                        maxlength="10"
+                        placeholder="9123456789"
+                        title="Enter exactly 10 digits after +63."
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                        value="<?= e($values['father_contact_number']) ?>"
+                    >
+                </div>
             </label>
 
             <label>
@@ -794,12 +1002,22 @@ require_once __DIR__ . '/includes/header.php';
 
             <label>
                 Contact Number
-                <input
-                    type="text"
-                    name="guardian_contact_number"
-                    maxlength="30"
-                    value="<?= e($values['guardian_contact_number']) ?>"
-                >
+                <div class="phone-input-wrapper">
+                    <span class="phone-prefix">+63</span>
+                    <span class="phone-divider" aria-hidden="true"></span>
+                    <input
+                        type="tel"
+                        name="guardian_contact_number"
+                        inputmode="numeric"
+                        pattern="9[0-9]{9}"
+                        minlength="10"
+                        maxlength="10"
+                        placeholder="9123456789"
+                        title="Enter exactly 10 digits after +63."
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                        value="<?= e($values['guardian_contact_number']) ?>"
+                    >
+                </div>
             </label>
 
             <label>
@@ -865,5 +1083,98 @@ require_once __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
 </section>
+
+
+
+<div
+    class="registration-reminder-overlay"
+    id="registrationReminder"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="registrationReminderTitle"
+    aria-describedby="registrationReminderDescription"
+>
+    <div class="registration-reminder-modal">
+        <div class="registration-reminder-header">
+            <h2 id="registrationReminderTitle">BCNHS Registration Reminders</h2>
+            <button
+                type="button"
+                class="registration-reminder-close"
+                id="closeRegistrationReminder"
+                aria-label="Close reminder"
+            >&times;</button>
+        </div>
+
+        <div class="registration-reminder-body" id="registrationReminderDescription">
+            <p>
+                Before proceeding, please read these reminders carefully:
+            </p>
+
+            <ul>
+                <li>
+                    <strong>Provide accurate information.</strong>
+                    Make sure that all details entered in the registration form
+                    are correct, complete, and consistent with the student's
+                    official documents. Check the spelling of names, birth date
+                    and birth year, LRN, contact numbers, and parent or guardian
+                    information before submitting.
+                </li>
+                <li>
+                    <strong>Review your information before submission.</strong>
+                    Incorrect or incomplete details may cause delays during
+                    enrollment checking and document verification.
+                </li>
+            </ul>
+
+            <div class="registration-reminder-note">
+                Please ensure that the information you submit is truthful and
+                accurate. The school may verify the details against the
+                submitted enrollment documents.
+            </div>
+
+            <div class="registration-reminder-actions">
+                <button
+                    type="button"
+                    class="registration-reminder-confirm"
+                    id="confirmRegistrationReminder"
+                >
+                    I Understand
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const overlay = document.getElementById('registrationReminder');
+    const closeButton = document.getElementById('closeRegistrationReminder');
+    const confirmButton = document.getElementById('confirmRegistrationReminder');
+
+    if (!overlay) return;
+
+    function closeReminder() {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('reminder-modal-open');
+    }
+
+    // Always show the reminder whenever the registration page is loaded.
+    overlay.style.display = 'flex';
+    overlay.removeAttribute('aria-hidden');
+    document.body.classList.add('reminder-modal-open');
+
+    if (closeButton) closeButton.addEventListener('click', closeReminder);
+    if (confirmButton) confirmButton.addEventListener('click', closeReminder);
+
+    overlay.addEventListener('click', function (event) {
+        if (event.target === overlay) closeReminder();
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && overlay.style.display !== 'none') closeReminder();
+    });
+})();
+</script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
