@@ -423,6 +423,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const mainSidebarClose = document.getElementById('mainSidebarClose');
     const mainSidebarOverlay = document.getElementById('mainSidebarOverlay');
 
+    // STUDENT ACCOUNT SIDEBAR
+    const accountIcon = document.getElementById('accountIcon');
+    const profileSidebar = document.getElementById('profileSidebar');
+    const profileSidebarClose = document.getElementById('profileSidebarClose');
+    const profileSidebarOverlay = document.getElementById('profileSidebarOverlay');
+
     function openMainSidebar() {
         if (!mainSidebar || !mainSidebarOverlay) return;
 
@@ -434,7 +440,10 @@ document.addEventListener('DOMContentLoaded', function () {
         mainSidebar.setAttribute('aria-hidden', 'false');
         mainSidebarOverlay.setAttribute('aria-hidden', 'false');
 
-        menuToggle.setAttribute('aria-expanded', 'true');
+        if (menuToggle) {
+            menuToggle.setAttribute('aria-expanded', 'true');
+        }
+
         document.body.classList.add('main-sidebar-open');
     }
 
@@ -453,13 +462,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.body.classList.remove('main-sidebar-open');
     }
-
-
-    // STUDENT ACCOUNT SIDEBAR
-    const accountIcon = document.getElementById('accountIcon');
-    const profileSidebar = document.getElementById('profileSidebar');
-    const profileSidebarClose = document.getElementById('profileSidebarClose');
-    const profileSidebarOverlay = document.getElementById('profileSidebarOverlay');
 
     function openAccountSidebar() {
         if (!profileSidebar || !profileSidebarOverlay) return;
@@ -494,8 +496,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.body.classList.remove('sidebar-open');
     }
-
-
     // EVENT LISTENERS
     if (menuToggle) {
         menuToggle.addEventListener('click', openMainSidebar);
@@ -521,7 +521,6 @@ document.addEventListener('DOMContentLoaded', function () {
         profileSidebarOverlay.addEventListener('click', closeAccountSidebar);
     }
 
-
     // CLOSE SIDEBARS AFTER NAVIGATION
     if (mainSidebar) {
         mainSidebar.querySelectorAll('a').forEach(function (link) {
@@ -538,7 +537,6 @@ document.addEventListener('DOMContentLoaded', function () {
             link.addEventListener('click', closeAccountSidebar);
         });
     }
-
 
     // LOGOUT CONFIRMATION MODAL
     const modal = document.getElementById('logoutModal');
