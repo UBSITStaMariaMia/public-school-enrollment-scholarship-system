@@ -2540,3 +2540,1006 @@ body.reminder-modal-open {
     display: none !important;
 }
 
+
+
+/* LOGIN-FIRST LANDING PAGE */
+.login-landing {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+    align-items: center;
+    gap: clamp(28px, 5vw, 64px);
+    padding: clamp(26px, 5vw, 58px);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: linear-gradient(130deg, #fff 0%, #fff 58%, #f5eaf0 100%);
+    box-shadow: var(--shadow);
+}
+
+.login-landing-intro h1 {
+    max-width: 680px;
+    margin: 10px 0 18px;
+    color: var(--maroon-dark);
+    font-size: clamp(2rem, 4.5vw, 3.5rem);
+    line-height: 1.12;
+}
+
+.login-landing-lead {
+    max-width: 620px;
+    color: var(--muted);
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+
+.login-landing-highlights {
+    display: grid;
+    gap: 16px;
+    margin-top: 30px;
+}
+
+.login-landing-highlights div {
+    display: grid;
+    gap: 4px;
+    padding-left: 15px;
+    border-left: 3px solid var(--maroon);
+}
+
+.login-landing-highlights strong {
+    color: var(--maroon-dark);
+}
+
+.login-landing-highlights span {
+    color: var(--muted);
+    font-size: .94rem;
+}
+
+.login-panel {
+    min-width: 0;
+    padding: clamp(24px, 3vw, 36px);
+    border: 1px solid var(--line);
+    border-radius: 17px;
+    background: #fff;
+    box-shadow: 0 12px 30px rgba(28, 35, 45, .08);
+}
+
+.login-panel-heading h2 {
+    margin: 8px 0;
+    color: var(--maroon-dark);
+    font-size: 1.8rem;
+}
+
+.login-panel-heading > p:last-child {
+    margin: 0 0 22px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.login-register-link {
+    margin: 20px 0 0;
+    color: var(--muted);
+    text-align: center;
+    font-size: .92rem;
+}
+
+.login-register-link a,
+.landing-announcements-heading > a {
+    color: var(--maroon);
+    font-weight: 700;
+}
+
+.landing-announcements {
+    margin-top: 34px;
+    padding: clamp(24px, 4vw, 38px);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: var(--shadow);
+}
+
+.landing-announcements-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.landing-announcements-heading h2 {
+    margin: 7px 0;
+    color: var(--maroon-dark);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.landing-announcements-heading p:last-child {
+    margin: 0;
+    color: var(--muted);
+}
+
+.landing-announcements-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.landing-announcement-card,
+.landing-announcements-empty {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+}
+
+.landing-announcement-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--muted);
+    font-size: .82rem;
+}
+
+.landing-announcement-meta span {
+    color: var(--maroon);
+    font-weight: 700;
+}
+
+.landing-announcement-card h3,
+.landing-announcements-empty h3 {
+    margin: 12px 0 8px;
+    color: var(--maroon-dark);
+    font-size: 1.12rem;
+}
+
+.landing-announcement-card p,
+.landing-announcements-empty p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.landing-announcements-empty {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 850px) {
+    .login-landing {
+        grid-template-columns: 1fr;
+    }
+
+    .login-landing-highlights {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .login-landing-highlights div {
+        padding-left: 10px;
+    }
+}
+
+@media (max-width: 600px) {
+    .login-landing {
+        padding: 22px;
+        border-radius: 16px;
+    }
+
+    .login-landing-highlights,
+    .landing-announcements-list {
+        grid-template-columns: 1fr;
+    }
+
+    .landing-announcements-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .landing-announcements {
+        padding: 20px;
+    }
+}
+
+
+/* LOGIN PAGE: LOGIN LEFT, ANNOUNCEMENTS RIGHT */
+.public-auth-page .main-nav {
+    display: none !important;
+}
+
+.login-announcements-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: clamp(20px, 3vw, 34px);
+    padding: clamp(24px, 4vw, 42px);
+}
+
+.login-announcements-layout .login-panel,
+.login-announcements-layout .landing-announcements {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.login-announcements-layout .login-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.login-announcements-layout .login-panel-heading h1 {
+    margin: 8px 0 18px;
+    color: var(--maroon-dark);
+    font-size: clamp(1.8rem, 3vw, 2.55rem);
+    line-height: 1.12;
+}
+
+.login-announcements-layout .login-panel-heading h2 {
+    margin: 0 0 6px;
+    font-size: 1.45rem;
+}
+
+.login-announcements-layout .login-panel-heading > p:last-child {
+    margin-bottom: 22px;
+}
+
+.login-announcements-layout .landing-announcements {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: clamp(22px, 3vw, 32px);
+}
+
+.login-announcements-layout .landing-announcements-heading {
+    display: block;
+    margin-bottom: 18px;
+}
+
+.login-announcements-layout .landing-announcements-heading h2 {
+    font-size: clamp(1.4rem, 2.3vw, 1.85rem);
+}
+
+.login-announcements-layout .landing-announcements-heading > a {
+    display: inline-block;
+    margin-top: 12px;
+}
+
+.login-announcements-layout .landing-announcements-list {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+    max-height: 420px;
+}
+
+.login-announcements-layout .landing-announcement-card {
+    padding: 16px;
+}
+
+@media (max-width: 850px) {
+    .login-announcements-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .login-announcements-layout .landing-announcements-list {
+        max-height: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .login-announcements-layout {
+        padding: 18px;
+    }
+}
+
+
+/* LOGIN LANDING PAGE - CLEANER TWO-PANEL DESIGN */
+.login-landing.login-announcements-layout {
+    width: min(1120px, calc(100% - 40px));
+    margin: clamp(28px, 5vh, 58px) auto;
+    padding: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 0;
+    border: 0;
+    border-radius: 24px;
+    overflow: hidden;
+    background: #f1e9e2;
+    box-shadow: 0 22px 55px rgba(47, 24, 34, .18);
+}
+
+.login-landing .login-panel,
+.login-landing .landing-announcements {
+    min-width: 0;
+    min-height: 470px;
+    margin: 0;
+    padding: clamp(30px, 4vw, 52px);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.login-landing .login-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: linear-gradient(145deg, #6d1c38 0%, #4b1429 100%);
+    color: #fff;
+}
+
+.login-landing .login-panel-heading h1 {
+    max-width: 520px;
+    margin: 0 0 22px;
+    color: #fff;
+    font-size: clamp(1.8rem, 3vw, 2.55rem);
+    line-height: 1.12;
+    letter-spacing: -.035em;
+}
+
+.login-landing .login-panel-heading h2 {
+    margin: 0 0 22px;
+    color: #f4dce5;
+    font-size: 1.25rem;
+}
+
+.login-landing .login-panel .form-grid {
+    gap: 13px;
+}
+
+.login-landing .login-panel label {
+    color: #fff;
+    font-weight: 600;
+}
+
+.login-landing .login-panel input {
+    margin-top: 7px;
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 9px;
+    background: #fffafc;
+    color: #29232a;
+}
+
+.login-landing .login-panel input:focus {
+    outline: 3px solid rgba(255, 220, 233, .3);
+    border-color: #f0c4d4;
+}
+
+.login-landing .login-panel .button-primary {
+    min-height: 48px;
+    border: 1px solid #f2d7e1;
+    border-radius: 9px;
+    background: #f5e7ed;
+    color: #57172f;
+    font-weight: 800;
+}
+
+.login-landing .login-panel .button-primary:hover {
+    background: #fff;
+}
+
+.login-landing .login-register-link {
+    margin-top: 22px;
+    color: #f3dfe7;
+}
+
+.login-landing .login-register-link a {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.login-landing .landing-announcements {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    background: linear-gradient(155deg, #fbf7f0 0%, #eadfce 100%);
+}
+
+.login-landing .landing-announcements-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    margin: 0 0 28px;
+}
+
+.announcement-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.announcement-icon {
+    display: block;
+    width: 58px;
+    height: 58px;
+    flex: 0 0 58px;
+    padding: 10px;
+    border-radius: 16px;
+    background: #f1e2d2;
+    object-fit: contain;
+}
+
+.login-landing .landing-announcements-heading h2 {
+    margin: 0;
+    color: #542037;
+    font-size: clamp(1.45rem, 2.4vw, 1.9rem);
+    line-height: 1.2;
+}
+
+.login-landing .landing-announcements-heading > a {
+    color: #76213e;
+    font-size: .93rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.login-landing .landing-announcement-card,
+.login-landing .landing-announcements-empty {
+    padding: 20px;
+    border: 1px solid #ddcdbd;
+    border-radius: 13px;
+    background: rgba(255, 255, 255, .62);
+}
+
+.login-landing .landing-announcement-card h3,
+.login-landing .landing-announcements-empty h3 {
+    color: #542037;
+}
+
+.login-landing .landing-announcement-card p,
+.login-landing .landing-announcements-empty p {
+    color: #655c59;
+}
+
+.login-landing .landing-announcement-meta span {
+    color: #76213e;
+}
+
+@media (max-width: 850px) {
+    .login-landing.login-announcements-layout {
+        width: min(620px, calc(100% - 28px));
+        grid-template-columns: 1fr;
+        margin: 24px auto;
+        border-radius: 20px;
+    }
+
+    .login-landing .login-panel,
+    .login-landing .landing-announcements {
+        min-height: auto;
+        padding: 30px 26px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-landing .login-panel,
+    .login-landing .landing-announcements {
+        padding: 25px 20px;
+    }
+
+    .announcement-title-wrap {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .announcement-icon {
+        width: 48px;
+        height: 48px;
+        flex-basis: 48px;
+        padding: 8px;
+    }
+}
+
+
+/* LOGIN LANDING PAGE - BCNHS SYSTEM-ALIGNED COLOR BALANCE */
+.public-auth-page {
+    background-color: #e9e8e5;
+}
+
+.public-auth-page .site-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.login-landing.login-announcements-layout {
+    width: min(1160px, calc(100% - 48px));
+    margin: clamp(30px, 5vh, 56px) auto;
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid #d8d0d0;
+    border-radius: 20px;
+    background: #efebea;
+    box-shadow: 0 18px 42px rgba(44, 35, 38, .13);
+}
+
+.login-landing .login-panel,
+.login-landing .landing-announcements {
+    min-width: 0;
+    min-height: 470px;
+    margin: 0;
+    padding: clamp(32px, 4vw, 50px);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.login-landing .login-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #eee4e6;
+    color: #343038;
+    border-right: 1px solid #d9cccf;
+}
+
+.login-landing .login-panel-heading h1 {
+    max-width: 500px;
+    margin: 0 0 14px;
+    color: #541d32;
+    font-size: clamp(1.9rem, 3vw, 2.5rem);
+    line-height: 1.14;
+    letter-spacing: -.025em;
+}
+
+.login-landing .login-panel-heading h2 {
+    margin: 0 0 24px;
+    color: #6d3449;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.login-landing .login-panel label {
+    color: #37343a;
+    font-weight: 700;
+}
+
+.login-landing .login-panel .form-grid {
+    display: grid;
+    gap: 15px;
+}
+
+.login-landing .login-panel input {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 46px;
+    margin-top: 5px;
+    border: 1px solid #c9c5ca;
+    border-radius: 8px;
+    background: #f7f6f5;
+    color: #29262b;
+}
+
+.login-landing .login-panel input:focus {
+    outline: 3px solid rgba(100, 27, 50, .12);
+    border-color: #762c49;
+}
+
+.login-landing .login-panel .button-primary {
+    min-height: 47px;
+    border: 1px solid #64213b;
+    border-radius: 8px;
+    background: #64213b;
+    color: #fff;
+    font-weight: 700;
+}
+
+.login-landing .login-panel .button-primary:hover {
+    background: #50182f;
+}
+
+.login-landing .login-register-link {
+    margin: 20px 0 0;
+    color: #625b60;
+    text-align: center;
+    font-size: .92rem;
+}
+
+.login-landing .login-register-link a {
+    color: #64213b;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.login-landing .landing-announcements {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    background: #e9e9e3;
+}
+
+.login-landing .landing-announcements-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    margin: 0 0 26px;
+}
+
+.announcement-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.announcement-icon {
+    display: block;
+    width: 54px;
+    height: 54px;
+    flex: 0 0 54px;
+    padding: 9px;
+    border: 1px solid #d8d7ce;
+    border-radius: 12px;
+    background: #dedfd5;
+    object-fit: contain;
+}
+
+.login-landing .landing-announcements-heading h2 {
+    margin: 0;
+    color: #541d32;
+    font-size: clamp(1.45rem, 2.35vw, 1.85rem);
+    line-height: 1.2;
+}
+
+.login-landing .landing-announcements-heading > a {
+    color: #64213b;
+    font-size: .93rem;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.login-landing .landing-announcements-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 13px;
+    max-height: 390px;
+    overflow-y: auto;
+}
+
+.login-landing .landing-announcement-card,
+.login-landing .landing-announcements-empty {
+    min-width: 0;
+    padding: 19px 20px;
+    border: 1px solid #d1d1c8;
+    border-radius: 10px;
+    background: #f1f0eb;
+}
+
+.login-landing .landing-announcement-card h3,
+.login-landing .landing-announcements-empty h3 {
+    margin: 10px 0 7px;
+    color: #541d32;
+}
+
+.login-landing .landing-announcement-card p,
+.login-landing .landing-announcements-empty p {
+    margin: 0;
+    color: #625e5c;
+    line-height: 1.6;
+}
+
+.login-landing .landing-announcement-meta {
+    color: #6b6663;
+}
+
+.login-landing .landing-announcement-meta span {
+    color: #6b3448;
+}
+
+@media (max-width: 850px) {
+    .login-landing.login-announcements-layout {
+        width: min(650px, calc(100% - 32px));
+        grid-template-columns: 1fr;
+        margin: 26px auto;
+    }
+
+    .login-landing .login-panel,
+    .login-landing .landing-announcements {
+        min-height: auto;
+        padding: 30px;
+    }
+
+    .login-landing .login-panel {
+        border-right: 0;
+        border-bottom: 1px solid #d9cccf;
+    }
+
+    .login-landing .landing-announcements-list {
+        max-height: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-landing.login-announcements-layout {
+        width: calc(100% - 22px);
+        margin: 18px auto;
+        border-radius: 14px;
+    }
+
+    .login-landing .login-panel,
+    .login-landing .landing-announcements {
+        padding: 24px 20px;
+    }
+
+    .announcement-title-wrap {
+        align-items: center;
+        gap: 11px;
+    }
+
+    .announcement-icon {
+        width: 46px;
+        height: 46px;
+        flex-basis: 46px;
+        padding: 7px;
+    }
+}
+
+
+
+/* LOGIN LANDING PAGE - REFERENCE-ALIGNED COMPACT DESIGN */
+.login-landing.login-announcements-layout {
+    width: min(1080px, calc(100% - 40px));
+    margin: clamp(28px, 5vh, 54px) auto;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid #e4dce0;
+    border-top: 2px solid #76213e;
+    border-radius: 15px;
+    background: #ffffff;
+    box-shadow: 0 14px 36px rgba(45, 29, 36, .12);
+}
+
+.login-landing.login-announcements-layout .login-panel,
+.login-landing.login-announcements-layout .landing-announcements {
+    min-width: 0;
+    min-height: 350px;
+    margin: 0;
+    padding: clamp(28px, 3vw, 40px);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.login-landing.login-announcements-layout .login-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #ffffff;
+    border-right: 1px solid #eee6e9;
+}
+
+.login-landing.login-announcements-layout .login-panel-heading h1 {
+    margin: 0 0 5px;
+    color: #76213e;
+    font-size: 1.45rem;
+    line-height: 1.3;
+    letter-spacing: 0;
+}
+
+.login-landing.login-announcements-layout .login-panel-heading p {
+    margin: 0 0 26px;
+    color: #82777c;
+    font-size: .9rem;
+    line-height: 1.5;
+}
+
+.login-landing.login-announcements-layout .login-panel .form-grid {
+    display: grid;
+    gap: 13px;
+}
+
+.login-landing.login-announcements-layout .login-panel label {
+    display: block;
+    color: #3e373b;
+    font-size: .84rem;
+    font-weight: 700;
+}
+
+.login-landing.login-announcements-layout .login-panel input {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 42px;
+    margin-top: 6px;
+    padding: 9px 11px;
+    border: 1px solid #e1d5da;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #302a2d;
+    font-size: .9rem;
+}
+
+.login-landing.login-announcements-layout .login-panel input:focus {
+    outline: 2px solid rgba(118, 33, 62, .12);
+    border-color: #76213e;
+}
+
+.login-landing.login-announcements-layout .login-panel .button-primary {
+    min-height: 43px;
+    margin-top: 1px;
+    border: 1px solid #76213e;
+    border-radius: 7px;
+    background: #76213e;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.login-landing.login-announcements-layout .login-register-link {
+    margin: 17px 0 0;
+    color: #81767b;
+    text-align: center;
+    font-size: .84rem;
+}
+
+.login-landing.login-announcements-layout .login-register-link a {
+    color: #76213e;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.login-landing.login-announcements-layout .landing-announcements {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    background: #fcf9fa;
+}
+
+.login-landing.login-announcements-layout .landing-announcements-heading {
+    display: block;
+    margin: 0 0 16px;
+}
+
+.login-landing.login-announcements-layout .landing-announcements-heading h2 {
+    margin: 0 0 5px;
+    color: #76213e;
+    font-size: 1.45rem;
+    line-height: 1.3;
+}
+
+.login-landing.login-announcements-layout .landing-announcements-heading p {
+    margin: 0;
+    color: #81767b;
+    font-size: .88rem;
+    line-height: 1.55;
+}
+
+.login-landing.login-announcements-layout .landing-announcements-empty {
+    display: flex;
+    flex: 1;
+    min-height: 150px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0;
+    padding: 20px;
+    border: 1px solid #eadfe3;
+    border-radius: 9px;
+    background: #f7f1f3;
+    text-align: center;
+}
+
+.login-landing.login-announcements-layout .announcement-icon {
+    display: block;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    margin: 0 0 9px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    object-fit: contain;
+}
+
+.login-landing.login-announcements-layout .landing-announcements-empty h3 {
+    margin: 0 0 7px;
+    color: #76213e;
+    font-size: .98rem;
+}
+
+.login-landing.login-announcements-layout .landing-announcements-empty p {
+    max-width: 300px;
+    margin: 0;
+    color: #81767b;
+    font-size: .84rem;
+    line-height: 1.45;
+}
+
+.login-landing.login-announcements-layout .landing-announcements-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    max-height: 245px;
+    overflow-y: auto;
+}
+
+.login-landing.login-announcements-layout .landing-announcement-card {
+    padding: 14px 15px;
+    border: 1px solid #eadfe3;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.login-landing.login-announcements-layout .landing-announcement-card h3 {
+    margin: 7px 0 5px;
+    color: #76213e;
+    font-size: .98rem;
+}
+
+.login-landing.login-announcements-layout .landing-announcement-card p {
+    margin: 0;
+    color: #655d61;
+    font-size: .86rem;
+    line-height: 1.5;
+}
+
+.login-landing.login-announcements-layout .landing-announcement-meta {
+    color: #81767b;
+    font-size: .76rem;
+}
+
+.login-landing.login-announcements-layout .landing-announcement-meta span {
+    color: #76213e;
+    font-weight: 700;
+}
+
+.login-landing.login-announcements-layout .landing-announcements-button {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 14px;
+    padding: 8px 14px;
+    border: 1px solid #e2cbd4;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #76213e;
+    font-size: .86rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background .2s ease, border-color .2s ease;
+}
+
+.login-landing.login-announcements-layout .landing-announcements-button:hover {
+    border-color: #76213e;
+    background: #f7f1f3;
+}
+
+@media (max-width: 760px) {
+    .login-landing.login-announcements-layout {
+        width: min(560px, calc(100% - 28px));
+        grid-template-columns: 1fr;
+        margin: 22px auto;
+    }
+
+    .login-landing.login-announcements-layout .login-panel,
+    .login-landing.login-announcements-layout .landing-announcements {
+        min-height: auto;
+        padding: 26px 24px;
+    }
+
+    .login-landing.login-announcements-layout .login-panel {
+        border-right: 0;
+        border-bottom: 1px solid #eee6e9;
+    }
+
+    .login-landing.login-announcements-layout .landing-announcements-empty {
+        min-height: 140px;
+    }
+}
+
+@media (max-width: 420px) {
+    .login-landing.login-announcements-layout {
+        width: calc(100% - 20px);
+        margin: 14px auto;
+        border-radius: 11px;
+    }
+
+    .login-landing.login-announcements-layout .login-panel,
+    .login-landing.login-announcements-layout .landing-announcements {
+        padding: 22px 18px;
+    }
+}

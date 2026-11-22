@@ -66,7 +66,7 @@ function header_link_active(string $page, array $pages): string
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
 </head>
 
-<body class="<?= $isStudent ? 'student-portal' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?> <?= $isRegistrationPage ? 'registration-page' : '' ?>">
+<body class="<?= $isStudent ? 'student-portal' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?> <?= $isRegistrationPage ? 'registration-page' : '' ?> <?= (!$user && in_array($currentPage, ['index.php', 'register.php', 'login.php'], true)) ? 'public-auth-page' : '' ?>">
 
 <header class="site-header">
 
@@ -90,7 +90,7 @@ function header_link_active(string $page, array $pages): string
         href="<?= BASE_URL ?>/index.php"
         class="button button-outline registration-back-button"
     >
-        &larr; Back to Home
+        &larr; Back to Log In
     </a>
 <?php endif; ?>
 
