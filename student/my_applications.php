@@ -54,6 +54,10 @@ $scholarshipQuery = $pdo->prepare(
         sa.program_id,
         sa.school_year_id,
         sa.application_status,
+        sa.screening_date,
+        sa.screening_time,
+        sa.screening_venue,
+        sa.screening_attendance,
         sp.program_name,
         sy.school_year
      FROM scholarship_applications sa
@@ -449,9 +453,19 @@ require_once __DIR__ . '/../includes/header.php';
 
                 </div>
 
+                <?php if ($scholarship['application_status'] === 'For Screening' && !empty($scholarship['screening_date']) && !empty($scholarship['screening_time']) && !empty($scholarship['screening_venue'])): ?>
+                    <div class="detail-item">
+                        <strong>Screening Schedule</strong>
+                        <p><small>Date</small><?= e(date('F j, Y', strtotime($scholarship['screening_date']))) ?></p>
+                        <p><small>Time</small><?= e(date('g:i A', strtotime($scholarship['screening_time']))) ?></p>
+                        <p><small>Venue</small><?= e($scholarship['screening_venue']) ?></p>
+                        <p><small>Attendance</small><?= e($scholarship['screening_attendance'] ?? 'Pending') ?></p>
+                    </div>
+                <?php endif; ?>
+
                 <p class="muted">
-                    This scholarship application is reviewed separately
-                    from your enrollment application.
+                    This scholarship application is reviewed separately from your enrollment application.
+                    Check Scholarship Application Status for screening updates.
                 </p>
 
             </div>

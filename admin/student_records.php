@@ -15,6 +15,19 @@ if (!in_array($searchBy, $allowedSearch, true)) {
     $searchBy = 'name';
 }
 
+/* Load available grade levels and sections for the search filters */
+$gradeOptions = $pdo->query("
+    SELECT grade_level
+    FROM grade_levels
+    ORDER BY grade_level ASC
+")->fetchAll(PDO::FETCH_COLUMN);
+
+$sectionOptions = $pdo->query("
+    SELECT DISTINCT section_name
+    FROM sections
+    ORDER BY section_name ASC
+")->fetchAll(PDO::FETCH_COLUMN);
+
 $sql = "SELECT
             s.student_id,
             s.lrn,
@@ -62,12 +75,16 @@ if ($search !== '') {
                     s.last_name
                 ) LIKE :search";
     } elseif ($searchBy === 'section') {
-        $sql .= " WHERE sec.section_name LIKE :search";
+        $sql .= " WHERE sec.section_name = :search";
+        $params = ['search' => $search];
     } elseif ($searchBy === 'grade') {
-        $sql .= " WHERE g.grade_level LIKE :search";
+        $sql .= " WHERE g.grade_level = :search";
+        $params = ['search' => $search];
     }
 
-    $params = ['search' => $term];
+    if (in_array($searchBy, ['name', 'lrn', 'username'], true)) {
+        $params = ['search' => $term];
+    }
 }
 
 $sql .= " ORDER BY s.last_name ASC, s.first_name ASC";
@@ -271,15 +288,44 @@ require_once __DIR__ . '/../includes/header.php';
 
         <div class="form-group">
 
-            <label for="search">Search Student</label>
+            <label for="search">Search Student Records</label>
 
             <input
                 type="search"
                 id="search"
                 name="search"
                 value="<?= e($search) ?>"
-                placeholder="Enter student name..."
+                placeholder="Enter name, LRN, or username..."
+                <?= in_array($searchBy, ['grade', 'section'], true) ? 'hidden disabled' : '' ?>
             >
+
+            <select
+                id="grade-filter"
+                name="search"
+                <?= $searchBy !== 'grade' ? 'hidden disabled' : '' ?>
+            >
+                <option value="">Select a grade level</option>
+                <?php foreach ($gradeOptions as $grade): ?>
+                    <option value="<?= e($grade) ?>"
+                        <?= $searchBy === 'grade' && $search === $grade ? 'selected' : '' ?>>
+                        <?= e($grade) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <select
+                id="section-filter"
+                name="search"
+                <?= $searchBy !== 'section' ? 'hidden disabled' : '' ?>
+            >
+                <option value="">Select a section</option>
+                <?php foreach ($sectionOptions as $section): ?>
+                    <option value="<?= e($section) ?>"
+                        <?= $searchBy === 'section' && $search === $section ? 'selected' : '' ?>>
+                        <?= e($section) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
 
         </div>
 
@@ -426,5 +472,32 @@ require_once __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchTypeInputs = document.querySelectorAll('input[name="search_by"]');
+    const textSearch = document.getElementById('search');
+    const gradeFilter = document.getElementById('grade-filter');
+    const sectionFilter = document.getElementById('section-filter');
+
+    function updateSearchControl() {
+        const selected = document.querySelector('input[name="search_by"]:checked')?.value || 'name';
+
+        textSearch.hidden = selected === 'grade' || selected === 'section';
+        gradeFilter.hidden = selected !== 'grade';
+        sectionFilter.hidden = selected !== 'section';
+
+        textSearch.disabled = textSearch.hidden;
+        gradeFilter.disabled = gradeFilter.hidden;
+        sectionFilter.disabled = sectionFilter.hidden;
+    }
+
+    searchTypeInputs.forEach(function (input) {
+        input.addEventListener('change', updateSearchControl);
+    });
+
+    updateSearchControl();
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
