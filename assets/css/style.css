@@ -2757,3 +2757,71 @@ body.reminder-modal-open {
 .table-container table tbody tr:hover {
     background-color: #faf7f8;
 }
+
+
+/* STUDENT RECORD SEARCH FILTERS */
+
+.student-search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.student-search-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.student-search-filters label {
+    cursor: pointer;
+}
+
+.student-search-filters input {
+    display: none;
+}
+
+.student-search-filters span {
+    display: inline-block;
+    padding: 9px 18px;
+    border: 1px solid #d9dce3;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #5b1025;
+    font-size: 14px;
+    font-weight: 600;
+    transition: .2s;
+}
+
+.student-search-filters input:checked + span {
+    background: #5b1025;
+    color: #ffffff;
+    border-color: #5b1025;
+}
+
+.student-search-filters span:hover {
+    border-color: #5b1025;
+}
+
+/* STUDENT RECORD ACTIONS */
+
+.student-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 100px;
+}
+
+.student-actions a,
+.student-actions button {
+    width: 110px;
+    min-height: 42px;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.student-actions form {
+    margin: 0;
+}
