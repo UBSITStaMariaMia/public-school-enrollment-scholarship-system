@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.3
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 18, 2026 at 06:26 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Generation Time: Nov 22, 2026 at 11:38 AM
+-- Server version: 10.11.16-MariaDB
+-- PHP Version: 8.3.36
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -167,7 +167,8 @@ CREATE TABLE `enrollment_applications` (
 --
 
 INSERT INTO `enrollment_applications` (`application_id`, `student_id`, `school_year_id`, `lrn`, `enrollment_type`, `requested_grade_level_id`, `assigned_section_id`, `application_status`, `remarks`, `submitted_at`, `updated_at`, `reviewed_by`, `reviewed_at`) VALUES
-(1, 1, 1, '1234567891012', 'Returning', 3, NULL, 'Pending Review', NULL, '2026-11-17 16:50:49', '2026-11-17 16:55:18', NULL, NULL);
+(1, 1, 1, '1234567891012', 'Returning', 3, NULL, 'Pending Review', NULL, '2026-11-17 16:50:49', '2026-11-17 16:55:18', NULL, NULL),
+(2, 3, 1, '123456789000', 'Incoming Grade 7', 2, NULL, 'Pending Review', NULL, '2026-11-21 19:50:10', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -252,9 +253,22 @@ CREATE TABLE `scholarship_applications` (
   `application_status` enum('Pending Review','For Screening','Approved','Rejected') NOT NULL DEFAULT 'Pending Review',
   `remarks` text DEFAULT NULL,
   `application_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `screening_date` date DEFAULT NULL,
+  `screening_time` time DEFAULT NULL,
+  `screening_venue` varchar(180) DEFAULT NULL,
+  `screening_attendance` enum('Pending','Present','Absent') NOT NULL DEFAULT 'Pending',
   `reviewed_by` int(10) UNSIGNED DEFAULT NULL,
   `reviewed_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `scholarship_applications`
+--
+
+INSERT INTO `scholarship_applications` (`scholarship_application_id`, `student_id`, `program_id`, `school_year_id`, `application_status`, `remarks`, `application_date`, `screening_date`, `screening_time`, `screening_venue`, `screening_attendance`, `reviewed_by`, `reviewed_at`) VALUES
+(1, 3, 4, 1, 'Pending Review', NULL, '2026-11-21 20:08:13', NULL, NULL, NULL, 'Pending', NULL, NULL),
+(2, 2, 2, 1, 'Pending Review', NULL, '2026-11-22 06:13:33', NULL, NULL, NULL, 'Pending', NULL, NULL),
+(3, 2, 3, 1, 'Pending Review', NULL, '2026-11-22 06:13:38', NULL, NULL, NULL, 'Pending', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -311,7 +325,19 @@ CREATE TABLE `sections` (
 --
 
 INSERT INTO `sections` (`section_id`, `section_name`, `grade_level_id`, `school_year_id`) VALUES
-(1, 'Grade 9 - Section A', 3, 1);
+(2, 'Acacia', 4, 1),
+(11, 'Camia', 1, 1),
+(1, 'Grade 9 - Section A', 3, 1),
+(5, 'Gumamela', 3, 1),
+(12, 'Ilang-Ilang', 1, 1),
+(8, 'Kamagong', 2, 1),
+(9, 'Mahogany', 2, 1),
+(3, 'Molave', 4, 1),
+(4, 'Narra', 4, 1),
+(6, 'Rosal', 3, 1),
+(7, 'Sampaguita', 3, 1),
+(13, 'Santan', 1, 1),
+(10, 'Yakal', 2, 1);
 
 -- --------------------------------------------------------
 
@@ -333,7 +359,7 @@ CREATE TABLE `special_programs` (
 
 INSERT INTO `special_programs` (`program_id`, `program_name`, `description`, `available_slots`, `status`) VALUES
 (1, 'Sports', 'Special program for student athletes.', NULL, 'Active'),
-(2, 'Arts', 'Special program for students with artistic skills.', NULL, 'Active'),
+(2, 'Arts', 'Special program for students with artistic skills.', NULL, 'Inactive'),
 (3, 'Journalism', 'Special program for student journalists.', NULL, 'Active'),
 (4, 'Foreign Language', 'Special program for foreign language learning.', NULL, 'Active');
 
@@ -405,6 +431,10 @@ CREATE TABLE `students` (
   `civil_status` varchar(40) DEFAULT NULL,
   `nationality` varchar(80) DEFAULT NULL,
   `religion` varchar(100) DEFAULT NULL,
+  `indigenous_people_status` enum('Yes','No') DEFAULT NULL,
+  `indigenous_people_group` varchar(150) DEFAULT NULL,
+  `is_pwd` enum('Yes','No') DEFAULT NULL,
+  `disability_details` varchar(255) DEFAULT NULL,
   `contact_number` varchar(30) DEFAULT NULL,
   `current_address` text DEFAULT NULL,
   `permanent_address` text DEFAULT NULL,
@@ -419,8 +449,10 @@ CREATE TABLE `students` (
 -- Dumping data for table `students`
 --
 
-INSERT INTO `students` (`student_id`, `user_id`, `lrn`, `first_name`, `middle_name`, `last_name`, `birth_date`, `birthplace`, `sex`, `civil_status`, `nationality`, `religion`, `contact_number`, `current_address`, `permanent_address`, `current_grade_level_id`, `current_section_id`, `readmission_status`, `created_at`, `updated_at`) VALUES
-(1, 1, NULL, 'Juan', 'Dela', 'Cruz', '2006-02-07', 'dito lang', 'Male', 'Single', 'Filipino', 'Catholic', '09683553457', 'dito lang', 'doon lang', 3, 1, 'Eligible', '2026-11-17 15:52:01', '2026-11-18 03:47:26');
+INSERT INTO `students` (`student_id`, `user_id`, `lrn`, `first_name`, `middle_name`, `last_name`, `birth_date`, `birthplace`, `sex`, `civil_status`, `nationality`, `religion`, `indigenous_people_status`, `indigenous_people_group`, `is_pwd`, `disability_details`, `contact_number`, `current_address`, `permanent_address`, `current_grade_level_id`, `current_section_id`, `readmission_status`, `created_at`, `updated_at`) VALUES
+(1, 1, NULL, 'Juan', 'Dela', 'Cruz', '2006-02-07', 'dito lang', 'Male', 'Single', 'Filipino', 'Catholic', NULL, NULL, NULL, NULL, '09683553457', 'dito lang', 'doon lang', 3, 1, 'Eligible', '2026-11-17 15:52:01', '2026-11-18 03:47:26'),
+(2, 4, NULL, 'Mia Kyla', 'Celestino', 'Sta.maria', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Eligible', '2026-11-20 12:57:37', NULL),
+(3, 5, '123456789000', 'Test', 'Test', 'Test', '2002-09-08', 'Test', 'Female', 'Prefer not to say', 'British', 'No religion', 'Yes', 'Kankanaey', 'No', NULL, '+639123456789', 'Test, Test, Test, Test, Test, 2700', 'Test, Test, Test, Test, Test, 2700', NULL, NULL, 'Eligible', '2026-11-21 19:47:19', NULL);
 
 -- --------------------------------------------------------
 
@@ -468,7 +500,8 @@ CREATE TABLE `student_parent_information` (
 --
 
 INSERT INTO `student_parent_information` (`family_information_id`, `student_id`, `mother_name`, `mother_occupation`, `mother_contact_number`, `mother_email`, `mother_address`, `father_name`, `father_occupation`, `father_contact_number`, `father_email`, `father_address`, `updated_at`) VALUES
-(1, 1, 'mother', 'nurse', '09782445364', 'wowwow@gmail.com', 'edi meow', 'pogi', 'doctor', '09854665768', 'wewwew@gmail.com', 'doon daw', NULL);
+(1, 1, 'mother', 'nurse', '09782445364', 'wowwow@gmail.com', 'edi meow', 'pogi', 'doctor', '09854665768', 'wewwew@gmail.com', 'doon daw', NULL),
+(2, 3, 'Test Test', 'Mother', '+639172872878', 'Test@gmail.com', 'Test, Test, Test, Test, Test, 2700', 'Test Father', 'Engr', '+639182884788', 'test@gmail.com', 'Test, Test, Test, Test, Test, 2700', NULL);
 
 -- --------------------------------------------------------
 
@@ -573,7 +606,11 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`user_id`, `role_id`, `username`, `email`, `password_hash`, `account_status`, `created_at`, `updated_at`) VALUES
 (1, 6, 'juantest01', 'juan.test01@example.com', '$2y$10$UyV1ahvEPLN.o4s.oXkuneGeEiQdg3UxOTPR2RbPawTXrH3.Gqf0q', 'Active', '2026-11-17 15:52:01', NULL),
 (2, 1, 'cityhighadmin', 'cityhigh@gmail.com', '$2y$10$VGA8RD77EoD.VsOL7x2c4en4ArnrMrw7MBF0mswF.36el6WpMP2tS', 'Active', '2026-11-18 03:20:00', NULL),
-(3, 3, 'Manalo', 'ManaloMatalo@gmail.com', '$2y$10$A3Z4ydtbhlg5zmffswCwO.ZXXsICmhhEIrgsh6BmTOiRhInYD.0tK', 'Active', '2026-11-18 03:51:59', NULL);
+(3, 3, 'Manalo', 'ManaloMatalo@gmail.com', '$2y$10$A3Z4ydtbhlg5zmffswCwO.ZXXsICmhhEIrgsh6BmTOiRhInYD.0tK', 'Active', '2026-11-18 03:51:59', '2026-11-22 03:59:36'),
+(4, 6, 'sta.maria_mc', '20232386@s.ubaguio.edu', '$2y$10$cFba7TaDhrz23OXgPJrpBudWcqiV3.KahfKJbwn0GpmrLZnu7Ki46', 'Active', '2026-11-20 12:57:37', NULL),
+(5, 6, 'test_tt', 'test@gmail.com', '$2y$10$ntBYrCWDgmd6LCSvKq6rjeyxADVd0/y7sgUthNKI0ePbJOUgmmnvS', 'Active', '2026-11-21 19:47:19', NULL),
+(6, 2, 'registrar', 'registrar@gmail.com', '$2y$10$OAu8C6LVUaQHxF.Vv9fCzO4Glm/yycYsGVjdWTb8olAfDWdMDn5O.', 'Active', '2026-11-22 08:28:09', NULL),
+(7, 5, 'scholarship', 'scholarship@gmail.com', '$2y$10$9bosbgxGJTzISi8N6BMli.c7rvSHrZH9pH6S8S.2.iibU3zmfNtKO', 'Active', '2026-11-22 10:17:40', '2026-11-22 10:31:29');
 
 --
 -- Indexes for dumped tables
@@ -794,7 +831,7 @@ ALTER TABLE `audit_logs`
 -- AUTO_INCREMENT for table `enrollment_applications`
 --
 ALTER TABLE `enrollment_applications`
-  MODIFY `application_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `application_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `enrollment_documents`
@@ -818,7 +855,7 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT for table `scholarship_applications`
 --
 ALTER TABLE `scholarship_applications`
-  MODIFY `scholarship_application_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `scholarship_application_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `scholarship_monitoring`
@@ -836,7 +873,7 @@ ALTER TABLE `school_years`
 -- AUTO_INCREMENT for table `sections`
 --
 ALTER TABLE `sections`
-  MODIFY `section_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `section_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `special_programs`
@@ -860,7 +897,7 @@ ALTER TABLE `stipend_records`
 -- AUTO_INCREMENT for table `students`
 --
 ALTER TABLE `students`
-  MODIFY `student_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `student_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `student_guardians`
@@ -872,7 +909,7 @@ ALTER TABLE `student_guardians`
 -- AUTO_INCREMENT for table `student_parent_information`
 --
 ALTER TABLE `student_parent_information`
-  MODIFY `family_information_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `family_information_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `student_subject_enrollments`
@@ -896,7 +933,7 @@ ALTER TABLE `teacher_section_assignments`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `user_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Constraints for dumped tables

@@ -78,7 +78,7 @@ if ($sidebarRole === 'System Administrator') {
     $sidebarAdd('Student Records', '/registrar/student_records.php', 'student_records.php', 'student-record');
     $sidebarAdd('Section Management', '/registrar/sections.php', 'sections.php', 'section');
     $sidebarAdd('Enrollment Reports', '/registrar/enrollment_reports.php', 'enrollment_reports.php', 'report');
-    $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
+    $sidebarAdd('Announcements', '/registrar/announcements.php', 'announcements.php', 'announcement');
 } elseif ($sidebarRole === 'Teacher') {
     $sidebarHeading = $sidebarDisplayName;
     $sidebarAdd('Dashboard', '/staff/dashboard.php', 'dashboard.php', 'dashboard');
@@ -93,16 +93,28 @@ if ($sidebarRole === 'System Administrator') {
     $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
     $sidebarAdd('My Profile', '/student/profile.php', 'profile.php', 'profile');
     $sidebarAdd('Change Password', '/student/change_password.php', 'change_password.php', 'password');
-} elseif (in_array($sidebarRole, ['Enrollment Committee', 'Scholarship Coordinator'], true)) {
+} elseif ($sidebarRole === 'Enrollment Committee') {
     $sidebarHeading = $sidebarRole;
+
     $sidebarAdd('Dashboard', '/staff/dashboard.php', 'dashboard.php', 'dashboard');
     $sidebarAdd('Subject Management', '/staff/subjects.php', 'subjects.php', 'subject');
     $sidebarAdd('Student Records', '/staff/student_records.php', 'student_records.php', 'student-record');
     $sidebarAdd('Staff Records', '/staff/staff_records.php', 'staff_records.php', 'staff-record');
-    $sidebarAdd('Sections', '/staff/sections.php', 'sections.php', 'section');
     $sidebarAdd('Teacher Assignments', '/staff/teacher_assignments.php', 'teacher_assignments.php', 'classroom');
-    $sidebarAdd('Scholarships', '/staff/scholarship_programs.php', 'scholarship_programs.php', 'applications');
     $sidebarAdd('Reports', '/staff/reports.php', 'reports.php', 'report');
+    $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
+
+} elseif ($sidebarRole === 'Scholarship Coordinator') {
+    $sidebarHeading = $sidebarRole;
+
+    $sidebarAdd('Dashboard', '/scholarship_coordinator/dashboard.php', 'dashboard.php', 'dashboard');
+    $sidebarAdd('Scholarship Programs', '/scholarship_coordinator/scholarship_programs.php', 'scholarship_programs.php', 'applications');
+    $sidebarAdd('Scholarship Applications', '/scholarship_coordinator/scholarship_applications.php', 'scholarship_applications.php', 'applications');
+    $sidebarAdd('Scholarship Documents', '/scholarship_coordinator/scholarship_documents.php', 'scholarship_documents.php', 'document-check');
+    $sidebarAdd('Scholarship Monitoring', '/scholarship_coordinator/scholarship_monitoring.php', 'scholarship_monitoring.php', 'report');
+    $sidebarAdd('Stipend Records', '/scholarship_coordinator/stipend_records.php', 'stipend_records.php', 'report');
+    $sidebarAdd('Beneficiaries Report', '/scholarship_coordinator/scholarship_beneficiaries_report.php', 'scholarship_beneficiaries_report.php', 'report');
+    $sidebarAdd('Renewal Report', '/scholarship_coordinator/scholarship_renewal_report.php', 'scholarship_renewal_report.php', 'report');
     $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
 }
 ?>
