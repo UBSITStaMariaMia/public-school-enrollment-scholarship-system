@@ -464,7 +464,6 @@ document.addEventListener('DOMContentLoaded', function () {
         event.preventDefault();
 
         closeMainSidebar();
-        closeAccountSidebar();
 
         if (!modal) return;
 
@@ -504,8 +503,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             closeMainSidebar();
-            closeAccountSidebar();
-            closeLogoutModal();
+                closeLogoutModal();
         }
     });
 
