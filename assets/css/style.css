@@ -17,6 +17,15 @@
 
 body {
     margin: 0;
+    background: var(--page);
+
+    color: var(--ink);
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+}
+
+/* Keep the campus photo on the public homepage only. */
+body:has(.login-landing) {
     background:
         linear-gradient(
             rgba(244, 245, 247, 0.85),
@@ -28,10 +37,6 @@ body {
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
-
-    color: var(--ink);
-    font-family: Arial, Helvetica, sans-serif;
-    line-height: 1.6;
 }
 
 a {
@@ -3816,3 +3821,34 @@ body.reminder-modal-open {
         padding: 22px 18px;
     }
 }
+
+/* =========================================================
+   SYSTEM ADMINISTRATOR - HAMBURGER NAVIGATION
+   Applies to desktop and mobile screens only.
+========================================================= */
+
+/* Hide the desktop navigation for System Administrator */
+.admin-portal .site-header .main-nav {
+    display: none !important;
+}
+
+/* Keep the hamburger button visible on all screen sizes */
+.admin-portal .site-header .header-actions {
+    display: flex !important;
+    align-items: center;
+    margin-left: auto;
+}
+
+.admin-portal .site-header .menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Keep the school branding visible */
+.admin-portal .site-header .brand {
+    display: flex;
+    align-items: center;
+}
+
