@@ -351,86 +351,7 @@ $pageTitle = 'New Enrollment';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<style>
-/* Scholarship radio button layout */
-.radio-options {
-    display: flex;
-    align-items: center;
-    gap: 28px;
-    margin: 8px 0;
-}
 
-.form-grid label.radio-option {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    width: auto;
-    margin: 0;
-    font-size: .95rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.form-grid label.radio-option input[type="radio"] {
-    width: 17px;
-    height: 17px;
-    min-height: 17px;
-    margin: 0;
-    padding: 0;
-    accent-color: var(--maroon);
-    cursor: pointer;
-    flex-shrink: 0;
-}
-/* Supporting document checklist */
-.document-checklist {
-    display: grid;
-    gap: 14px;
-    margin: 8px 0 18px;
-}
-
-.document-checklist-item {
-    padding: 14px;
-    border: 1px solid #d8d8d8;
-    border-radius: 8px;
-    background: #fff;
-}
-
-.form-grid label.document-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: auto;
-    margin: 0;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.document-checkbox input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    min-height: 18px;
-    margin: 0;
-    padding: 0;
-    accent-color: var(--maroon);
-    flex-shrink: 0;
-}
-
-.document-upload {
-    margin: 12px 0 0 28px;
-}
-
-.document-upload label {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 600;
-}
-
-.document-upload input[type="file"] {
-    width: 100%;
-    min-height: auto;
-}
-
-</style>
 
 <section class="form-card form-card-wide">
 
@@ -570,7 +491,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
 
         <div id="scholarship-fields"
-            style="<?= $values['scholarship'] === 'Yes' ? '' : 'display:none;' ?>">
+            class="<?= $values['scholarship'] === 'Yes' ? '' : 'is-hidden' ?>" >
 
             <label>
                 Select Special Program
@@ -619,7 +540,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                     <div id="document-upload-<?= $index ?>"
                         class="document-upload"
-                        style="<?= $isSelected ? '' : 'display:none;' ?>">
+                        class="document-upload <?= $isSelected ? '' : 'is-hidden' ?>" >
                         <label for="document-file-<?= $index ?>">Choose File</label>
                         <input type="file"
                             id="document-file-<?= $index ?>"
