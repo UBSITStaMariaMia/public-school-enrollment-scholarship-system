@@ -8,7 +8,6 @@ $userId = (int) current_user()['user_id'];
 $errors = [];
 $success = '';
 
-/* Get student information */
 $studentQuery = $pdo->prepare(
     'SELECT student_id, lrn, first_name, middle_name, last_name,
             birth_date, contact_number, current_address
@@ -26,7 +25,6 @@ if (!$student) {
 
 $studentId = (int) $student['student_id'];
 
-/* Get active school year */
 $yearQuery = $pdo->query(
     "SELECT school_year_id, school_year
      FROM school_years
@@ -40,7 +38,6 @@ if (!$schoolYear) {
     exit('There is currently no active school year. Please contact the school administrator.');
 }
 
-/* Get available grade levels */
 $gradeQuery = $pdo->query(
     'SELECT grade_level_id, grade_level
      FROM grade_levels
@@ -48,7 +45,6 @@ $gradeQuery = $pdo->query(
 );
 $gradeLevels = $gradeQuery->fetchAll();
 
-/* Get available scholarship programs */
 $programQuery = $pdo->query(
     "SELECT program_id, program_name, description
      FROM special_programs
@@ -57,14 +53,12 @@ $programQuery = $pdo->query(
 );
 $programs = $programQuery->fetchAll();
 
-/* Required documents */
 $requiredDocuments = [
     'PSA Birth Certificate',
     'Old School Card (before moving up)',
     'Good Moral Certificate'
 ];
 
-/* Form values */
 $values = [
     'lrn' => $student['lrn'] ?? '',
     'enrollment_type' => '',
@@ -74,29 +68,49 @@ $values = [
     'available_documents' => []
 ];
 
-/* Handle form submission */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+    if (empty($_POST) && empty($_FILES) && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        $errors[] = 'The files you selected are too large to upload. Each file must not exceed 5 MB.';
+    }
+
     foreach (['lrn', 'enrollment_type', 'requested_grade_level_id', 'scholarship', 'program_id'] as $field) {
-        $values[$field] = trim($_POST[$field] ?? '');
+        $submittedValue = $_POST[$field] ?? '';
+        $values[$field] = is_string($submittedValue) ? trim($submittedValue) : '';
     }
 
     $submittedDocuments = $_POST['available_documents'] ?? [];
     if (is_array($submittedDocuments)) {
-        $values['available_documents'] = array_values(array_unique(array_map('strval', $submittedDocuments)));
+        $values['available_documents'] = array_values(array_unique(array_filter(
+            $submittedDocuments,
+            'is_string'
+        )));
     }
 
-    /* CSRF validation */
-    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+    if (!$errors && !verify_csrf_token($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Please refresh the page and try again.';
     }
 
-    /* Validate LRN */
-    if ($values['lrn'] === '' || strlen($values['lrn']) > 20) {
-        $errors[] = 'Enter a valid LRN.';
+    if (!preg_match('/^[0-9]{12}$/', $values['lrn'])) {
+        $errors[] = 'LRN must contain exactly 12 digits.';
+    } else {
+        $lrnCheck = $pdo->prepare(
+            'SELECT 1
+             FROM students
+             WHERE lrn = :lrn
+               AND student_id <> :student_id
+             LIMIT 1'
+        );
+        $lrnCheck->execute([
+            'lrn' => $values['lrn'],
+            'student_id' => $studentId
+        ]);
+
+        if ($lrnCheck->fetchColumn()) {
+            $errors[] = 'That LRN is already registered to another student.';
+        }
     }
 
-    /* Validate enrollment type */
     $allowedTypes = [
         'Incoming Grade 7',
         'Returning',
@@ -107,7 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Select a valid enrollment type.';
     }
 
-    /* Validate requested grade level */
     $selectedGrade = null;
 
     foreach ($gradeLevels as $grade) {
@@ -121,7 +134,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Select a valid grade level.';
     }
 
-    /* Validate scholarship selection */
     if (!in_array($values['scholarship'], ['Yes', 'No'], true)) {
         $errors[] = 'Select whether you are applying for a special program scholarship.';
     }
@@ -141,7 +153,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    /* Check duplicate enrollment */
     $duplicateCheck = $pdo->prepare(
         'SELECT COUNT(*)
          FROM enrollment_applications
@@ -158,10 +169,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'You already have an enrollment application for this school year. Please check My Applications.';
     }
 
-    /* Validate only documents selected by the student */
     $uploadedFiles = [];
-    $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
-    $allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    $allowedFileTypes = [
+        'pdf' => ['application/pdf'],
+        'jpg' => ['image/jpeg'],
+        'jpeg' => ['image/jpeg'],
+        'png' => ['image/png']
+    ];
     $maxFileSize = 5 * 1024 * 1024;
 
     foreach ($values['available_documents'] as $selectedIndex) {
@@ -188,14 +202,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        if (!in_array($extension, $allowedExtensions, true)) {
+        if (!array_key_exists($extension, $allowedFileTypes)) {
             $errors[] = $documentName . ' must be a PDF, JPG, JPEG, or PNG file.';
             continue;
         }
 
         $fileInfo = new finfo(FILEINFO_MIME_TYPE);
         $mimeType = $fileInfo->file($file);
-        if (!in_array($mimeType, $allowedMimeTypes, true)) {
+        if (!in_array($mimeType, $allowedFileTypes[$extension], true)) {
             $errors[] = $documentName . ' has an invalid file type.';
             continue;
         }
@@ -207,7 +221,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
     }
 
-    /* Save application */
     if (!$errors) {
 
         $uploadDirectory = __DIR__ . '/../uploads/enrollment';
@@ -225,7 +238,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $pdo->beginTransaction();
 
-                /* Create enrollment application */
                 $applicationInsert = $pdo->prepare(
                     'INSERT INTO enrollment_applications (
                         student_id,
@@ -255,7 +267,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $applicationId = (int) $pdo->lastInsertId();
 
-                /* Save required documents */
                 $documentInsert = $pdo->prepare(
                     'INSERT INTO enrollment_documents (
                         application_id,
@@ -294,37 +305,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
 
-                /* Create separate scholarship application */
+                $scholarshipSubmitted = false;
+
                 if ($values['scholarship'] === 'Yes') {
 
-                    $scholarshipInsert = $pdo->prepare(
-                        'INSERT INTO scholarship_applications (
-                            student_id,
-                            program_id,
-                            school_year_id,
-                            application_status
-                        ) VALUES (
-                            :student_id,
-                            :program_id,
-                            :school_year_id,
-                            :application_status
-                        )'
+                    $scholarshipCheck = $pdo->prepare(
+                        'SELECT 1
+                         FROM scholarship_applications
+                         WHERE student_id = :student_id
+                           AND program_id = :program_id
+                           AND school_year_id = :school_year_id
+                         LIMIT 1'
                     );
 
-                    $scholarshipInsert->execute([
+                    $scholarshipCheck->execute([
                         'student_id' => $studentId,
                         'program_id' => $values['program_id'],
-                        'school_year_id' => $schoolYear['school_year_id'],
-                        'application_status' => 'Pending Review'
+                        'school_year_id' => $schoolYear['school_year_id']
                     ]);
+
+                    if (!$scholarshipCheck->fetchColumn()) {
+                        $scholarshipInsert = $pdo->prepare(
+                            'INSERT INTO scholarship_applications (
+                                student_id,
+                                program_id,
+                                school_year_id,
+                                application_status
+                            ) VALUES (
+                                :student_id,
+                                :program_id,
+                                :school_year_id,
+                                :application_status
+                            )'
+                        );
+
+                        $scholarshipInsert->execute([
+                            'student_id' => $studentId,
+                            'program_id' => $values['program_id'],
+                            'school_year_id' => $schoolYear['school_year_id'],
+                            'application_status' => 'Pending Review'
+                        ]);
+
+                        $scholarshipSubmitted = true;
+                    }
                 }
 
                 $pdo->commit();
 
                 $success = 'Your enrollment application has been submitted successfully.';
 
-                if ($values['scholarship'] === 'Yes') {
+                if ($scholarshipSubmitted) {
                     $success .= ' Your special program scholarship application has also been submitted.';
+                } elseif ($values['scholarship'] === 'Yes') {
+                    $success .= ' You already have a scholarship application for this program, so no new one was created.';
                 }
 
             } catch (Throwable $exception) {
@@ -352,7 +385,6 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <style>
-/* Scholarship radio button layout */
 .radio-options {
     display: flex;
     align-items: center;
@@ -381,7 +413,7 @@ require_once __DIR__ . '/../includes/header.php';
     cursor: pointer;
     flex-shrink: 0;
 }
-/* Supporting document checklist */
+
 .document-checklist {
     display: grid;
     gap: 14px;
@@ -429,10 +461,14 @@ require_once __DIR__ . '/../includes/header.php';
     width: 100%;
     min-height: auto;
 }
-
 </style>
 
 <section class="form-card form-card-wide">
+
+    <a href="<?= BASE_URL ?>/student/dashboard.php"
+       class="button button-outline applications-back-button">
+        &larr; Back to Dashboard
+    </a>
 
     <p class="eyebrow">Student Services</p>
     <h1>New Enrollment</h1>
@@ -478,7 +514,11 @@ require_once __DIR__ . '/../includes/header.php';
 
         <label>
             Learner Reference Number (LRN)
-            <input type="text" name="lrn" maxlength="20"
+            <input type="text" name="lrn" maxlength="12"
+                inputmode="numeric"
+                pattern="[0-9]{12}"
+                title="LRN must contain exactly 12 digits."
+                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 12)"
                 value="<?= e($values['lrn']) ?>" required>
         </label>
 
@@ -672,7 +712,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     updateScholarshipFields();
 
-    /* Show a file input only when its document checkbox is selected. */
     const documentCheckboxes = document.querySelectorAll(
         'input[name="available_documents[]"]'
     );
