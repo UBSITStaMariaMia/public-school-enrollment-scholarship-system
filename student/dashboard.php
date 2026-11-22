@@ -79,7 +79,7 @@ require_once __DIR__ . '/../includes/header.php';
 
 </section>
 
-<section class="dashboard-grid">
+<section class="dashboard-grid" aria-label="Student portal services">
 
     <a
         class="dashboard-card"
@@ -87,20 +87,28 @@ require_once __DIR__ . '/../includes/header.php';
     >
         <span class="card-kicker">01</span>
         <h2>New Enrollment</h2>
-        <p>
-            Submit your enrollment details and required documents.
-        </p>
+        <p>Submit your enrollment details and required documents.</p>
+        <span class="dashboard-card-action">Go to Enrollment <span aria-hidden="true">&rarr;</span></span>
     </a>
 
     <a
         class="dashboard-card"
-        href="<?= BASE_URL ?>/student/my_applications.php"
+        href="<?= BASE_URL ?>/student/scholarship_application.php"
     >
         <span class="card-kicker">02</span>
-        <h2>My Applications</h2>
-        <p>
-            Track enrollment and scholarship application statuses separately.
-        </p>
+        <h2>Scholarship Application</h2>
+        <p>Explore available special programs and submit your application.</p>
+        <span class="dashboard-card-action">Apply Now <span aria-hidden="true">&rarr;</span></span>
+    </a>
+
+    <a
+        class="dashboard-card"
+        href="<?= BASE_URL ?>/student/records.php"
+    >
+        <span class="card-kicker">03</span>
+        <h2>Student Records</h2>
+        <p>View your student information and available academic records.</p>
+        <span class="dashboard-card-action">View Records <span aria-hidden="true">&rarr;</span></span>
     </a>
 
 </section>

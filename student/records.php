@@ -276,6 +276,11 @@ require_once __DIR__ . '/../includes/header.php';
 
 <main class="records-page">
 
+    <a href="<?= BASE_URL ?>/student/dashboard.php"
+       class="button button-outline applications-back-button">
+        &larr; Back to Dashboard
+    </a>
+
     <div class="records-heading">
         <h1>Student Records</h1>
         <p>
