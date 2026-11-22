@@ -56,6 +56,7 @@ function dashboard_path_for_role(string $role): string
         'Student' => '/student/dashboard.php',
         'System Administrator' => '/admin/dashboard.php',
         'School Registrar' => '/registrar/dashboard.php',
+        'Scholarship Coordinator' => '/scholarship_coordinator/dashboard.php',
         default => '/staff/dashboard.php',
     };
 }
