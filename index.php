@@ -1,176 +1,208 @@
 <?php
 require_once __DIR__ . '/includes/bootstrap.php';
+
 if (current_user()) {
     redirect(dashboard_path_for_role(current_user()['role_name']));
 }
-$pageTitle = 'Home';
+
+$error = '';
+$identifier = '';
+
+/* Process login submissions on the landing page. */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $submittedIdentifier = $_POST['identifier'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $submittedToken = $_POST['csrf_token'] ?? null;
+
+    if (
+        !is_string($submittedIdentifier) ||
+        !is_string($password)
+    ) {
+        $error = 'Invalid username/email or password.';
+    } else {
+        $identifier = trim($submittedIdentifier);
+
+        if ($identifier === '' || $password === '') {
+            $error = 'Please enter your username/email and password.';
+        } elseif (!is_string($submittedToken) || !verify_csrf_token($submittedToken)) {
+            $error = 'Your session expired. Please try again.';
+        } else {
+            try {
+                $statement = $pdo->prepare(
+                    'SELECT
+                        u.user_id,
+                        u.username,
+                        u.email,
+                        u.password_hash,
+                        u.account_status,
+                        r.role_name
+                     FROM users u
+                     INNER JOIN roles r ON r.role_id = u.role_id
+                     WHERE u.username = :username
+                        OR u.email = :email
+                     LIMIT 1'
+                );
+
+                $statement->execute([
+                    'username' => $identifier,
+                    'email' => $identifier
+                ]);
+
+                $account = $statement->fetch(PDO::FETCH_ASSOC);
+
+                if (
+                    $account &&
+                    $account['account_status'] === 'Active' &&
+                    password_verify($password, $account['password_hash'])
+                ) {
+                    if (password_needs_rehash($account['password_hash'], PASSWORD_DEFAULT)) {
+                        $newHash = password_hash($password, PASSWORD_DEFAULT);
+                        $updateStatement = $pdo->prepare(
+                            'UPDATE users
+                             SET password_hash = :password_hash
+                             WHERE user_id = :user_id'
+                        );
+                        $updateStatement->execute([
+                            'password_hash' => $newHash,
+                            'user_id' => $account['user_id']
+                        ]);
+                    }
+
+                    session_regenerate_id(true);
+
+                    $_SESSION['user'] = [
+                        'user_id' => (int) $account['user_id'],
+                        'username' => $account['username'],
+                        'email' => $account['email'],
+                        'role_name' => $account['role_name'],
+                    ];
+
+                    redirect(dashboard_path_for_role($account['role_name']));
+                }
+
+                $error = 'Invalid username/email or password.';
+            } catch (PDOException $exception) {
+                error_log('Login database error: ' . $exception->getMessage());
+                http_response_code(500);
+                $error = 'An unexpected error occurred. Please try again.';
+            }
+        }
+    }
+}
+
+/* Retrieve published announcements using the existing database schema. */
+$announcements = [];
+
+try {
+    $announcementStatement = $pdo->prepare(
+        "SELECT title, content, announcement_type, publish_date
+         FROM announcements
+         WHERE status = 'Published'
+           AND (expiry_date IS NULL OR expiry_date >= NOW())
+         ORDER BY publish_date DESC
+         LIMIT 5"
+    );
+    $announcementStatement->execute();
+    $announcements = $announcementStatement->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $exception) {
+    error_log('Landing page announcements error: ' . $exception->getMessage());
+}
+
+$pageTitle = 'Log In';
 require_once __DIR__ . '/includes/header.php';
 ?>
-<style>
-    /* Match the hero section's width, gradient, and rounded-card treatment. */
-    .enrollment-requirements {
-        width: 100%;
-        box-sizing: border-box;
-        margin: 32px 0 0;
-        padding: clamp(28px, 4vw, 48px);
-        border: 1px solid rgba(226, 232, 240, .9);
-        border-radius: 24px;
-        background: linear-gradient(130deg, #fff 0%, #fff 55%, #f5eaf0 100%);
-        box-shadow: var(--shadow, 0 12px 32px rgba(15, 23, 42, .08));
-    }
 
-    .requirements-heading {
-        margin: 0 0 28px;
-        text-align: left;
-    }
-
-    .requirements-heading .eyebrow {
-        margin-bottom: 8px;
-    }
-
-    .requirements-heading h2 {
-        margin: 8px 0 10px;
-        color: var(--maroon-dark, #50152b);
-        font-size: clamp(1.7rem, 2.5vw, 2.15rem);
-        line-height: 1.2;
-    }
-
-    .requirements-heading > p:last-child {
-        margin: 0;
-        color: var(--muted, #64748b);
-    }
-
-    .requirements-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        grid-auto-rows: 1fr;
-        gap: 20px;
-        align-items: stretch;
-    }
-
-    .requirement-card {
-        display: flex;
-        flex-direction: column;
-        box-sizing: border-box;
-        min-width: 0;
-        height: 100%;
-        padding: 26px;
-        border: 1px solid rgba(226, 232, 240, .95);
-        border-radius: 16px;
-        background: #fff;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, .05);
-    }
-
-    .requirement-card h3 {
-        display: flex;
-        align-items: center;
-        min-height: 2.8em;
-        margin: 0 0 16px;
-        color: var(--maroon, #651b35);
-        font-size: 1.18rem;
-        line-height: 1.35;
-    }
-
-    .requirement-card ul {
-        margin: 0;
-        padding-left: 20px;
-        color: var(--text, #374151);
-    }
-
-    .requirement-card li {
-        margin: 0 0 13px;
-        line-height: 1.6;
-    }
-
-    .requirement-card li:last-child {
-        margin-bottom: 0;
-    }
-
-    @media (max-width: 900px) {
-        .requirements-grid {
-            grid-template-columns: 1fr;
-            grid-auto-rows: auto;
-        }
-
-        .requirement-card {
-            height: auto;
-        }
-
-        .requirement-card h3 {
-            min-height: 0;
-        }
-    }
-
-    @media (max-width: 520px) {
-        .enrollment-requirements {
-            margin-top: 24px;
-            padding: 22px;
-            border-radius: 18px;
-        }
-
-        .requirement-card {
-            padding: 22px;
-        }
-    }
-</style>
-
-<section class="hero">
-    <div class="hero-copy">
-        <p class="eyebrow">Student Services Portal</p>
-        <h1>Welcome to Baguio City National High School</h1>
-        <p class="hero-lead">A centralized portal for student enrollment, student information, and special program scholarship applications.</p>
-        <div class="hero-actions">
-            <a class="button button-primary" href="<?= BASE_URL ?>/register.php">Create Student Account</a>
-            <a class="button button-outline" href="<?= BASE_URL ?>/login.php">Student Login</a>
+<section class="login-landing login-announcements-layout" aria-label="BCNHS portal access">
+    <section class="login-panel" aria-labelledby="loginTitle">
+        <div class="login-panel-heading">
+            <h1 id="loginTitle">Portal Login</h1>
+            <p>Baguio City National High School</p>
         </div>
-    </div>
-    <div class="hero-panel">
-        <h2>Student Portal</h2>
-        <p>Use your account to submit enrollment information, check application progress, and view school announcements.</p>
-        <ul>
-            <li>Student enrollment applications</li>
-            <li>Independent scholarship application status</li>
-            <li>Student profile and assigned subjects</li>
-        </ul>
-    </div>
-</section>
 
-<section class="enrollment-requirements" aria-labelledby="enrollmentRequirementsTitle">
-    <div class="requirements-heading">
-        <p class="eyebrow">Enrollment Guide</p>
-        <h2 id="enrollmentRequirementsTitle">Enrollment Requirements</h2>
-        <p>Prepare the documents listed for your student category before proceeding with enrollment.</p>
-    </div>
+        <?php if ($error !== ''): ?>
+            <div class="alert alert-error" role="alert">
+                <?= e($error) ?>
+            </div>
+        <?php endif; ?>
 
-    <div class="requirements-grid">
-        <article class="requirement-card">
-            <h3>Incoming Grade 7</h3>
-            <ul>
-                <li>PSA Birth Certificate (photocopy)</li>
-                <li>School Form 138 (Form 138 / Report Card)</li>
-                <li>Good Moral Certificate</li>
-            </ul>
-        </article>
+        <form method="post" action="<?= BASE_URL ?>/index.php" class="form-grid">
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= e(csrf_token()) ?>"
+            >
 
-        <article class="requirement-card">
-            <h3>Returning Students</h3>
-            <ul>
-                <li>Previous school ID</li>
-                <li>Most recent School Form 138 (Form 138 / Report Card)</li>
-                <li>Good Moral Certificate</li>
-            </ul>
-        </article>
+            <label>
+                Username or Email
+                <input
+                    type="text"
+                    name="identifier"
+                    value="<?= e($identifier) ?>"
+                    required
+                    autocomplete="username"
+                    autofocus
+                >
+            </label>
 
-        <article class="requirement-card">
-            <h3>Transferees</h3>
-            <ul>
-                <li>PSA Birth Certificate (photocopy)</li>
-                <li>School Form 137 (Permanent Record)</li>
-                <li>Latest School Form 138 (Report Card)</li>
-                <li>Good Moral Certificate</li>
-            </ul>
-        </article>
-    </div>
+            <label>
+                Password
+                <input
+                    type="password"
+                    name="password"
+                    required
+                    autocomplete="current-password"
+                >
+            </label>
+
+            <button class="button button-primary button-full" type="submit">
+                Log In
+            </button>
+        </form>
+
+        <p class="login-register-link">
+            Don't have a student account?
+            <a href="<?= BASE_URL ?>/register.php">Register here</a>
+        </p>
+    </section>
+
+    <section class="landing-announcements" aria-labelledby="landingAnnouncementsTitle">
+        <div class="landing-announcements-heading">
+            <h2 id="landingAnnouncementsTitle">Public Announcements</h2>
+            <p>Keep up with the latest published school announcements and important updates.</p>
+        </div>
+
+        <?php if ($announcements): ?>
+            <div class="landing-announcements-list">
+                <?php foreach ($announcements as $announcement): ?>
+                    <article class="landing-announcement-card">
+                        <div class="landing-announcement-meta">
+                            <span><?= e($announcement['announcement_type']) ?></span>
+                            <time datetime="<?= e(date('c', strtotime($announcement['publish_date']))) ?>">
+                                <?= e(date('M d, Y', strtotime($announcement['publish_date']))) ?>
+                            </time>
+                        </div>
+                        <h3><?= e($announcement['title']) ?></h3>
+                        <p><?= nl2br(e($announcement['content'])) ?></p>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="landing-announcements-empty">
+                <img
+                    class="announcement-icon"
+                    src="<?= BASE_URL ?>/assets/images/promotion.png"
+                    alt=""
+                    aria-hidden="true"
+                >
+                <h3>No announcements available</h3>
+                <p>There are currently no published school announcements.</p>
+            </div>
+        <?php endif; ?>
+
+        <a class="landing-announcements-button" href="<?= BASE_URL ?>/announcements.php">
+            View all announcements
+        </a>
+    </section>
 </section>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
