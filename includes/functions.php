@@ -49,11 +49,13 @@ function verify_csrf_token(?string $submittedToken): bool
         && hash_equals($_SESSION['csrf_token'], $submittedToken);
 }
 
+
 function dashboard_path_for_role(string $role): string
 {
     return match ($role) {
         'Student' => '/student/dashboard.php',
         'System Administrator' => '/admin/dashboard.php',
+        'School Registrar' => '/registrar/dashboard.php',
         default => '/staff/dashboard.php',
     };
 }

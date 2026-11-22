@@ -3852,3 +3852,297 @@ body.reminder-modal-open {
     align-items: center;
 }
 
+
+/* =========================================================
+   BCNHS SCHOOL REGISTRAR - HAMBURGER SIDEBAR
+   Registrar-only rules. Other role navigation is unchanged.
+========================================================= */
+
+/* Use the existing hamburger sidebar on desktop and mobile. */
+.registrar-portal .site-header .main-nav {
+    display: none !important;
+}
+
+.registrar-portal .site-header .header-actions {
+    display: flex !important;
+    align-items: center;
+    margin-left: auto;
+}
+
+.registrar-portal .site-header .menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.registrar-portal .main-sidebar-header.registrar-sidebar-heading {
+    align-items: flex-start;
+}
+
+.registrar-portal .registrar-sidebar-heading h2 {
+    margin: 0;
+    color: var(--maroon-dark);
+    font-size: 1.18rem;
+    letter-spacing: .01em;
+}
+
+.registrar-portal .registrar-sidebar-heading p {
+    margin: 4px 0 0;
+    color: #81747a;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+.registrar-portal .registrar-sidebar-label {
+    margin: 20px 10px 9px;
+    color: #8a737c;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-height: 48px;
+    margin: 3px 0;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    color: #393238;
+    font-size: .94rem;
+    font-weight: 650;
+    line-height: 1.3;
+    text-decoration: none;
+    transition: background .18s ease, border-color .18s ease,
+                color .18s ease, transform .18s ease;
+}
+
+.registrar-portal .registrar-sidebar-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 8px;
+    background: #f7edf1;
+    color: var(--maroon);
+}
+
+.registrar-portal .registrar-sidebar-icon svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.65;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link:hover {
+    border-color: #ead8df;
+    background: #fbf6f8;
+    color: var(--maroon);
+    text-decoration: none;
+    transform: translateX(2px);
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link.active {
+    border-color: #ead8df;
+    background: #f7edf1;
+    color: var(--maroon);
+    font-weight: 800;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link.active .registrar-sidebar-icon {
+    background: var(--maroon);
+    color: #ffffff;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link:focus-visible,
+.registrar-portal .site-header .menu-toggle:focus-visible,
+.registrar-portal .main-sidebar-close:focus-visible {
+    outline: 3px solid rgba(112, 29, 50, .28);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .registrar-portal .main-sidebar-nav a.registrar-sidebar-link {
+        transition: none;
+    }
+}
+
+
+/* =========================================================
+   SHARED ROLE-BASED SIDEBAR
+   One consistent sidebar treatment for Admin, Registrar,
+   Teacher, Student, and other authenticated staff roles.
+========================================================= */
+.has-role-sidebar .site-header .main-nav {
+    display: none !important;
+}
+
+.has-role-sidebar .site-header .header-actions {
+    display: flex !important;
+    align-items: center;
+    margin-left: auto !important;
+}
+
+.has-role-sidebar .site-header .menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.has-role-sidebar .main-sidebar-header.sidebar-heading {
+    align-items: center;
+    min-height: 74px;
+}
+
+.sidebar-identity {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+}
+
+.sidebar-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #f7edf1;
+    color: var(--maroon);
+}
+
+.sidebar-avatar svg {
+    display: block;
+    width: 23px;
+    height: 23px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sidebar-identity-text {
+    min-width: 0;
+}
+
+.sidebar-identity-text h2 {
+    max-width: 235px;
+    overflow-wrap: anywhere;
+    font-size: 1.08rem;
+    line-height: 1.25;
+}
+
+.sidebar-identity-text p {
+    margin: 4px 0 0;
+    color: #81747a;
+    font-size: .76rem;
+    font-weight: 650;
+    letter-spacing: .035em;
+}
+
+.sidebar-section-label {
+    margin: 20px 10px 9px;
+    color: #8a737c;
+    font-size: .67rem;
+    font-weight: 800;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.main-sidebar-nav a.sidebar-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-height: 48px;
+    margin: 3px 0;
+    padding: 9px 12px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    color: #393238;
+    font-size: .94rem;
+    font-weight: 650;
+    line-height: 1.3;
+    text-decoration: none;
+    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+
+.sidebar-nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    border-radius: 8px;
+    background: #f7edf1;
+    color: var(--maroon);
+}
+
+.sidebar-nav-icon svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.65;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.main-sidebar-nav a.sidebar-nav-link:hover {
+    border-color: #ead8df;
+    background: #fbf6f8;
+    color: var(--maroon);
+    text-decoration: none;
+    transform: translateX(2px);
+}
+
+.main-sidebar-nav a.sidebar-nav-link.active {
+    border-color: #ead8df;
+    background: #f7edf1;
+    color: var(--maroon);
+    font-weight: 800;
+}
+
+.main-sidebar-nav a.sidebar-nav-link.active .sidebar-nav-icon {
+    background: var(--maroon);
+    color: #fff;
+}
+
+.main-sidebar-footer .nav-logout {
+    gap: 12px;
+}
+
+.main-sidebar-footer .nav-logout .sidebar-nav-icon {
+    background: transparent;
+}
+
+.main-sidebar-nav a.sidebar-nav-link:focus-visible,
+.main-sidebar-footer .nav-logout:focus-visible,
+.has-role-sidebar .site-header .menu-toggle:focus-visible,
+.has-role-sidebar .main-sidebar-close:focus-visible {
+    outline: 3px solid rgba(112, 29, 50, .28);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .main-sidebar-nav a.sidebar-nav-link {
+        transition: none;
+    }
+}
