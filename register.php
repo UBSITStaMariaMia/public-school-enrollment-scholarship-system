@@ -828,14 +828,16 @@ require_once __DIR__ . '/includes/header.php';
 
 <section class="form-card form-card-wide">
 
-    <p class="eyebrow">Create an account</p>
+    <?php if (!$success): ?>
+        <p class="eyebrow">Create an account</p>
 
-    <h1>Student Registration</h1>
+        <h1>Student Registration</h1>
 
-    <p class="muted">
-        Create your student account and provide your personal,
-        contact, parent, and guardian information.
-    </p>
+        <p class="muted">
+            Create your student account and provide your personal,
+            contact, parent, and guardian information.
+        </p>
+    <?php endif; ?>
 
     <?php if ($success): ?>
 
