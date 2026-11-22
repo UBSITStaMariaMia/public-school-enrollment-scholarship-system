@@ -94,7 +94,6 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="form-card form-card-narrow">
-    <p class="eyebrow">Account Security</p>
     <h1>Change Password</h1>
 
     <p class="muted">

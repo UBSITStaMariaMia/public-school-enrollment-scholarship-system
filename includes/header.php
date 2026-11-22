@@ -5,7 +5,6 @@ $pageTitle = $pageTitle ?? 'Baguio City National High School Portal';
 
 $roleName = $user['role_name'] ?? '';
 $isStudent = $user && $roleName === 'Student';
-
 $isStaff = $user && in_array($roleName, [
     'Enrollment Committee',
     'Scholarship Coordinator',
@@ -13,35 +12,18 @@ $isStaff = $user && in_array($roleName, [
     'System Administrator',
     'Teacher'
 ], true);
-
-$isAdmin = $roleName === 'System Administrator';
+$isAdmin = $user && $roleName === 'System Administrator';
+$isRegistrar = $user && $roleName === 'School Registrar';
+$isTeacher = $user && $roleName === 'Teacher';
 
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 $isRegistrationPage = $currentPage === 'register.php';
-
 $isAccountPage = $isStudent && in_array(
     $currentPage,
     ['profile.php', 'change_password.php'],
     true
 );
 
-$staffLinks = [
-    ['Dashboard', '/staff/dashboard.php', ['dashboard.php']],
-    ['Subject Management', '/staff/subjects.php', ['subjects.php']],
-    ['Student Records', '/staff/student_records.php', ['student_records.php']],
-    ['Staff Records', '/staff/staff_records.php', ['staff_records.php']],
-    ['Sections', '/staff/sections.php', ['sections.php']],
-    ['Teacher Assignments', '/staff/teacher_assignments.php', ['teacher_assignments.php']],
-    ['Scholarships', '/staff/scholarship_programs.php', ['scholarship_programs.php']],
-    ['Reports', '/staff/reports.php', ['reports.php']]
-];
-
-$adminLinks = [
-    ['Dashboard', '/admin/dashboard.php', ['dashboard.php']],
-    ['User Management', '/admin/user_management.php', ['user_management.php']],
-    ['Student Records', '/admin/student_records.php', ['student_records.php']],
-    ['Teacher and Staff Records', '/admin/staff_records.php', ['staff_records.php']]
-];
 function header_link_active(string $page, array $pages): string
 {
     return in_array($page, $pages, true) ? 'active' : '';
@@ -59,7 +41,7 @@ function header_link_active(string $page, array $pages): string
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
 </head>
 
-<body class="<?= $isStudent ? 'student-portal' : '' ?> <?= $isAdmin ? 'admin-portal' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?> <?= $isRegistrationPage ? 'registration-page' : '' ?> <?= (!$user && in_array($currentPage, ['index.php', 'register.php', 'login.php'], true)) ? 'public-auth-page' : '' ?>">
+<body class="<?= $isStudent ? 'student-portal' : '' ?> <?= $isAdmin ? 'admin-portal' : '' ?> <?= $isRegistrar ? 'registrar-portal' : '' ?> <?= $isTeacher ? 'teacher-portal' : '' ?> <?= $user ? 'has-role-sidebar' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?> <?= $isRegistrationPage ? 'registration-page' : '' ?> <?= (!$user && in_array($currentPage, ['index.php', 'register.php', 'login.php'], true)) ? 'public-auth-page' : '' ?>">
 <header class="site-header">
 
     <!-- SCHOOL BRAND -->
@@ -87,88 +69,15 @@ function header_link_active(string $page, array $pages): string
 <?php endif; ?>
 
 
-    <!-- DESKTOP NAVIGATION -->
+    <!-- PUBLIC DESKTOP NAVIGATION. Authenticated users use the shared sidebar. -->
     <nav class="main-nav <?= $isStudent ? 'student-main-nav' : '' ?>"
          aria-label="Main navigation">
-
-        <?php if ($isStudent): ?>
-
-            <!-- Student navigation is available through the hamburger sidebar. -->
-
-        <?php elseif ($isAdmin): ?>
-
-            <?php foreach ($adminLinks as $link): ?>
-                <a
-                    href="<?= BASE_URL . $link[1] ?>"
-                    class="<?= header_link_active($currentPage, $link[2]) ?>"
-                    <?= header_link_active($currentPage, $link[2]) ? 'aria-current="page"' : '' ?>
-                >
-                    <?= e($link[0]) ?>
-                </a>
-            <?php endforeach; ?>
-
-        <?php elseif ($isStaff): ?>
-
-            <?php foreach ($staffLinks as $link): ?>
-                <a
-                    href="<?= BASE_URL . $link[1] ?>"
-                    class="<?= header_link_active($currentPage, $link[2]) ?>"
-                >
-                    <?= e($link[0]) ?>
-                </a>
-            <?php endforeach; ?>
-
-            <a
-                href="<?= BASE_URL ?>/announcements.php"
-                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
-                <?= header_link_active($currentPage, ['announcements.php']) ? 'aria-current="page"' : '' ?>
-            >
-                Announcements
-            </a>
-
-        <?php else: ?>
-
-    <a
-        href="<?= BASE_URL ?>/index.php"
-        class="<?= header_link_active($currentPage, ['index.php']) ?>"
-    >
-        Home
-    </a>
-
-            <a
-                href="<?= BASE_URL ?>/announcements.php"
-                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
-                <?= header_link_active($currentPage, ['announcements.php']) ? 'aria-current="page"' : '' ?>
-            >
-                Announcements
-            </a>
-    <a
-        href="<?= BASE_URL ?>/login.php"
-        class="<?= header_link_active($currentPage, ['login.php']) ?>"
-    >
-        Log In
-    </a>
-
-    <a
-        href="<?= BASE_URL ?>/register.php"
-        class="nav-register <?= header_link_active($currentPage, ['register.php']) ?>"
-    >
-        Student Registration
-    </a>
-
-<?php endif; ?>
-
-        <?php if ($user && !$isStudent): ?>
-            <a href="#" class="nav-logout" data-logout-trigger>
-                <img
-                    src="<?= BASE_URL ?>/assets/images/logout.png"
-                    alt=""
-                    class="logout-icon"
-                >
-                Logout
-            </a>
+        <?php if (!$user): ?>
+            <a href="<?= BASE_URL ?>/index.php" class="<?= header_link_active($currentPage, ['index.php']) ?>">Home</a>
+            <a href="<?= BASE_URL ?>/announcements.php" class="<?= header_link_active($currentPage, ['announcements.php']) ?>">Announcements</a>
+            <a href="<?= BASE_URL ?>/login.php" class="<?= header_link_active($currentPage, ['login.php']) ?>">Log In</a>
+            <a href="<?= BASE_URL ?>/register.php" class="nav-register <?= header_link_active($currentPage, ['register.php']) ?>">Student Registration</a>
         <?php endif; ?>
-
     </nav>
 
 
@@ -202,122 +111,8 @@ function header_link_active(string $page, array $pages): string
 ></div>
 
 
-<!-- MAIN NAVIGATION SIDEBAR -->
-<aside
-    class="main-sidebar"
-    id="mainSidebar"
-    aria-label="Main navigation menu"
-    aria-hidden="true"
->
-
-    <div class="main-sidebar-header">
-        <h2>Navigation</h2>
-
-        <button
-            type="button"
-            class="main-sidebar-close"
-            id="mainSidebarClose"
-            aria-label="Close navigation menu"
-        >&times;</button>
-    </div>
-
-    <nav class="main-sidebar-nav">
-
-        <?php if ($isStudent): ?>
-
-            <a
-                href="<?= BASE_URL ?>/student/dashboard.php"
-                class="<?= header_link_active($currentPage, ['dashboard.php']) ?>"
-                <?= header_link_active($currentPage, ['dashboard.php']) ? 'aria-current="page"' : '' ?>
-            >
-                Dashboard
-            </a>
-
-            <a
-                href="<?= BASE_URL ?>/student/my_applications.php"
-                class="<?= header_link_active($currentPage, ['my_applications.php']) ?>"
-                <?= header_link_active($currentPage, ['my_applications.php']) ? 'aria-current="page"' : '' ?>
-            >
-                My Applications
-            </a>
-
-            <a
-                href="<?= BASE_URL ?>/announcements.php"
-                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
-                <?= header_link_active($currentPage, ['announcements.php']) ? 'aria-current="page"' : '' ?>
-            >
-                Announcements
-            </a>
-
-            <div class="sidebar-divider"></div>
-
-            <a href="<?= BASE_URL ?>/student/profile.php">
-                My Profile
-            </a>
-
-            <a href="<?= BASE_URL ?>/student/change_password.php">
-                Change Password
-            </a>
-
-        <?php elseif ($isAdmin): ?>
-
-            <?php foreach ($adminLinks as $link): ?>
-                <a
-                    href="<?= BASE_URL . $link[1] ?>"
-                    class="<?= header_link_active($currentPage, $link[2]) ?>"
-                >
-                    <?= e($link[0]) ?>
-                </a>
-            <?php endforeach; ?>
-
-        <?php elseif ($isStaff): ?>
-
-            <?php foreach ($staffLinks as $link): ?>
-                <a href="<?= BASE_URL . $link[1] ?>">
-                    <?= e($link[0]) ?>
-                </a>
-            <?php endforeach; ?>
-
-            <a
-                href="<?= BASE_URL ?>/announcements.php"
-                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
-            >
-                Announcements
-            </a>
-
-        <?php else: ?>
-
-            <a href="<?= BASE_URL ?>/index.php">Home</a>
-            <a
-                href="<?= BASE_URL ?>/announcements.php"
-                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
-            >
-                Announcements
-            </a>
-            <a href="<?= BASE_URL ?>/login.php">Log In</a>
-
-            <a href="<?= BASE_URL ?>/register.php">
-                Student Registration
-            </a>
-
-        <?php endif; ?>
-
-    </nav>
-
-    <?php if ($user): ?>
-        <div class="main-sidebar-footer">
-            <a href="#" class="nav-logout" data-logout-trigger>
-                <img
-                    src="<?= BASE_URL ?>/assets/images/logout.png"
-                    alt=""
-                    class="logout-icon"
-                >
-                Logout
-            </a>
-        </div>
-    <?php endif; ?>
-
-</aside>
+<!-- SHARED ROLE-BASED SIDEBAR -->
+<?php require __DIR__ . '/sidebar.php'; ?>
 
 
 <!-- LOGOUT CONFIRMATION MODAL -->
