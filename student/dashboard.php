@@ -111,6 +111,16 @@ require_once __DIR__ . '/../includes/header.php';
         <span class="dashboard-card-action">View Records <span aria-hidden="true">&rarr;</span></span>
     </a>
 
+    <a
+        class="dashboard-card"
+        href="<?= BASE_URL ?>/student/my_applications.php"
+    >
+        <span class="card-kicker">04</span>
+        <h2>My Applications</h2>
+        <p>Track your enrollment applications, submitted documents, and scholarship applications.</p>
+        <span class="dashboard-card-action">View Applications <span aria-hidden="true">&rarr;</span></span>
+    </a>
+
 </section>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

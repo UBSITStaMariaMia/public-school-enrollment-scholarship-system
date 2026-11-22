@@ -41,11 +41,7 @@ $applications = $applicationsQuery->fetchAll();
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<style>
-.status-badge { display:inline-block; padding:5px 11px; border-radius:20px; font-size:.82rem; font-weight:700; background:#fff5df; color:#8a5a00; }
-.status-approved { background:#e8f7ed; color:#17633a; }
-.status-rejected { background:#fff0f0; color:#9b1c1c; }
-</style>
+
 
 <section class="form-card form-card-wide">
     <h1>Scholarship Application Status</h1>
@@ -59,7 +55,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     <?php else: ?>
         <?php foreach ($applications as $application): ?>
-            <div class="application-card" style="margin-top:20px;padding:20px;border:1px solid var(--line);border-radius:12px;">
+            <div class="application-card application-card-spaced">
                 <h2><?= e($application['program_name']) ?></h2>
                 <p class="muted"><?= e($application['description'] ?? '') ?></p>
                 <p><strong>School Year:</strong> <?= e($application['school_year']) ?></p>
@@ -67,7 +63,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <p><strong>Status:</strong> <span class="status-badge <?= $application['application_status'] === 'Approved' ? 'status-approved' : ($application['application_status'] === 'Rejected' ? 'status-rejected' : 'status-pending') ?>"><?= e($application['application_status']) ?></span></p>
 
                 <?php if ($application['application_status'] === 'For Screening' && $application['screening_date'] && $application['screening_time'] && $application['screening_venue']): ?>
-                    <div class="scholarship-year-note" style="margin-top:18px;">
+                    <div class="scholarship-year-note scholarship-year-note-spaced">
                         <h3>Screening Schedule</h3>
                         <p><strong>Date:</strong> <?= e(date('F j, Y', strtotime($application['screening_date']))) ?></p>
                         <p><strong>Time:</strong> <?= e(date('g:i A', strtotime($application['screening_time']))) ?></p>

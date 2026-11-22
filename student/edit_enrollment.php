@@ -417,64 +417,7 @@ $pageTitle = 'Edit Enrollment Application';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<style>
-.edit-card {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 18px;
-    margin-top: 18px;
-}
 
-.edit-document {
-    padding: 15px;
-    border: 1px solid var(--line);
-    border-radius: 9px;
-    margin-top: 12px;
-}
-
-.edit-document label {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.edit-document input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    min-height: 18px;
-    margin: 0;
-    accent-color: var(--maroon);
-}
-
-.edit-upload {
-    margin: 12px 0 0 27px;
-}
-
-.edit-upload label {
-    display: block;
-    margin-bottom: 6px;
-}
-
-.edit-upload input[type="file"] {
-    min-height: auto;
-}
-
-.current-file {
-    margin: 8px 0;
-    color: var(--muted);
-    font-size: .9rem;
-}
-
-.edit-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 24px;
-}
-</style>
 
 <section class="form-card form-card-wide">
 
@@ -626,7 +569,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                     <div id="edit-upload-<?= $index ?>"
                          class="edit-upload"
-                         style="display:none;">
+                         class="is-hidden">
 
                         <label for="edit-file-<?= $index ?>">
                             Choose File

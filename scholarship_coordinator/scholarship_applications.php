@@ -155,7 +155,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     </select>
                                 </label>
 
-                                <fieldset style="margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:8px;">
+                                <fieldset class="screening-schedule-fieldset">
                                     <legend>Screening Schedule (required for For Screening)</legend>
                                     <label>Date
                                         <input type="date" name="screening_date" value="<?= e($application['screening_date'] ?? '') ?>">
