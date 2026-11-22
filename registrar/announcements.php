@@ -1,10 +1,9 @@
-
 <?php
 declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 
-require_role('System Administrator', 'School Registrar');
+require_role('School Registrar');
 
 $pageTitle = 'Announcement Management';
 
@@ -180,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
 
-                redirect('/staff/announcements.php?saved=1');
+                redirect('/registrar/announcements.php?saved=1');
 
             } catch (Throwable $exception) {
 
@@ -219,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'announcement_id' => $announcementId
                 ]);
 
-                redirect('/staff/announcements.php?deleted=1');
+                redirect('/registrar/announcements.php?deleted=1');
 
             } catch (Throwable $exception) {
 
@@ -644,7 +643,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                 <?php if ($values['announcement_id'] !== ''): ?>
                     <a
-                        href="<?= BASE_URL ?>/staff/announcements.php"
+                        href="<?= BASE_URL ?>/registrar/announcements.php"
                         class="button button-outline"
                     >
                         Cancel Editing
@@ -723,7 +722,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <div class="announcement-actions">
 
                                         <a
-                                            href="<?= BASE_URL ?>/staff/announcements.php?edit=<?= (int) $announcement['announcement_id'] ?>"
+                                            href="<?= BASE_URL ?>/registrar/announcements.php?edit=<?= (int) $announcement['announcement_id'] ?>"
                                             class="button button-outline"
                                         >
                                             Edit

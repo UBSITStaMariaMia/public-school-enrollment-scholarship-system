@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
-require_role('System Administrator', 'School Registrar');
+require_role('School Registrar');
 
 $pageTitle = 'Section Management';
 $error = '';

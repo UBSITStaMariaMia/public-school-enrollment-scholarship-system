@@ -3852,3 +3852,611 @@ body.reminder-modal-open {
     align-items: center;
 }
 
+
+/* =========================================================
+   BCNHS SCHOOL REGISTRAR - HAMBURGER SIDEBAR
+   Registrar-only rules. Other role navigation is unchanged.
+========================================================= */
+
+/* Use the existing hamburger sidebar on desktop and mobile. */
+.registrar-portal .site-header .main-nav {
+    display: none !important;
+}
+
+.registrar-portal .site-header .header-actions {
+    display: flex !important;
+    align-items: center;
+    margin-left: auto;
+}
+
+.registrar-portal .site-header .menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.registrar-portal .main-sidebar-header.registrar-sidebar-heading {
+    align-items: flex-start;
+}
+
+.registrar-portal .registrar-sidebar-heading h2 {
+    margin: 0;
+    color: var(--maroon-dark);
+    font-size: 1.18rem;
+    letter-spacing: .01em;
+}
+
+.registrar-portal .registrar-sidebar-heading p {
+    margin: 4px 0 0;
+    color: #81747a;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+.registrar-portal .registrar-sidebar-label {
+    margin: 20px 10px 9px;
+    color: #8a737c;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-height: 48px;
+    margin: 3px 0;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    color: #393238;
+    font-size: .94rem;
+    font-weight: 650;
+    line-height: 1.3;
+    text-decoration: none;
+    transition: background .18s ease, border-color .18s ease,
+                color .18s ease, transform .18s ease;
+}
+
+.registrar-portal .registrar-sidebar-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 8px;
+    background: #f7edf1;
+    color: var(--maroon);
+}
+
+.registrar-portal .registrar-sidebar-icon svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.65;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link:hover {
+    border-color: #ead8df;
+    background: #fbf6f8;
+    color: var(--maroon);
+    text-decoration: none;
+    transform: translateX(2px);
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link.active {
+    border-color: #ead8df;
+    background: #f7edf1;
+    color: var(--maroon);
+    font-weight: 800;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link.active .registrar-sidebar-icon {
+    background: var(--maroon);
+    color: #ffffff;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link:focus-visible,
+.registrar-portal .site-header .menu-toggle:focus-visible,
+.registrar-portal .main-sidebar-close:focus-visible {
+    outline: 3px solid rgba(112, 29, 50, .28);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .registrar-portal .main-sidebar-nav a.registrar-sidebar-link {
+        transition: none;
+    }
+}
+
+
+/* =========================================================
+   SHARED ROLE-BASED SIDEBAR
+   One consistent sidebar treatment for Admin, Registrar,
+   Teacher, Student, and other authenticated staff roles.
+========================================================= */
+.has-role-sidebar .site-header .main-nav {
+    display: none !important;
+}
+
+.has-role-sidebar .site-header .header-actions {
+    display: flex !important;
+    align-items: center;
+    margin-left: auto !important;
+}
+
+.has-role-sidebar .site-header .menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.has-role-sidebar .main-sidebar-header.sidebar-heading {
+    align-items: center;
+    min-height: 74px;
+}
+
+.sidebar-identity {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+}
+
+.sidebar-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #f7edf1;
+    color: var(--maroon);
+}
+
+.sidebar-avatar svg {
+    display: block;
+    width: 23px;
+    height: 23px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sidebar-identity-text {
+    min-width: 0;
+}
+
+.sidebar-identity-text h2 {
+    max-width: 235px;
+    overflow-wrap: anywhere;
+    font-size: 1.08rem;
+    line-height: 1.25;
+}
+
+.sidebar-identity-text p {
+    margin: 4px 0 0;
+    color: #81747a;
+    font-size: .76rem;
+    font-weight: 650;
+    letter-spacing: .035em;
+}
+
+.sidebar-section-label {
+    margin: 20px 10px 9px;
+    color: #8a737c;
+    font-size: .67rem;
+    font-weight: 800;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.main-sidebar-nav a.sidebar-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-height: 48px;
+    margin: 3px 0;
+    padding: 9px 12px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    color: #393238;
+    font-size: .94rem;
+    font-weight: 650;
+    line-height: 1.3;
+    text-decoration: none;
+    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+
+.sidebar-nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    border-radius: 8px;
+    background: #f7edf1;
+    color: var(--maroon);
+}
+
+.sidebar-nav-icon svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.65;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.main-sidebar-nav a.sidebar-nav-link:hover {
+    border-color: #ead8df;
+    background: #fbf6f8;
+    color: var(--maroon);
+    text-decoration: none;
+    transform: translateX(2px);
+}
+
+.main-sidebar-nav a.sidebar-nav-link.active {
+    border-color: #ead8df;
+    background: #f7edf1;
+    color: var(--maroon);
+    font-weight: 800;
+}
+
+.main-sidebar-nav a.sidebar-nav-link.active .sidebar-nav-icon {
+    background: var(--maroon);
+    color: #fff;
+}
+
+.main-sidebar-footer .nav-logout {
+    gap: 12px;
+}
+
+.main-sidebar-footer .nav-logout .sidebar-nav-icon {
+    background: transparent;
+}
+
+.main-sidebar-nav a.sidebar-nav-link:focus-visible,
+.main-sidebar-footer .nav-logout:focus-visible,
+.has-role-sidebar .site-header .menu-toggle:focus-visible,
+.has-role-sidebar .main-sidebar-close:focus-visible {
+    outline: 3px solid rgba(112, 29, 50, .28);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .main-sidebar-nav a.sidebar-nav-link {
+        transition: none;
+    }how 
+}
+
+
+/* =========================================================
+   SCHOLARSHIP COORDINATOR DASHBOARD
+========================================================= */
+
+.scholarship-dashboard {
+    width: 100%;
+}
+
+/* Welcome Section */
+
+.scholarship-dashboard .scholarship-welcome-card {
+    width: 100%;
+    min-height: 210px;
+    margin: 0 auto 42px;
+    padding: 42px 48px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    background: #ffffff;
+    border: 1px solid #eadfe4;
+    border-radius: 18px;
+    box-shadow: 0 5px 20px rgba(40, 20, 30, 0.07);
+}
+
+.scholarship-dashboard .scholarship-eyebrow {
+    margin: 0 0 12px;
+    color: #741f42;
+    font-size: 0.82rem;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.scholarship-dashboard .scholarship-welcome-card h1 {
+    margin: 0 0 14px;
+    color: #55172f;
+    font-size: clamp(2rem, 3vw, 2.7rem);
+    line-height: 1.25;
+}
+
+.scholarship-dashboard .scholarship-welcome-card > p:last-child {
+    max-width: 850px;
+    margin: 0;
+    color: #716a72;
+    font-size: 1.05rem;
+    line-height: 1.8;
+}
+
+/* Section Headings */
+
+.scholarship-dashboard .scholarship-summary-section,
+.scholarship-dashboard .scholarship-services-section {
+    width: 100%;
+    margin: 42px 0;
+}
+
+.scholarship-dashboard .scholarship-section-heading {
+    margin-bottom: 24px;
+}
+
+.scholarship-dashboard .scholarship-section-heading h2 {
+    margin: 0 0 8px;
+    color: #55172f;
+    font-size: 1.55rem;
+    line-height: 1.4;
+}
+
+.scholarship-dashboard .scholarship-section-heading > p:last-child {
+    margin: 8px 0 0;
+    color: #716a72;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* Summary Cards */
+
+.scholarship-dashboard .scholarship-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.scholarship-dashboard .scholarship-summary-card {
+    min-height: 155px;
+    padding: 25px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+
+    background: #ffffff;
+    border: 1px solid #eadfe4;
+    border-radius: 16px;
+    box-shadow: 0 5px 18px rgba(40, 20, 30, 0.06);
+}
+
+.scholarship-dashboard .scholarship-summary-primary {
+    background: #741f42;
+    border-color: #741f42;
+}
+
+.scholarship-dashboard .scholarship-summary-label {
+    color: #625b63;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.scholarship-dashboard .scholarship-summary-card strong {
+    color: #55172f;
+    font-size: 2.5rem;
+    line-height: 1.2;
+}
+
+.scholarship-dashboard .scholarship-summary-note {
+    color: #817982;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.scholarship-dashboard .scholarship-summary-primary .scholarship-summary-label,
+.scholarship-dashboard .scholarship-summary-primary strong,
+.scholarship-dashboard .scholarship-summary-primary .scholarship-summary-note {
+    color: #ffffff;
+}
+
+/* Management Service Cards */
+
+.scholarship-dashboard .scholarship-service-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.scholarship-dashboard .scholarship-service-card {
+    min-height: 285px;
+    padding: 28px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+
+    background: #ffffff;
+    border: 1px solid #eadfe4;
+    border-radius: 17px;
+    box-shadow: 0 5px 18px rgba(40, 20, 30, 0.06);
+
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.scholarship-dashboard .scholarship-service-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 9px 25px rgba(40, 20, 30, 0.10);
+}
+
+.scholarship-dashboard .scholarship-service-icon {
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+
+    display: grid;
+    place-items: center;
+
+    background: #f7eaf0;
+    color: #741f42;
+    border-radius: 14px;
+}
+
+.scholarship-dashboard .scholarship-service-icon svg {
+    display: block;
+    width: 27px;
+    height: 27px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.scholarship-dashboard .scholarship-service-card h3 {
+    margin: 0;
+    color: #55172f;
+    font-size: 1.2rem;
+    line-height: 1.4;
+}
+
+.scholarship-dashboard .scholarship-service-card p {
+    margin: 0 0 8px;
+    color: #716a72;
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.scholarship-dashboard .scholarship-service-link {
+    width: 100%;
+    min-height: 45px;
+    margin-top: auto;
+    padding: 12px 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    background: #741f42;
+    border: 1px solid #741f42;
+    border-radius: 9px;
+
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 650;
+    text-decoration: none;
+
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.scholarship-dashboard .scholarship-service-link:hover {
+    background: #55172f;
+    border-color: #55172f;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.scholarship-dashboard .scholarship-service-link span {
+    font-size: 1.15rem;
+}
+
+/* Dashboard Error Message */
+
+.scholarship-dashboard .scholarship-dashboard-error {
+    margin-bottom: 24px;
+    padding: 14px 18px;
+
+    background: #fff0f0;
+    border: 1px solid #f3caca;
+    border-radius: 9px;
+
+    color: #9b1c1c;
+    line-height: 1.6;
+}
+
+/* Responsive Layout */
+
+@media (max-width: 1100px) {
+    .scholarship-dashboard .scholarship-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .scholarship-dashboard .scholarship-service-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .scholarship-dashboard .scholarship-welcome-card {
+        min-height: auto;
+        padding: 30px 25px;
+        margin-bottom: 30px;
+    }
+
+    .scholarship-dashboard .scholarship-welcome-card h1 {
+        font-size: 1.9rem;
+    }
+
+    .scholarship-dashboard .scholarship-welcome-card > p:last-child {
+        font-size: 0.95rem;
+    }
+
+    .scholarship-dashboard .scholarship-summary-grid,
+    .scholarship-dashboard .scholarship-service-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .scholarship-dashboard .scholarship-summary-section,
+    .scholarship-dashboard .scholarship-services-section {
+        margin: 32px 0;
+    }
+
+    .scholarship-dashboard .scholarship-summary-card {
+        min-height: 140px;
+        padding: 23px;
+    }
+
+    .scholarship-dashboard .scholarship-service-card {
+        min-height: 260px;
+        padding: 25px;
+    }
+}
+
+@media (max-width: 480px) {
+    .scholarship-dashboard .scholarship-welcome-card {
+        padding: 25px 20px;
+    }
+
+    .scholarship-dashboard .scholarship-welcome-card h1 {
+        font-size: 1.65rem;
+    }
+
+    .scholarship-dashboard .scholarship-section-heading h2 {
+        font-size: 1.35rem;
+    }
+
+    .scholarship-dashboard .scholarship-service-card {
+        padding: 22px;
+    }
+}
+
