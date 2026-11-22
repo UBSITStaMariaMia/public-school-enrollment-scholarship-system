@@ -39,6 +39,7 @@ function header_link_active(string $page, array $pages): string
     <title><?= e($pageTitle) ?> | Baguio City National High School Portal</title>
 
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/responsive.css">
 </head>
 
 <body class="<?= $isStudent ? 'student-portal' : '' ?> <?= $isAdmin ? 'admin-portal' : '' ?> <?= $isRegistrar ? 'registrar-portal' : '' ?> <?= $isTeacher ? 'teacher-portal' : '' ?> <?= $user ? 'has-role-sidebar' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?> <?= $isRegistrationPage ? 'registration-page' : '' ?> <?= (!$user && in_array($currentPage, ['index.php', 'register.php', 'login.php'], true)) ? 'public-auth-page' : '' ?>">
