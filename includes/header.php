@@ -25,13 +25,6 @@ $isAccountPage = $isStudent && in_array(
     true
 );
 
-$studentLinks = [
-    ['Dashboard', '/student/dashboard.php', ['dashboard.php']],
-    ['Enrollment', '/student/new_enrollment.php', ['new_enrollment.php', 'edit_enrollment.php']],
-    ['My Applications', '/student/my_applications.php', ['my_applications.php']],
-    ['Student Records', '/student/records.php', ['records.php']]
-];
-
 $staffLinks = [
     ['Dashboard', '/staff/dashboard.php', ['dashboard.php']],
     ['Subject Management', '/staff/subjects.php', ['subjects.php']],
@@ -101,23 +94,7 @@ function header_link_active(string $page, array $pages): string
 
         <?php if ($isStudent): ?>
 
-            <?php foreach ($studentLinks as $link): ?>
-                <a
-                    href="<?= BASE_URL . $link[1] ?>"
-                    class="<?= header_link_active($currentPage, $link[2]) ?>"
-                    <?= header_link_active($currentPage, $link[2]) ? 'aria-current="page"' : '' ?>
-                >
-                    <?= e($link[0]) ?>
-                </a>
-            <?php endforeach; ?>
-
-            <a
-                href="<?= BASE_URL ?>/announcements.php"
-                class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
-                <?= header_link_active($currentPage, ['announcements.php']) ? 'aria-current="page"' : '' ?>
-            >
-                Announcements
-            </a>
+            <!-- Student navigation is available through the hamburger sidebar. -->
 
         <?php elseif ($isAdmin): ?>
 
@@ -199,28 +176,6 @@ function header_link_active(string $page, array $pages): string
     <!-- HEADER ACTIONS -->
     <div class="header-actions">
 
-        <?php if ($isStudent): ?>
-
-            <!-- PROFILE ICON: OPENS ACCOUNT SIDEBAR -->
-            <button
-                type="button"
-                class="profile-icon-link"
-                id="accountIcon"
-                aria-label="Open account menu"
-                aria-controls="profileSidebar"
-                aria-expanded="false"
-                title="Account Menu"
-            >
-                <img
-                    src="<?= BASE_URL ?>/assets/images/account.png"
-                    alt=""
-                    class="profile-account-icon"
-                >
-            </button>
-
-        <?php endif; ?>
-
-
         <!-- HAMBURGER BUTTON -->
         <button
             type="button"
@@ -271,18 +226,26 @@ function header_link_active(string $page, array $pages): string
 
         <?php if ($isStudent): ?>
 
-            <?php foreach ($studentLinks as $link): ?>
-                <a
-                    href="<?= BASE_URL . $link[1] ?>"
-                    class="<?= header_link_active($currentPage, $link[2]) ?>"
-                >
-                    <?= e($link[0]) ?>
-                </a>
-            <?php endforeach; ?>
+            <a
+                href="<?= BASE_URL ?>/student/dashboard.php"
+                class="<?= header_link_active($currentPage, ['dashboard.php']) ?>"
+                <?= header_link_active($currentPage, ['dashboard.php']) ? 'aria-current="page"' : '' ?>
+            >
+                Dashboard
+            </a>
+
+            <a
+                href="<?= BASE_URL ?>/student/my_applications.php"
+                class="<?= header_link_active($currentPage, ['my_applications.php']) ?>"
+                <?= header_link_active($currentPage, ['my_applications.php']) ? 'aria-current="page"' : '' ?>
+            >
+                My Applications
+            </a>
 
             <a
                 href="<?= BASE_URL ?>/announcements.php"
                 class="<?= header_link_active($currentPage, ['announcements.php']) ?>"
+                <?= header_link_active($currentPage, ['announcements.php']) ? 'aria-current="page"' : '' ?>
             >
                 Announcements
             </a>
@@ -356,67 +319,6 @@ function header_link_active(string $page, array $pages): string
     <?php endif; ?>
 
 </aside>
-
-
-<!-- STUDENT ACCOUNT SIDEBAR -->
-<?php if ($isStudent): ?>
-
-    <div
-        class="profile-sidebar-overlay"
-        id="profileSidebarOverlay"
-        aria-hidden="true"
-    ></div>
-
-    <aside
-        class="profile-sidebar"
-        id="profileSidebar"
-        aria-label="Account menu"
-        aria-hidden="true"
-    >
-
-        <div class="profile-sidebar-header">
-            <h2>Account Menu</h2>
-
-            <button
-                type="button"
-                class="profile-sidebar-close"
-                id="profileSidebarClose"
-                aria-label="Close account menu"
-            >&times;</button>
-        </div>
-
-        <nav class="profile-sidebar-nav">
-
-            <a
-                href="<?= BASE_URL ?>/student/profile.php"
-                class="<?= $currentPage === 'profile.php' ? 'active' : '' ?>"
-            >
-                My Profile
-            </a>
-
-            <a
-                href="<?= BASE_URL ?>/student/change_password.php"
-                class="<?= $currentPage === 'change_password.php' ? 'active' : '' ?>"
-            >
-                Change Password
-            </a>
-
-        </nav>
-
-        <div class="profile-sidebar-logout">
-            <a href="#" class="nav-logout" data-logout-trigger>
-                <img
-                    src="<?= BASE_URL ?>/assets/images/logout.png"
-                    alt=""
-                    class="logout-icon"
-                >
-                Logout
-            </a>
-        </div>
-
-    </aside>
-
-<?php endif; ?>
 
 
 <!-- LOGOUT CONFIRMATION MODAL -->
@@ -497,16 +399,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const mainSidebarClose = document.getElementById('mainSidebarClose');
     const mainSidebarOverlay = document.getElementById('mainSidebarOverlay');
 
-    // STUDENT ACCOUNT SIDEBAR
-    const accountIcon = document.getElementById('accountIcon');
-    const profileSidebar = document.getElementById('profileSidebar');
-    const profileSidebarClose = document.getElementById('profileSidebarClose');
-    const profileSidebarOverlay = document.getElementById('profileSidebarOverlay');
-
     function openMainSidebar() {
         if (!mainSidebar || !mainSidebarOverlay) return;
-
-        closeAccountSidebar();
 
         mainSidebar.classList.add('active');
         mainSidebarOverlay.classList.add('active');
@@ -537,39 +431,6 @@ document.addEventListener('DOMContentLoaded', function () {
         document.body.classList.remove('main-sidebar-open');
     }
 
-    function openAccountSidebar() {
-        if (!profileSidebar || !profileSidebarOverlay) return;
-
-        closeMainSidebar();
-
-        profileSidebar.classList.add('active');
-        profileSidebarOverlay.classList.add('active');
-
-        profileSidebar.setAttribute('aria-hidden', 'false');
-        profileSidebarOverlay.setAttribute('aria-hidden', 'false');
-
-        if (accountIcon) {
-            accountIcon.setAttribute('aria-expanded', 'true');
-        }
-
-        document.body.classList.add('sidebar-open');
-    }
-
-    function closeAccountSidebar() {
-        if (!profileSidebar || !profileSidebarOverlay) return;
-
-        profileSidebar.classList.remove('active');
-        profileSidebarOverlay.classList.remove('active');
-
-        profileSidebar.setAttribute('aria-hidden', 'true');
-        profileSidebarOverlay.setAttribute('aria-hidden', 'true');
-
-        if (accountIcon) {
-            accountIcon.setAttribute('aria-expanded', 'false');
-        }
-
-        document.body.classList.remove('sidebar-open');
-    }
     // EVENT LISTENERS
     if (menuToggle) {
         menuToggle.addEventListener('click', openMainSidebar);
@@ -583,18 +444,6 @@ document.addEventListener('DOMContentLoaded', function () {
         mainSidebarOverlay.addEventListener('click', closeMainSidebar);
     }
 
-    if (accountIcon) {
-        accountIcon.addEventListener('click', openAccountSidebar);
-    }
-
-    if (profileSidebarClose) {
-        profileSidebarClose.addEventListener('click', closeAccountSidebar);
-    }
-
-    if (profileSidebarOverlay) {
-        profileSidebarOverlay.addEventListener('click', closeAccountSidebar);
-    }
-
     // CLOSE SIDEBARS AFTER NAVIGATION
     if (mainSidebar) {
         mainSidebar.querySelectorAll('a').forEach(function (link) {
@@ -603,12 +452,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     closeMainSidebar();
                 }
             });
-        });
-    }
-
-    if (profileSidebar) {
-        profileSidebar.querySelectorAll('nav a').forEach(function (link) {
-            link.addEventListener('click', closeAccountSidebar);
         });
     }
 

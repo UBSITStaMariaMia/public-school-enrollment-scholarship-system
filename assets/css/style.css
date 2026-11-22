@@ -737,7 +737,6 @@ input[type="radio"] {
 
 /* =========================================
    STUDENT PORTAL: RIGHT-SIDE SIDEBAR
-   ========================================= */
 
 body.student-portal {
     --student-sidebar-width: 270px;
@@ -935,7 +934,6 @@ body.student-portal {
 
 /* =========================================
    STUDENT TOP NAVIGATION AND ACCOUNT ICON
-========================================= */
 
 .student-main-nav {
     flex: 1;
@@ -980,7 +978,6 @@ body.student-portal {
 
 /* =========================================
    ACCOUNT SIDEBAR - SINGLE SOURCE OF STYLES
-========================================= */
 
 .profile-sidebar {
     position: fixed;
@@ -1333,7 +1330,6 @@ body.sidebar-open {
 
 /* =========================================
    CENTER CONTENT ON ALL STUDENT PAGES
-========================================= */
 
 .student-portal .page-container {
     width: min(1160px, calc(100% - 36px));
@@ -1352,7 +1348,6 @@ body.sidebar-open {
 
 /* =========================================
    RESPONSIVE HAMBURGER NAVIGATION
-   ========================================= */
 .header-actions {
     display: flex;
     align-items: center;
@@ -1582,7 +1577,6 @@ body.main-menu-open {
 
 /* =====================================================
    RESPONSIVE HEADER AND HAMBURGER NAVIGATION
-===================================================== */
 
 /* HEADER LAYOUT */
 
@@ -1798,7 +1792,6 @@ body.main-menu-open {
 
 /* =====================================================
    RESPONSIVE HEADER
-===================================================== */
 
 .site-header {
     display: flex;
@@ -2225,11 +2218,9 @@ body.sidebar-open {
 
 /* =========================================
    MERGED FROM CURRENT BRANCH: PHONE NUMBER AND PROFILE EDIT STYLES
-   ========================================= */
 
 /* =========================================
    UNIFIED PHILIPPINE PHONE NUMBER FIELDS
-   ========================================= */
 
 .phone-input-wrapper {
     display: flex;
@@ -2323,7 +2314,6 @@ body.sidebar-open {
 
 /* =========================================
    BCNHS STUDENT REGISTRATION REMINDER MODAL
-   ========================================= */
 
 .registration-reminder-overlay {
     position: fixed;
@@ -2738,6 +2728,289 @@ body.reminder-modal-open {
 }
 
 
+/* STUDENT DASHBOARD SERVICE CARDS */
+.dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+}
+
+.dashboard-card {
+    min-height: 205px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.dashboard-card h2 {
+    margin-top: 8px;
+}
+
+.dashboard-card p {
+    flex: 1;
+}
+
+.dashboard-card-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    color: var(--maroon);
+    font-size: .92rem;
+    font-weight: 700;
+}
+
+.dashboard-card:hover .dashboard-card-action {
+    color: var(--maroon-dark);
+    text-decoration: underline;
+}
+
+.applications-back-button {
+    margin-bottom: 22px;
+}
+
+@media (max-width: 900px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-card {
+        min-height: 185px;
+    }
+}
+
+/* Student navigation is shown in the hamburger sidebar only. */
+@media (min-width: 1051px) {
+    .student-portal .student-main-nav {
+        display: none !important;
+    }
+}
+
+
+/* STUDENT PORTAL: SHOW MAIN NAVIGATION HAMBURGER ON DESKTOP AND MOBILE */
+.student-portal .menu-toggle {
+    display: flex !important;
+    flex-shrink: 0;
+}
+
+.student-portal .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.student-portal .student-main-nav {
+    display: none !important;
+}
+
+
+/* ADMIN USER MANAGEMENT */
+
+.user-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 20px;
+}
+
+.user-form-grid label {
+    display: grid;
+    gap: 7px;
+    color: #343a43;
+    font-weight: 700;
+    font-size: .92rem;
+}
+
+.user-form-grid small {
+    color: var(--muted);
+    font-weight: 400;
+}
+
+.account-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.account-actions form {
+    margin: 0;
+}
+
+.button-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 9px 16px;
+    border: 1px solid #b42318;
+    border-radius: 9px;
+    background: #b42318;
+    color: #ffffff;
+    cursor: pointer;
+    font: inherit;
+    font-size: .9rem;
+    font-weight: 700;
+}
+
+.button-danger:hover {
+    background: #8f1d15;
+    border-color: #8f1d15;
+}
+
+@media (max-width: 600px) {
+    .user-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.account-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.account-actions form {
+    width: 118px;
+    margin: 0;
+}
+
+.account-actions a.button,
+.account-actions form button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 118px;
+    height: 44px;
+    padding: 8px;
+    box-sizing: border-box;
+    margin: 0;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+
+/* STAFF ACCOUNTS TABLE DIVIDERS */
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #d9dce3;
+    border-radius: 10px;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.table-container table th,
+.table-container table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-right: 1px solid #e0e3e8;
+    border-bottom: 1px solid #e0e3e8;
+    vertical-align: middle;
+}
+
+/* Header design */
+.table-container table th {
+    background-color: #f7f1f4;
+    color: #5b1025;
+    font-weight: 700;
+}
+
+/* Remove border from the last column */
+.table-container table th:last-child,
+.table-container table td:last-child {
+    border-right: none;
+}
+
+/* Remove bottom border from the last row */
+.table-container table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Light background when hovering over a row */
+.table-container table tbody tr:hover {
+    background-color: #faf7f8;
+}
+
+
+/* STUDENT RECORD SEARCH FILTERS */
+
+.student-search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.student-search-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.student-search-filters label {
+    cursor: pointer;
+}
+
+.student-search-filters input {
+    display: none;
+}
+
+.student-search-filters span {
+    display: inline-block;
+    padding: 9px 18px;
+    border: 1px solid #d9dce3;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #5b1025;
+    font-size: 14px;
+    font-weight: 600;
+    transition: .2s;
+}
+
+.student-search-filters input:checked + span {
+    background: #5b1025;
+    color: #ffffff;
+    border-color: #5b1025;
+}
+
+.student-search-filters span:hover {
+    border-color: #5b1025;
+}
+
+/* STUDENT RECORD ACTIONS */
+
+.student-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 100px;
+}
+
+.student-actions a,
+.student-actions button {
+    width: 110px;
+    min-height: 42px;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.student-actions form {
+    margin: 0;
+}
 /* LOGIN PAGE: LOGIN LEFT, ANNOUNCEMENTS RIGHT */
 .public-auth-page .main-nav {
     display: none !important;
@@ -3427,10 +3700,10 @@ body.reminder-modal-open {
     height: 30px;
     flex: 0 0 30px;
     margin: 0 0 9px;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
+    padding: 5px;
+    border: 1px solid #e6e1e3;
+    border-radius: 7px;
+    background: #ffffff;
     object-fit: contain;
 }
 
