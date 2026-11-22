@@ -2622,3 +2622,138 @@ body.reminder-modal-open {
 .student-portal .student-main-nav {
     display: none !important;
 }
+
+
+/* ADMIN USER MANAGEMENT */
+
+.user-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 20px;
+}
+
+.user-form-grid label {
+    display: grid;
+    gap: 7px;
+    color: #343a43;
+    font-weight: 700;
+    font-size: .92rem;
+}
+
+.user-form-grid small {
+    color: var(--muted);
+    font-weight: 400;
+}
+
+.account-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.account-actions form {
+    margin: 0;
+}
+
+.button-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 9px 16px;
+    border: 1px solid #b42318;
+    border-radius: 9px;
+    background: #b42318;
+    color: #ffffff;
+    cursor: pointer;
+    font: inherit;
+    font-size: .9rem;
+    font-weight: 700;
+}
+
+.button-danger:hover {
+    background: #8f1d15;
+    border-color: #8f1d15;
+}
+
+@media (max-width: 600px) {
+    .user-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.account-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.account-actions form {
+    width: 118px;
+    margin: 0;
+}
+
+.account-actions a.button,
+.account-actions form button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 118px;
+    height: 44px;
+    padding: 8px;
+    box-sizing: border-box;
+    margin: 0;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+
+/* STAFF ACCOUNTS TABLE DIVIDERS */
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #d9dce3;
+    border-radius: 10px;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.table-container table th,
+.table-container table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-right: 1px solid #e0e3e8;
+    border-bottom: 1px solid #e0e3e8;
+    vertical-align: middle;
+}
+
+/* Header design */
+.table-container table th {
+    background-color: #f7f1f4;
+    color: #5b1025;
+    font-weight: 700;
+}
+
+/* Remove border from the last column */
+.table-container table th:last-child,
+.table-container table td:last-child {
+    border-right: none;
+}
+
+/* Remove bottom border from the last row */
+.table-container table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Light background when hovering over a row */
+.table-container table tbody tr:hover {
+    background-color: #faf7f8;
+}
