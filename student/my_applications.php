@@ -244,6 +244,13 @@ require_once __DIR__ . '/../includes/header.php';
 
 <section class="form-card form-card-wide">
 
+    <a
+        href="<?= BASE_URL ?>/student/dashboard.php"
+        class="button button-outline applications-back-button"
+    >
+        &larr; Back to Dashboard
+    </a>
+
     <p class="eyebrow">Student Services</p>
     <h1>My Applications</h1>
 
