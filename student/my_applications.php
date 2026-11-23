@@ -79,15 +79,12 @@ $requiredDocuments = [
     'Good Moral Certificate'
 ];
 
-/* Get uploaded documents for each enrollment application */
+/* Get supporting document records for each enrollment application */
 $documentsByApplication = [];
 
 $documentQuery = $pdo->prepare(
     'SELECT
-        document_type,
-        file_path,
-        verification_status,
-        remarks
+        document_type
      FROM enrollment_documents
      WHERE application_id = :application_id'
 );
@@ -105,8 +102,9 @@ foreach ($applications as $application) {
 function status_class(string $status): string
 {
     return match ($status) {
-        'Approved', 'Accepted' => 'status-approved',
+        'Approved', 'Accepted', 'Available' => 'status-approved',
         'Rejected' => 'status-rejected',
+        'Not Available' => 'status-incomplete',
         'Pending Review', 'For Screening', 'For Verification' => 'status-pending',
         'Incomplete Requirements', 'Not Submitted' => 'status-incomplete',
         default => 'status-default'
@@ -222,34 +220,14 @@ require_once __DIR__ . '/../includes/header.php';
 
                             <?php if ($uploaded): ?>
 
-                                <div>
-
-                                    <span class="status-badge <?= e(status_class($uploaded['verification_status'])) ?>">
-                                        <?= e($uploaded['verification_status']) ?>
-                                    </span>
-
-                                    <?php if (!empty($uploaded['file_path'])): ?>
-                                        <br>
-
-                                        <a href="<?= BASE_URL . '/' . e(ltrim($uploaded['file_path'], '/')) ?>"
-                                           target="_blank"
-                                           rel="noopener">
-                                            View Uploaded File
-                                        </a>
-                                    <?php endif; ?>
-
-                                    <?php if (!empty($uploaded['remarks'])): ?>
-                                        <p class="muted">
-                                            Remarks: <?= e($uploaded['remarks']) ?>
-                                        </p>
-                                    <?php endif; ?>
-
-                                </div>
+                                <span class="status-badge <?= e(status_class('Available')) ?>">
+                                    Available
+                                </span>
 
                             <?php else: ?>
 
-                                <span class="status-badge status-incomplete">
-                                    Not Submitted
+                                <span class="status-badge <?= e(status_class('Not Available')) ?>">
+                                    Not Available
                                 </span>
 
                             <?php endif; ?>
