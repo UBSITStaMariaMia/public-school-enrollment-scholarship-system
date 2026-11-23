@@ -100,15 +100,21 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="scholarship-summary-grid">
 
             <article class="scholarship-summary-card scholarship-summary-primary">
-                <span class="scholarship-summary-label">Active Scholarship Programs</span>
-                <strong><?= number_format($scholarshipSummary['programs']) ?></strong>
-                <span class="scholarship-summary-note">Currently active programs</span>
+                <span class="scholarship-summary-label">Approved Applications</span>
+                <strong><?= number_format($scholarshipSummary['approved']) ?></strong>
+                <span class="scholarship-summary-note">Official scholarship beneficiaries</span>
             </article>
 
             <article class="scholarship-summary-card">
                 <span class="scholarship-summary-label">Total Applications</span>
                 <strong><?= number_format($scholarshipSummary['applications']) ?></strong>
                 <span class="scholarship-summary-note">All recorded applications</span>
+            </article>
+
+            <article class="scholarship-summary-card scholarship-summary-primary">
+                <span class="scholarship-summary-label">Active Scholarship Programs</span>
+                <strong><?= number_format($scholarshipSummary['programs']) ?></strong>
+                <span class="scholarship-summary-note">Currently active programs</span>
             </article>
 
             <article class="scholarship-summary-card">
@@ -121,12 +127,6 @@ require_once __DIR__ . '/../includes/header.php';
                 <span class="scholarship-summary-label">For Screening</span>
                 <strong><?= number_format($scholarshipSummary['screening']) ?></strong>
                 <span class="scholarship-summary-note">Applications for screening</span>
-            </article>
-
-            <article class="scholarship-summary-card">
-                <span class="scholarship-summary-label">Approved Applications</span>
-                <strong><?= number_format($scholarshipSummary['approved']) ?></strong>
-                <span class="scholarship-summary-note">Approved scholarship applications</span>
             </article>
 
             <article class="scholarship-summary-card">
