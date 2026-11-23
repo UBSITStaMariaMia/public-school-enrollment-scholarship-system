@@ -3852,3 +3852,2177 @@ body.reminder-modal-open {
     align-items: center;
 }
 
+
+/* =========================================================
+   BCNHS SCHOOL REGISTRAR - HAMBURGER SIDEBAR
+   Registrar-only rules. Other role navigation is unchanged.
+========================================================= */
+
+/* Use the existing hamburger sidebar on desktop and mobile. */
+.registrar-portal .site-header .main-nav {
+    display: none !important;
+}
+
+.registrar-portal .site-header .header-actions {
+    display: flex !important;
+    align-items: center;
+    margin-left: auto;
+}
+
+.registrar-portal .site-header .menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.registrar-portal .main-sidebar-header.registrar-sidebar-heading {
+    align-items: flex-start;
+}
+
+.registrar-portal .registrar-sidebar-heading h2 {
+    margin: 0;
+    color: var(--maroon-dark);
+    font-size: 1.18rem;
+    letter-spacing: .01em;
+}
+
+.registrar-portal .registrar-sidebar-heading p {
+    margin: 4px 0 0;
+    color: #81747a;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+.registrar-portal .registrar-sidebar-label {
+    margin: 20px 10px 9px;
+    color: #8a737c;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-height: 48px;
+    margin: 3px 0;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    color: #393238;
+    font-size: .94rem;
+    font-weight: 650;
+    line-height: 1.3;
+    text-decoration: none;
+    transition: background .18s ease, border-color .18s ease,
+                color .18s ease, transform .18s ease;
+}
+
+.registrar-portal .registrar-sidebar-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 8px;
+    background: #f7edf1;
+    color: var(--maroon);
+}
+
+.registrar-portal .registrar-sidebar-icon svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.65;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link:hover {
+    border-color: #ead8df;
+    background: #fbf6f8;
+    color: var(--maroon);
+    text-decoration: none;
+    transform: translateX(2px);
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link.active {
+    border-color: #ead8df;
+    background: #f7edf1;
+    color: var(--maroon);
+    font-weight: 800;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link.active .registrar-sidebar-icon {
+    background: var(--maroon);
+    color: #ffffff;
+}
+
+.registrar-portal .main-sidebar-nav a.registrar-sidebar-link:focus-visible,
+.registrar-portal .site-header .menu-toggle:focus-visible,
+.registrar-portal .main-sidebar-close:focus-visible {
+    outline: 3px solid rgba(112, 29, 50, .28);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .registrar-portal .main-sidebar-nav a.registrar-sidebar-link {
+        transition: none;
+    }
+}
+
+
+/* =========================================================
+   SHARED ROLE-BASED SIDEBAR
+   One consistent sidebar treatment for Admin, Registrar,
+   Teacher, Student, and other authenticated staff roles.
+========================================================= */
+.has-role-sidebar .site-header .main-nav {
+    display: none !important;
+}
+
+.has-role-sidebar .site-header .header-actions {
+    display: flex !important;
+    align-items: center;
+    margin-left: auto !important;
+}
+
+.has-role-sidebar .site-header .menu-toggle {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.has-role-sidebar .main-sidebar-header.sidebar-heading {
+    align-items: center;
+    min-height: 74px;
+}
+
+.sidebar-identity {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+}
+
+.sidebar-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #f7edf1;
+    color: var(--maroon);
+}
+
+.sidebar-avatar svg {
+    display: block;
+    width: 23px;
+    height: 23px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sidebar-identity-text {
+    min-width: 0;
+}
+
+.sidebar-identity-text h2 {
+    max-width: 235px;
+    overflow-wrap: anywhere;
+    font-size: 1.08rem;
+    line-height: 1.25;
+}
+
+.sidebar-identity-text p {
+    margin: 4px 0 0;
+    color: #81747a;
+    font-size: .76rem;
+    font-weight: 650;
+    letter-spacing: .035em;
+}
+
+.sidebar-section-label {
+    margin: 20px 10px 9px;
+    color: #8a737c;
+    font-size: .67rem;
+    font-weight: 800;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.main-sidebar-nav a.sidebar-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-height: 48px;
+    margin: 3px 0;
+    padding: 9px 12px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    color: #393238;
+    font-size: .94rem;
+    font-weight: 650;
+    line-height: 1.3;
+    text-decoration: none;
+    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+
+.sidebar-nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    border-radius: 8px;
+    background: #f7edf1;
+    color: var(--maroon);
+}
+
+.sidebar-nav-icon svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.65;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.main-sidebar-nav a.sidebar-nav-link:hover {
+    border-color: #ead8df;
+    background: #fbf6f8;
+    color: var(--maroon);
+    text-decoration: none;
+    transform: translateX(2px);
+}
+
+.main-sidebar-nav a.sidebar-nav-link.active {
+    border-color: #ead8df;
+    background: #f7edf1;
+    color: var(--maroon);
+    font-weight: 800;
+}
+
+.main-sidebar-nav a.sidebar-nav-link.active .sidebar-nav-icon {
+    background: var(--maroon);
+    color: #fff;
+}
+
+.main-sidebar-footer .nav-logout {
+    gap: 12px;
+}
+
+.main-sidebar-footer .nav-logout .sidebar-nav-icon {
+    background: transparent;
+}
+
+.main-sidebar-nav a.sidebar-nav-link:focus-visible,
+.main-sidebar-footer .nav-logout:focus-visible,
+.has-role-sidebar .site-header .menu-toggle:focus-visible,
+.has-role-sidebar .main-sidebar-close:focus-visible {
+    outline: 3px solid rgba(112, 29, 50, .28);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .main-sidebar-nav a.sidebar-nav-link {
+        transition: none;
+    }how 
+}
+
+
+/* =========================================================
+   SCHOLARSHIP COORDINATOR DASHBOARD
+========================================================= */
+
+.scholarship-dashboard {
+    width: 100%;
+}
+
+/* Welcome Section */
+
+.scholarship-dashboard .scholarship-welcome-card {
+    width: 100%;
+    min-height: 210px;
+    margin: 0 auto 42px;
+    padding: 42px 48px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    background: #ffffff;
+    border: 1px solid #eadfe4;
+    border-radius: 18px;
+    box-shadow: 0 5px 20px rgba(40, 20, 30, 0.07);
+}
+
+.scholarship-dashboard .scholarship-eyebrow {
+    margin: 0 0 12px;
+    color: #741f42;
+    font-size: 0.82rem;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.scholarship-dashboard .scholarship-welcome-card h1 {
+    margin: 0 0 14px;
+    color: #55172f;
+    font-size: clamp(2rem, 3vw, 2.7rem);
+    line-height: 1.25;
+}
+
+.scholarship-dashboard .scholarship-welcome-card > p:last-child {
+    max-width: 850px;
+    margin: 0;
+    color: #716a72;
+    font-size: 1.05rem;
+    line-height: 1.8;
+}
+
+/* Section Headings */
+
+.scholarship-dashboard .scholarship-summary-section,
+.scholarship-dashboard .scholarship-services-section {
+    width: 100%;
+    margin: 42px 0;
+}
+
+.scholarship-dashboard .scholarship-section-heading {
+    margin-bottom: 24px;
+}
+
+.scholarship-dashboard .scholarship-section-heading h2 {
+    margin: 0 0 8px;
+    color: #55172f;
+    font-size: 1.55rem;
+    line-height: 1.4;
+}
+
+.scholarship-dashboard .scholarship-section-heading > p:last-child {
+    margin: 8px 0 0;
+    color: #716a72;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* Summary Cards */
+
+.scholarship-dashboard .scholarship-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.scholarship-dashboard .scholarship-summary-card {
+    min-height: 155px;
+    padding: 25px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+
+    background: #ffffff;
+    border: 1px solid #eadfe4;
+    border-radius: 16px;
+    box-shadow: 0 5px 18px rgba(40, 20, 30, 0.06);
+}
+
+.scholarship-dashboard .scholarship-summary-primary {
+    background: #741f42;
+    border-color: #741f42;
+}
+
+.scholarship-dashboard .scholarship-summary-label {
+    color: #625b63;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.scholarship-dashboard .scholarship-summary-card strong {
+    color: #55172f;
+    font-size: 2.5rem;
+    line-height: 1.2;
+}
+
+.scholarship-dashboard .scholarship-summary-note {
+    color: #817982;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.scholarship-dashboard .scholarship-summary-primary .scholarship-summary-label,
+.scholarship-dashboard .scholarship-summary-primary strong,
+.scholarship-dashboard .scholarship-summary-primary .scholarship-summary-note {
+    color: #ffffff;
+}
+
+/* Management Service Cards */
+
+.scholarship-dashboard .scholarship-service-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.scholarship-dashboard .scholarship-service-card {
+    min-height: 285px;
+    padding: 28px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+
+    background: #ffffff;
+    border: 1px solid #eadfe4;
+    border-radius: 17px;
+    box-shadow: 0 5px 18px rgba(40, 20, 30, 0.06);
+
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.scholarship-dashboard .scholarship-service-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 9px 25px rgba(40, 20, 30, 0.10);
+}
+
+.scholarship-dashboard .scholarship-service-icon {
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+
+    display: grid;
+    place-items: center;
+
+    background: #f7eaf0;
+    color: #741f42;
+    border-radius: 14px;
+}
+
+.scholarship-dashboard .scholarship-service-icon svg {
+    display: block;
+    width: 27px;
+    height: 27px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.scholarship-dashboard .scholarship-service-card h3 {
+    margin: 0;
+    color: #55172f;
+    font-size: 1.2rem;
+    line-height: 1.4;
+}
+
+.scholarship-dashboard .scholarship-service-card p {
+    margin: 0 0 8px;
+    color: #716a72;
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.scholarship-dashboard .scholarship-service-link {
+    width: 100%;
+    min-height: 45px;
+    margin-top: auto;
+    padding: 12px 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    background: #741f42;
+    border: 1px solid #741f42;
+    border-radius: 9px;
+
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 650;
+    text-decoration: none;
+
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.scholarship-dashboard .scholarship-service-link:hover {
+    background: #55172f;
+    border-color: #55172f;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.scholarship-dashboard .scholarship-service-link span {
+    font-size: 1.15rem;
+}
+
+/* Dashboard Error Message */
+
+.scholarship-dashboard .scholarship-dashboard-error {
+    margin-bottom: 24px;
+    padding: 14px 18px;
+
+    background: #fff0f0;
+    border: 1px solid #f3caca;
+    border-radius: 9px;
+
+    color: #9b1c1c;
+    line-height: 1.6;
+}
+
+/* Responsive Layout */
+
+@media (max-width: 1100px) {
+    .scholarship-dashboard .scholarship-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .scholarship-dashboard .scholarship-service-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .scholarship-dashboard .scholarship-welcome-card {
+        min-height: auto;
+        padding: 30px 25px;
+        margin-bottom: 30px;
+    }
+
+    .scholarship-dashboard .scholarship-welcome-card h1 {
+        font-size: 1.9rem;
+    }
+
+    .scholarship-dashboard .scholarship-welcome-card > p:last-child {
+        font-size: 0.95rem;
+    }
+
+    .scholarship-dashboard .scholarship-summary-grid,
+    .scholarship-dashboard .scholarship-service-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .scholarship-dashboard .scholarship-summary-section,
+    .scholarship-dashboard .scholarship-services-section {
+        margin: 32px 0;
+    }
+
+    .scholarship-dashboard .scholarship-summary-card {
+        min-height: 140px;
+        padding: 23px;
+    }
+
+    .scholarship-dashboard .scholarship-service-card {
+        min-height: 260px;
+        padding: 25px;
+    }
+}
+
+@media (max-width: 480px) {
+    .scholarship-dashboard .scholarship-welcome-card {
+        padding: 25px 20px;
+    }
+
+    .scholarship-dashboard .scholarship-welcome-card h1 {
+        font-size: 1.65rem;
+    }
+
+    .scholarship-dashboard .scholarship-section-heading h2 {
+        font-size: 1.35rem;
+    }
+
+    .scholarship-dashboard .scholarship-service-card {
+        padding: 22px;
+    }
+}
+
+
+
+/* =====================================================
+   MIGRATED PAGE-SPECIFIC STYLES
+   These rules were moved out of PHP <style> blocks.
+===================================================== */
+
+
+/* =====================================================
+   Migrated from admin/dashboard.php (style block 1)
+===================================================== */
+/* =========================================
+   SYSTEM ADMINISTRATOR DASHBOARD
+========================================= */
+
+/* Welcome Section */
+
+.admin-welcome-card {
+    max-width: 100%;
+    width: 100%;
+    min-height: 210px;
+    margin: 0 auto 42px;
+    padding: 42px 48px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    background: #ffffff;
+    border: 1px solid #eadfe4;
+    border-radius: 18px;
+
+    box-shadow: 0 5px 20px rgba(40, 20, 30, 0.07);
+}
+
+.admin-welcome-card .eyebrow {
+    margin-bottom: 12px;
+    color: #741f42;
+}
+
+.admin-welcome-card h1 {
+    margin: 0 0 14px;
+    color: #55172f;
+    font-size: clamp(2rem, 3vw, 2.7rem);
+    line-height: 1.25;
+}
+
+.admin-welcome-card > p:last-child {
+    max-width: 850px;
+    margin: 0;
+    color: #716a72;
+    font-size: 1.05rem;
+    line-height: 1.8;
+}
+
+/* Dashboard Sections */
+
+.admin-summary-section,
+.admin-services-section {
+    width: 100%;
+    margin: 42px 0;
+}
+
+.admin-summary-section h2,
+.admin-section-heading h2 {
+    margin: 0 0 16px;
+    color: #55172f;
+    font-size: 1.55rem;
+    line-height: 1.4;
+}
+
+.admin-section-heading {
+    margin-bottom: 24px;
+}
+
+.admin-section-heading .eyebrow {
+    margin-bottom: 8px;
+    color: #741f42;
+}
+
+.admin-section-heading > p:last-child {
+    margin-top: 8px;
+    color: #716a72;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* Account Overview */
+
+.admin-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.admin-summary-card {
+    min-height: 165px;
+    padding: 26px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+
+    background: #ffffff;
+    border: 1px solid #eadfe4;
+    border-radius: 16px;
+
+    box-shadow: 0 5px 18px rgba(40, 20, 30, 0.06);
+}
+
+.admin-summary-card:first-child {
+    background: #741f42;
+    border-color: #741f42;
+}
+
+.admin-summary-label {
+    color: #625b63;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.admin-summary-card strong {
+    color: #55172f;
+    font-size: 2.5rem;
+    line-height: 1.2;
+}
+
+.admin-summary-note {
+    color: #817982;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.admin-summary-card:first-child .admin-summary-label,
+.admin-summary-card:first-child strong,
+.admin-summary-card:first-child .admin-summary-note {
+    color: #ffffff;
+}
+
+/* Account Management Cards */
+
+.admin-service-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.admin-service-card {
+    min-height: 310px;
+    padding: 30px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 17px;
+
+    background: #ffffff;
+    border: 1px solid #eadfe4;
+    border-radius: 17px;
+
+    box-shadow: 0 5px 18px rgba(40, 20, 30, 0.06);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.admin-service-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 9px 25px rgba(40, 20, 30, 0.10);
+}
+
+/* Service Icons */
+
+.admin-service-icon {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+
+    display: grid;
+    place-items: center;
+
+    background: #f7eaf0;
+    color: #741f42;
+    border-radius: 14px;
+}
+
+.admin-service-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.admin-service-icon span {
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+/* Service Card Text */
+
+.admin-service-card h3 {
+    margin: 0;
+    color: #55172f;
+    font-size: 1.25rem;
+    line-height: 1.4;
+}
+
+.admin-service-card p {
+    margin: 0 0 10px;
+    color: #716a72;
+    font-size: 0.96rem;
+    line-height: 1.7;
+}
+
+/* Service Card Links */
+
+.admin-service-card .btn {
+    width: 100%;
+    min-height: 46px;
+    margin-top: auto;
+    padding: 12px 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-radius: 9px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.admin-service-card .btn::after {
+    content: "→";
+    font-size: 1.1rem;
+}
+
+.admin-service-status {
+    width: 100%;
+    margin-top: auto;
+    padding: 12px 14px;
+
+    background: #f7f2f4;
+    border-radius: 9px;
+
+    color: #756b72;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+/* Dashboard Error Message */
+
+.admin-dashboard-error {
+    margin-bottom: 24px;
+    padding: 14px 18px;
+
+    background: #fff0f0;
+    border: 1px solid #f3caca;
+    border-radius: 9px;
+
+    color: #9b1c1c;
+}
+
+/* =========================================
+   RESPONSIVE DESIGN
+========================================= */
+
+@media (max-width: 1100px) {
+
+    .admin-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-service-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+@media (max-width: 700px) {
+
+    .admin-welcome-card {
+        min-height: auto;
+        padding: 30px 25px;
+        margin-bottom: 30px;
+    }
+
+    .admin-welcome-card h1 {
+        font-size: 1.9rem;
+    }
+
+    .admin-welcome-card > p:last-child {
+        font-size: 0.95rem;
+    }
+
+    .admin-summary-grid,
+    .admin-service-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .admin-summary-section,
+    .admin-services-section {
+        margin: 32px 0;
+    }
+
+    .admin-summary-card {
+        min-height: 145px;
+        padding: 23px;
+    }
+
+    .admin-service-card {
+        min-height: 275px;
+        padding: 25px;
+    }
+
+}
+
+@media (max-width: 480px) {
+
+    .admin-welcome-card {
+        padding: 25px 20px;
+    }
+
+    .admin-welcome-card h1 {
+        font-size: 1.65rem;
+    }
+
+    .admin-summary-section h2,
+    .admin-section-heading h2 {
+        font-size: 1.35rem;
+    }
+
+    .admin-service-card {
+        padding: 22px;
+    }
+
+}
+
+
+
+/* =====================================================
+   Migrated from admin/staff_records.php (style block 1)
+===================================================== */
+/* Search By Layout */
+.student-search-options {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.student-search-options > label {
+    margin: 0;
+}
+
+.student-search-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.student-search-filters label {
+    margin: 0;
+    cursor: pointer;
+}
+
+.student-search-filters input[type="radio"] {
+    display: none;
+}
+
+.student-search-filters span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 70px;
+    min-height: 42px;
+    padding: 8px 16px;
+    border: 1px solid #d9dce3;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #4b1020;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.student-search-filters input[type="radio"]:checked + span {
+    background: #64152f;
+    color: #ffffff;
+    border-color: #64152f;
+}
+
+.student-search-filters span:hover {
+    border-color: #64152f;
+}
+
+/* Staff Records Table */
+.staff-records-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+    border-collapse: collapse;
+    border: 1px solid #e1dce0;
+}
+
+.staff-records-table th,
+.staff-records-table td {
+    padding: 13px 10px;
+    border-bottom: 1px solid #e1dce0;
+    border-right: 1px solid #e1dce0;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.staff-records-table th:last-child,
+.staff-records-table td:last-child {
+    border-right: none;
+}
+
+.staff-records-table thead th {
+    background: #f7f0f3;
+    color: #4b1020;
+    font-weight: 600;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    font-size: 12px;
+}
+
+/* Adjusted Column Widths */
+.staff-records-table th:nth-child(1),
+.staff-records-table td:nth-child(1) {
+    width: 11%;
+}
+
+.staff-records-table th:nth-child(2),
+.staff-records-table td:nth-child(2) {
+    width: 13%;
+}
+
+.staff-records-table th:nth-child(3),
+.staff-records-table td:nth-child(3) {
+    width: 10%;
+}
+
+.staff-records-table th:nth-child(4),
+.staff-records-table td:nth-child(4) {
+    width: 21%;
+}
+
+.staff-records-table th:nth-child(5),
+.staff-records-table td:nth-child(5) {
+    width: 10%;
+}
+
+.staff-records-table th:nth-child(6),
+.staff-records-table td:nth-child(6) {
+    width: 20%;
+}
+
+.staff-records-table th:nth-child(7),
+.staff-records-table td:nth-child(7) {
+    width: 15%;
+}
+
+/* Email Display */
+.staff-records-table .staff-email {
+    white-space: nowrap;
+    font-size: 11px;
+}
+
+/* Position and Department */
+.staff-records-table .staff-department {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #555555;
+}
+
+/* Table Container */
+.staff-table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    border-radius: 8px;
+}
+
+/* Mobile Layout */
+@media (max-width: 600px) {
+    .student-search-filters {
+        gap: 8px;
+    }
+
+    .student-search-filters span {
+        padding: 8px 12px;
+    }
+
+    .staff-records-table {
+        min-width: 700px;
+    }
+}
+
+
+
+/* =====================================================
+   Migrated from admin/student_records.php (style block 1)
+===================================================== */
+/* Student Records Table */
+.student-records-table {
+    width: 100%;
+    min-width: 0 !important;
+    table-layout: fixed;
+    border-collapse: collapse;
+    border: 1px solid #d9dce3;
+}
+
+.student-records-table th,
+.student-records-table td {
+    padding: 12px 8px;
+    border-right: 1px solid #d9dce3;
+    border-bottom: 1px solid #d9dce3;
+    text-align: left;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+    font-size: 14px;
+}
+
+/* Remove divider from the last column */
+.student-records-table th:last-child,
+.student-records-table td:last-child {
+    border-right: none;
+}
+
+/* Table Header */
+.student-records-table thead th {
+    background: #f7f0f3;
+    color: #4b1020;
+    font-weight: 600;
+}
+
+/* Column Widths - 12 Digit LRN Included */
+.student-records-table th:nth-child(1),
+.student-records-table td:nth-child(1) {
+    width: 12%;
+    white-space: nowrap;
+    font-size: 11px;
+}
+
+.student-records-table th:nth-child(2),
+.student-records-table td:nth-child(2) {
+    width: 15%;
+}
+
+.student-records-table th:nth-child(3),
+.student-records-table td:nth-child(3) {
+    width: 7%;
+}
+
+.student-records-table th:nth-child(4),
+.student-records-table td:nth-child(4) {
+    width: 11%;
+}
+
+.student-records-table th:nth-child(5),
+.student-records-table td:nth-child(5) {
+    width: 11%;
+}
+
+.student-records-table th:nth-child(6),
+.student-records-table td:nth-child(6) {
+    width: 13%;
+}
+
+.student-records-table th:nth-child(7),
+.student-records-table td:nth-child(7) {
+    width: 13%;
+}
+
+.student-records-table th:nth-child(8),
+.student-records-table td:nth-child(8) {
+    width: 18%;
+}
+
+/* Student Action Buttons */
+.student-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    width: 100%;
+    max-width: 105px;
+    margin: 0 auto;
+}
+
+.student-actions form {
+    width: 100%;
+    margin: 0;
+}
+
+.student-actions .button {
+    width: 100%;
+    height: 42px;
+    min-height: 42px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 5px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+/* Delete Button */
+.student-actions .delete-button {
+    background: #b42318;
+    color: #ffffff;
+    border: 1px solid #b42318;
+}
+
+.student-actions .delete-button:hover {
+    background: #941b13;
+    border-color: #941b13;
+}
+
+/* Table Container */
+.table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+
+
+/* =====================================================
+   Migrated from register.php (style block 1)
+===================================================== */
+.registration-form-grid .address-section {
+        grid-column: 1 / -1;
+        padding: 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.72);
+    }
+
+    .registration-form-grid .address-section h3 {
+        margin: 0 0 12px;
+        color: #5b1830;
+        font-size: 1rem;
+    }
+
+    .registration-form-grid .address-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 18px;
+    }
+
+    .registration-form-grid .address-fields label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .registration-form-grid .checkbox-inline {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-weight: 500;
+    }
+
+    .registration-form-grid .checkbox-inline input {
+        width: auto;
+        margin: 0;
+    }
+
+    .registration-form-grid [hidden] {
+        display: none !important;
+    }
+
+    @media (max-width: 640px) {
+        .registration-form-grid .address-fields {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .registration-form-grid {
+        row-gap: 24px;
+        column-gap: 24px;
+    }
+
+    .registration-form-grid > label {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .registration-form-grid > label input,
+    .registration-form-grid > label select,
+    .registration-form-grid > label textarea {
+        margin-top: 0;
+    }
+
+    .registration-form-grid > h2 {
+        margin-top: 12px;
+        margin-bottom: 0;
+    }
+
+    .registration-form-grid .inline-label {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+
+    .registration-form-grid .inline-label .muted {
+        display: inline;
+        margin: 0;
+    }
+
+    .registration-form-grid .phone-input-wrapper {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 48px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .registration-form-grid .phone-prefix {
+        padding: 0 12px;
+        color: #374151;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .registration-form-grid .phone-divider {
+        width: 1px;
+        align-self: stretch;
+        background: #cbd5e1;
+    }
+
+    .registration-form-grid .phone-input-wrapper input {
+        flex: 1;
+        min-width: 0;
+        width: 100%;
+        border: 0;
+        outline: 0;
+        box-shadow: none;
+        margin: 0;
+    }
+
+    .registration-form-grid .phone-input-wrapper:focus-within {
+        border-color: #7b1e3a;
+        box-shadow: 0 0 0 3px rgba(123, 30, 58, 0.12);
+    }
+
+
+
+/* =====================================================
+   Migrated from registrar/announcements.php (style block 1)
+===================================================== */
+.announcement-management {
+    display: grid;
+    gap: 24px;
+}
+
+.announcement-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.announcement-stat {
+    background: #f8f8fa;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 17px;
+}
+
+.announcement-stat small {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.announcement-stat strong {
+    font-size: 1.6rem;
+    color: var(--maroon);
+}
+
+.announcement-form-card,
+.announcement-list-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px;
+}
+
+.announcement-form-card h2,
+.announcement-list-card h2 {
+    color: var(--maroon);
+    margin-top: 0;
+}
+
+.announcement-form {
+    display: grid;
+    gap: 15px;
+}
+
+.announcement-form label {
+    display: grid;
+    gap: 7px;
+    font-weight: 600;
+}
+
+.announcement-form input,
+.announcement-form select,
+.announcement-form textarea {
+    width: 100%;
+}
+
+.announcement-form textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+.announcement-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.announcement-table-wrapper {
+    overflow-x: auto;
+}
+
+.announcement-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 750px;
+}
+
+.announcement-table th,
+.announcement-table td {
+    padding: 13px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.announcement-table th {
+    background: #f8f8fa;
+    color: var(--maroon);
+}
+
+.announcement-category {
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--maroon);
+}
+
+.announcement-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.status-published {
+    color: #17633a;
+    background: #e8f7ed;
+}
+
+.status-draft {
+    color: #8a5a00;
+    background: #fff5df;
+}
+
+.status-archived {
+    color: #475467;
+    background: #edf0f4;
+}
+
+.announcement-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.announcement-actions a,
+.announcement-actions button {
+    font-size: .85rem;
+}
+
+.announcement-empty {
+    padding: 25px;
+    text-align: center;
+    background: #f8f8fa;
+    border: 1px dashed #d4d4d8;
+    border-radius: 10px;
+    color: var(--muted);
+}
+
+@media (max-width: 650px) {
+    .announcement-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .announcement-form-card,
+    .announcement-list-card {
+        padding: 16px;
+    }
+}
+
+
+
+/* =====================================================
+   Migrated from student/edit_enrollment.php (style block 1)
+===================================================== */
+.edit-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 18px;
+}
+
+.edit-document {
+    padding: 15px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    margin-top: 12px;
+}
+
+.edit-document label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.edit-document input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    min-height: 18px;
+    margin: 0;
+    accent-color: var(--maroon);
+}
+
+.edit-upload {
+    margin: 12px 0 0 27px;
+}
+
+.edit-upload label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.edit-upload input[type="file"] {
+    min-height: auto;
+}
+
+.current-file {
+    margin: 8px 0;
+    color: var(--muted);
+    font-size: .9rem;
+}
+
+.edit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+
+
+/* =====================================================
+   Migrated from student/my_applications.php (style block 1)
+===================================================== */
+.application-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px;
+    margin-top: 22px;
+    box-shadow: 0 8px 22px rgba(28, 35, 45, .04);
+}
+
+.application-card h2 {
+    color: var(--maroon);
+    margin: 0 0 14px;
+}
+
+.application-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+    margin: 18px 0;
+}
+
+.detail-item {
+    padding: 12px;
+    background: #f8f8fa;
+    border-radius: 8px;
+}
+
+.detail-item small {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 4px;
+}
+
+.detail-item strong {
+    color: var(--ink);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 5px 11px;
+    border-radius: 20px;
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+.status-approved {
+    background: #e8f7ed;
+    color: #17633a;
+}
+
+.status-rejected {
+    background: #fff0f0;
+    color: #9b1c1c;
+}
+
+.status-pending {
+    background: #fff5df;
+    color: #8a5a00;
+}
+
+.status-incomplete {
+    background: #fff0e6;
+    color: #a34b12;
+}
+
+.status-default {
+    background: #edf0f4;
+    color: #475467;
+}
+
+.document-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.document-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+}
+
+.document-item a {
+    font-size: .88rem;
+    font-weight: 600;
+}
+
+.application-section-title {
+    margin-top: 24px;
+    color: var(--maroon-dark);
+}
+
+.scholarship-card {
+    border-left: 5px solid var(--green);
+}
+
+.empty-state {
+    margin-top: 22px;
+    padding: 30px;
+    background: #fff;
+    border: 1px dashed #cfd4dc;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.application-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+    .application-details {
+        grid-template-columns: 1fr;
+    }
+
+    .document-item {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+
+
+/* =====================================================
+   Migrated from student/new_enrollment.php (style block 1)
+===================================================== */
+/* Scholarship radio button layout */
+.radio-options {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin: 8px 0;
+}
+
+.form-grid label.radio-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    width: auto;
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.form-grid label.radio-option input[type="radio"] {
+    width: 17px;
+    height: 17px;
+    min-height: 17px;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--maroon);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+/* Supporting document checklist */
+.document-checklist {
+    display: grid;
+    gap: 14px;
+    margin: 8px 0 18px;
+}
+
+.document-checklist-item {
+    padding: 14px;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.form-grid label.document-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: auto;
+    margin: 0;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.document-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    min-height: 18px;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--maroon);
+    flex-shrink: 0;
+}
+
+.document-upload {
+    margin: 12px 0 0 28px;
+}
+
+.document-upload label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.document-upload input[type="file"] {
+    width: 100%;
+    min-height: auto;
+}
+
+
+
+/* =====================================================
+   Migrated from student/records.php (style block 1)
+===================================================== */
+.records-page {
+    max-width: 1100px;
+    margin: 30px auto;
+    padding: 0 20px 40px;
+}
+
+.records-heading {
+    margin-bottom: 25px;
+}
+
+.records-heading h1 {
+    color: #641b32;
+    margin-bottom: 8px;
+}
+
+.records-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.records-card h2 {
+    color: #641b32;
+    font-size: 21px;
+    margin: 0 0 18px;
+}
+
+.records-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.records-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.records-table th,
+.records-table td {
+    padding: 13px 12px;
+    border-bottom: 1px solid #e5e5e5;
+    text-align: left;
+    font-size: 14px;
+}
+
+.records-table th {
+    background: #f7f5f6;
+    color: #641b32;
+    font-weight: 600;
+}
+
+.records-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Quarterly grades table */
+.grades-table {
+    min-width: 750px;
+}
+
+.grades-table th:not(:first-child),
+.grades-table td:not(:first-child) {
+    text-align: center;
+}
+
+.grades-table td:not(:first-child) {
+    font-weight: 600;
+}
+
+.record-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-success {
+    background: #e8f5e9;
+    color: #256b35;
+}
+
+.status-danger {
+    background: #fdecea;
+    color: #a12622;
+}
+
+.status-warning {
+    background: #fff3df;
+    color: #925900;
+}
+
+.status-info {
+    background: #e8f1fb;
+    color: #245b91;
+}
+
+.status-neutral {
+    background: #eeeeee;
+    color: #555;
+}
+
+.empty-records {
+    padding: 30px 15px;
+    text-align: center;
+    border: 1px dashed #ccc;
+    border-radius: 9px;
+    color: #666;
+    background: #fafafa;
+}
+
+.records-note {
+    font-size: 13px;
+    color: #666;
+    margin-top: 12px;
+}
+
+@media (max-width: 600px) {
+    .records-page {
+        padding: 0 12px 30px;
+    }
+
+    .records-card {
+        padding: 16px;
+    }
+
+    .records-card h2 {
+        font-size: 18px;
+    }
+}
+
+
+
+/* =====================================================
+   Migrated from student/scholarship_application.php (style block 1)
+===================================================== */
+.scholarship-intro { margin-bottom: 22px; }
+.scholarship-year-note { padding: 12px 15px; background: #f8f8fa; border-left: 4px solid var(--maroon); border-radius: 8px; margin: 18px 0; }
+.scholarship-profile-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 18px 0 24px; }
+.scholarship-profile-item { padding: 12px 14px; background: #f8f8fa; border: 1px solid var(--line); border-radius: 8px; }
+.scholarship-profile-item small { display: block; color: var(--muted); margin-bottom: 4px; }
+.scholarship-profile-item strong { color: var(--ink); overflow-wrap: anywhere; }
+.scholarship-program-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 20px; }
+.scholarship-program-option { display: block; height: 100%; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; transition: border-color .2s ease, box-shadow .2s ease; }
+.scholarship-program-option:has(input:checked) { border-color: var(--maroon); box-shadow: 0 0 0 2px rgba(105, 20, 45, .10); }
+.scholarship-program-option input { margin-right: 8px; accent-color: var(--maroon); }
+.scholarship-program-option h3 { display: inline; color: var(--maroon); margin: 0; }
+.scholarship-program-option p { margin: 13px 0; color: var(--muted); }
+.program-availability { display: block; font-size: .88rem; font-weight: 600; color: var(--ink); }
+.program-unavailable { opacity: .65; cursor: not-allowed; }
+.scholarship-existing-application { padding: 14px 16px; margin: 18px 0; background: #f8f8fa; border-left: 4px solid var(--maroon); border-radius: 8px; }
+.scholarship-existing-application p { margin: 5px 0 0; }
+.scholarship-form-actions { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 12px; }
+@media (max-width: 700px) { .scholarship-program-list, .scholarship-profile-summary { grid-template-columns: 1fr; } }
+
+
+
+/* =====================================================
+   Migrated from student/scholarship_status.php (style block 1)
+===================================================== */
+.status-badge { display:inline-block; padding:5px 11px; border-radius:20px; font-size:.82rem; font-weight:700; background:#fff5df; color:#8a5a00; }
+.status-approved { background:#e8f7ed; color:#17633a; }
+.status-rejected { background:#fff0f0; color:#9b1c1c; }
+
+
+/* =====================================================
+   Replacements for inline style attributes
+===================================================== */
+.screening-schedule-fieldset {
+    margin: 10px 0;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+}
+
+.inline-form {
+    display: inline;
+}
+
+.is-hidden {
+    display: none;
+}
+
+.application-card-spaced {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.scholarship-year-note-spaced {
+    margin-top: 18px;
+}
+
+
+/* =====================================================
+   SCHOLARSHIP PROGRAMS LAYOUT
+===================================================== */
+
+.scholarship-program-card {
+    max-width: 1100px;
+}
+
+.scholarship-program-table-wrap {
+    overflow-x: auto;
+}
+
+.scholarship-program-table {
+    min-width: 850px;
+}
+
+.scholarship-program-table th:last-child,
+.scholarship-program-table td:last-child {
+    min-width: 190px;
+}
+
+.scholarship-program-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
+.scholarship-toggle-form {
+    display: inline-flex;
+    margin: 0;
+    padding: 0;
+}
+
+.scholarship-edit-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 105px;
+    height: 46px;
+    min-width: 105px;
+    box-sizing: border-box;
+    padding: 0 10px;
+    border: none;
+    border-radius: 10px;
+    background-color: #701b35;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.scholarship-edit-link:hover {
+    background-color: #501326;
+    color: white;
+    text-decoration: none;
+}
+
+.scholarship-toggle-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 105px;
+    height: 46px;
+    min-width: 105px;
+    box-sizing: border-box;
+    padding: 0 10px;
+    border: none;
+    border-radius: 10px;
+    background-color: #eeeeee;
+    color: #111111;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.scholarship-toggle-button:hover {
+    background-color: #dddddd;
+}
+
+.scholarship-form-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 12px;
+}
+
+.scholarship-cancel-link {
+    display: inline-block;
+}
+
+/* PROGRAM STATUS */
+
+.program-status {
+    display: inline-block;
+    padding: 5px 11px;
+    border-radius: 20px;
+    font-size: .85rem;
+    font-weight: 700;
+}
+
+.program-status-active {
+    background: #e8f7ed;
+    color: #17633a;
+}
+
+.program-status-inactive {
+    background: #fff0f0;
+    color: #9b1c1c;
+}
+
+/* SCHOLARSHIP PROGRAM TABLE DIVIDERS */
+
+.scholarship-program-table {
+    width: 100%;
+    border-collapse: collapse !important;
+}
+
+/* Header cells */
+.scholarship-program-table thead th {
+    padding: 16px 15px;
+    border-bottom: 1px solid #d8cdd3 !important;
+    border-right: 1px solid #e3dce0;
+    text-align: left;
+}
+
+/* Body cells */
+.scholarship-program-table tbody td {
+    padding: 16px 15px;
+    border-bottom: 1px solid #dce1e7 !important;
+    border-right: 1px solid #e3e6eb;
+    vertical-align: middle;
+}
+
+/* Remove right border on last column */
+.scholarship-program-table th:last-child,
+.scholarship-program-table td:last-child {
+    border-right: none;
+}
+
+/* Remove bottom border on last row */
+.scholarship-program-table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* Hover effect */
+.scholarship-program-table tbody tr:hover {
+    background-color: #faf7f9;
+}

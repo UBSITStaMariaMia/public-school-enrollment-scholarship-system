@@ -20,10 +20,6 @@ $allowedTypes = [
     'Transferee'
 ];
 
-$allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
-$allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-$maxFileSize = 5 * 1024 * 1024;
-
 /* Get the student's ID */
 $studentQuery = $pdo->prepare(
     'SELECT student_id
@@ -118,8 +114,15 @@ $values = [
     'lrn' => $application['lrn'] ?? '',
     'enrollment_type' => $application['enrollment_type'],
     'requested_grade_level_id' => (string) $application['requested_grade_level_id'],
-    'upload_documents' => []
+    'available_documents' => []
 ];
+
+/* Preselect documents already recorded for this application. */
+foreach ($requiredDocuments as $index => $documentName) {
+    if (isset($existingDocuments[$documentName])) {
+        $values['available_documents'][] = (string) $index;
+    }
+}
 
 /* Handle update */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -134,10 +137,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_POST['requested_grade_level_id'] ?? ''
     );
 
-    $submittedDocuments = $_POST['upload_documents'] ?? [];
+    $submittedDocuments = $_POST['available_documents'] ?? [];
 
     if (is_array($submittedDocuments)) {
-        $values['upload_documents'] = array_values(
+        $values['available_documents'] = array_values(
             array_unique(array_map('strval', $submittedDocuments))
         );
     }
@@ -171,244 +174,162 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Select a valid grade level.';
     }
 
-    /* Validate selected document uploads */
-    $uploadedFiles = [];
-
-    foreach ($values['upload_documents'] as $selectedIndex) {
-
+    /* Validate selected supporting document checkboxes */
+    foreach ($values['available_documents'] as $selectedIndex) {
         if (
             !ctype_digit($selectedIndex) ||
             !array_key_exists((int) $selectedIndex, $requiredDocuments)
         ) {
             $errors[] = 'An invalid supporting document was selected.';
-            continue;
         }
-
-        $index = (int) $selectedIndex;
-        $documentName = $requiredDocuments[$index];
-
-        $file = $_FILES['documents']['tmp_name'][$index] ?? '';
-        $fileName = $_FILES['documents']['name'][$index] ?? '';
-        $fileSize = (int) ($_FILES['documents']['size'][$index] ?? 0);
-        $fileError = $_FILES['documents']['error'][$index] ?? UPLOAD_ERR_NO_FILE;
-
-        if ($fileError !== UPLOAD_ERR_OK || !is_uploaded_file($file)) {
-            $errors[] = 'Please choose a file for ' . $documentName . '.';
-            continue;
-        }
-
-        if ($fileSize > $maxFileSize) {
-            $errors[] = $documentName . ' must not exceed 5 MB.';
-            continue;
-        }
-
-        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-
-        if (!in_array($extension, $allowedExtensions, true)) {
-            $errors[] = $documentName . ' must be a PDF, JPG, JPEG, or PNG file.';
-            continue;
-        }
-
-        $fileInfo = new finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $fileInfo->file($file);
-
-        if (!in_array($mimeType, $allowedMimeTypes, true)) {
-            $errors[] = $documentName . ' has an invalid file type.';
-            continue;
-        }
-
-        $uploadedFiles[$index] = [
-            'tmp_name' => $file,
-            'extension' => $extension,
-            'document_type' => $documentName
-        ];
     }
 
     /* Save updates */
     if (!$errors) {
+        $removedFiles = [];
 
-        $uploadDirectory = __DIR__ . '/../uploads/enrollment';
+        try {
+            $pdo->beginTransaction();
 
-        if (
-            !empty($uploadedFiles) &&
-            !is_dir($uploadDirectory) &&
-            !mkdir($uploadDirectory, 0755, true)
-        ) {
-            $errors[] = 'The document upload folder could not be created.';
-        } else {
+            /* Update enrollment information */
+            $updateApplication = $pdo->prepare(
+                'UPDATE enrollment_applications
+                 SET lrn = :lrn,
+                     enrollment_type = :enrollment_type,
+                     requested_grade_level_id = :grade_level_id
+                 WHERE application_id = :application_id
+                   AND student_id = :student_id
+                   AND application_status = :application_status'
+            );
 
-            $newFiles = [];
-            $oldFiles = [];
+            $updateApplication->execute([
+                'lrn' => $values['lrn'],
+                'enrollment_type' => $values['enrollment_type'],
+                'grade_level_id' => $values['requested_grade_level_id'],
+                'application_id' => $applicationId,
+                'student_id' => $studentId,
+                'application_status' => 'Pending Review'
+            ]);
 
-            try {
-                $pdo->beginTransaction();
-
-                /* Update enrollment information */
-                $updateApplication = $pdo->prepare(
-                    'UPDATE enrollment_applications
-                     SET lrn = :lrn,
-                         enrollment_type = :enrollment_type,
-                         requested_grade_level_id = :grade_level_id
+            if ($updateApplication->rowCount() === 0) {
+                /*
+                 * A rowCount of zero can also mean that values were
+                 * unchanged. Verify that the application still exists
+                 * and remains editable.
+                 */
+                $checkStatus = $pdo->prepare(
+                    'SELECT COUNT(*)
+                     FROM enrollment_applications
                      WHERE application_id = :application_id
                        AND student_id = :student_id
                        AND application_status = :application_status'
                 );
 
-                $updateApplication->execute([
-                    'lrn' => $values['lrn'],
-                    'enrollment_type' => $values['enrollment_type'],
-                    'grade_level_id' => $values['requested_grade_level_id'],
+                $checkStatus->execute([
                     'application_id' => $applicationId,
                     'student_id' => $studentId,
                     'application_status' => 'Pending Review'
                 ]);
 
-                if ($updateApplication->rowCount() === 0) {
-                    /*
-                     * A rowCount of zero can also mean that values were
-                     * unchanged. Verify that the application still exists
-                     * and remains editable.
-                     */
-                    $checkStatus = $pdo->prepare(
-                        'SELECT COUNT(*)
-                         FROM enrollment_applications
-                         WHERE application_id = :application_id
-                           AND student_id = :student_id
-                           AND application_status = :application_status'
-                    );
-
-                    $checkStatus->execute([
-                        'application_id' => $applicationId,
-                        'student_id' => $studentId,
-                        'application_status' => 'Pending Review'
-                    ]);
-
-                    if ((int) $checkStatus->fetchColumn() !== 1) {
-                        throw new RuntimeException('Application is no longer editable.');
-                    }
+                if ((int) $checkStatus->fetchColumn() !== 1) {
+                    throw new RuntimeException('Application is no longer editable.');
                 }
-
-                /* Insert new documents or replace existing ones */
-                foreach ($uploadedFiles as $file) {
-
-                    $storedName = bin2hex(random_bytes(16))
-                        . '.'
-                        . $file['extension'];
-
-                    $destination = $uploadDirectory . '/' . $storedName;
-
-                    if (!move_uploaded_file($file['tmp_name'], $destination)) {
-                        throw new RuntimeException('A document could not be uploaded.');
-                    }
-
-                    $newFiles[] = $destination;
-
-                    $relativePath = 'uploads/enrollment/' . $storedName;
-
-                    $findDocument = $pdo->prepare(
-                        'SELECT file_path
-                         FROM enrollment_documents
-                         WHERE application_id = :application_id
-                           AND document_type = :document_type
-                         LIMIT 1'
-                    );
-
-                    $findDocument->execute([
-                        'application_id' => $applicationId,
-                        'document_type' => $file['document_type']
-                    ]);
-
-                    $existing = $findDocument->fetch();
-
-                    if ($existing) {
-
-                        if (!empty($existing['file_path'])) {
-                            $oldFiles[] = $existing['file_path'];
-                        }
-
-                        $saveDocument = $pdo->prepare(
-                            'UPDATE enrollment_documents
-                             SET file_path = :file_path,
-                                 verification_status = :verification_status,
-                                 remarks = NULL,
-                                 uploaded_at = NOW()
-                             WHERE application_id = :application_id
-                               AND document_type = :document_type'
-                        );
-
-                    } else {
-
-                        $saveDocument = $pdo->prepare(
-                            'INSERT INTO enrollment_documents (
-                                application_id,
-                                document_type,
-                                file_path,
-                                verification_status,
-                                uploaded_at
-                             ) VALUES (
-                                :application_id,
-                                :document_type,
-                                :file_path,
-                                :verification_status,
-                                NOW()
-                             )'
-                        );
-                    }
-
-                    $saveDocument->execute([
-                        'application_id' => $applicationId,
-                        'document_type' => $file['document_type'],
-                        'file_path' => $relativePath,
-                        'verification_status' => 'Submitted'
-                    ]);
-                }
-
-                $pdo->commit();
-
-                /*
-                 * Delete replaced files only after the database update
-                 * succeeds. Only files inside uploads/enrollment are removed.
-                 */
-                $realUploadDirectory = realpath($uploadDirectory);
-
-                if ($realUploadDirectory !== false) {
-                    foreach ($oldFiles as $oldFile) {
-
-                        $oldAbsolutePath = realpath(
-                            __DIR__ . '/../' . ltrim($oldFile, '/\\')
-                        );
-
-                        if (
-                            $oldAbsolutePath !== false &&
-                            str_starts_with(
-                                $oldAbsolutePath,
-                                $realUploadDirectory . DIRECTORY_SEPARATOR
-                            ) &&
-                            is_file($oldAbsolutePath)
-                        ) {
-                            unlink($oldAbsolutePath);
-                        }
-                    }
-                }
-
-                redirect('/student/my_applications.php?updated=1');
-
-            } catch (Throwable $exception) {
-
-                if ($pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-
-                foreach ($newFiles as $newFile) {
-                    if (is_file($newFile)) {
-                        unlink($newFile);
-                    }
-                }
-
-                error_log('Enrollment update error: ' . $exception->getMessage());
-
-                $errors[] = 'Your application could not be updated. Please try again.';
             }
+
+            /*
+             * Synchronize the selected supporting-document checklist.
+             * Existing records that remain selected are preserved,
+             * including any previous verification information.
+             */
+            $insertDocument = $pdo->prepare(
+                'INSERT INTO enrollment_documents (
+                    application_id,
+                    document_type,
+                    file_path,
+                    verification_status,
+                    remarks,
+                    uploaded_at
+                ) VALUES (
+                    :application_id,
+                    :document_type,
+                    NULL,
+                    :verification_status,
+                    :remarks,
+                    NULL
+                )'
+            );
+
+            $deleteDocument = $pdo->prepare(
+                'DELETE FROM enrollment_documents
+                 WHERE application_id = :application_id
+                   AND document_type = :document_type'
+            );
+
+            $selectedIndexes = array_flip($values['available_documents']);
+
+            foreach ($requiredDocuments as $index => $documentName) {
+                $isSelected = isset($selectedIndexes[(string) $index]);
+                $existing = $existingDocuments[$documentName] ?? null;
+
+                if ($isSelected && !$existing) {
+                    $insertDocument->execute([
+                        'application_id' => $applicationId,
+                        'document_type' => $documentName,
+                        'verification_status' => 'Not Submitted',
+                        'remarks' => 'Student indicated this document is available. No digital file was uploaded.'
+                    ]);
+                } elseif (!$isSelected && $existing) {
+                    if (!empty($existing['file_path'])) {
+                        $removedFiles[] = $existing['file_path'];
+                    }
+
+                    $deleteDocument->execute([
+                        'application_id' => $applicationId,
+                        'document_type' => $documentName
+                    ]);
+                }
+            }
+
+            $pdo->commit();
+
+            /*
+             * Remove old uploaded files only after the database update
+             * succeeds, and only when they are inside uploads/enrollment.
+             */
+            $uploadDirectory = __DIR__ . '/../uploads/enrollment';
+            $realUploadDirectory = is_dir($uploadDirectory)
+                ? realpath($uploadDirectory)
+                : false;
+
+            if ($realUploadDirectory !== false) {
+                foreach ($removedFiles as $removedFile) {
+                    $oldAbsolutePath = realpath(
+                        __DIR__ . '/../' . ltrim($removedFile, '/\\')
+                    );
+
+                    if (
+                        $oldAbsolutePath !== false &&
+                        str_starts_with(
+                            $oldAbsolutePath,
+                            $realUploadDirectory . DIRECTORY_SEPARATOR
+                        ) &&
+                        is_file($oldAbsolutePath)
+                    ) {
+                        unlink($oldAbsolutePath);
+                    }
+                }
+            }
+
+            redirect('/student/my_applications.php?updated=1');
+
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            error_log('Enrollment update error: ' . $exception->getMessage());
+
+            $errors[] = 'Your application could not be updated. Please try again.';
         }
     }
 }
@@ -417,64 +338,7 @@ $pageTitle = 'Edit Enrollment Application';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<style>
-.edit-card {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 18px;
-    margin-top: 18px;
-}
 
-.edit-document {
-    padding: 15px;
-    border: 1px solid var(--line);
-    border-radius: 9px;
-    margin-top: 12px;
-}
-
-.edit-document label {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.edit-document input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    min-height: 18px;
-    margin: 0;
-    accent-color: var(--maroon);
-}
-
-.edit-upload {
-    margin: 12px 0 0 27px;
-}
-
-.edit-upload label {
-    display: block;
-    margin-bottom: 6px;
-}
-
-.edit-upload input[type="file"] {
-    min-height: auto;
-}
-
-.current-file {
-    margin: 8px 0;
-    color: var(--muted);
-    font-size: .9rem;
-}
-
-.edit-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 24px;
-}
-</style>
 
 <section class="form-card form-card-wide">
 
@@ -482,8 +346,8 @@ require_once __DIR__ . '/../includes/header.php';
     <h1>Edit Enrollment Application</h1>
 
     <p class="muted">
-        Update your enrollment information and upload missing or replacement
-        supporting documents.
+        Update your enrollment information and indicate which supporting
+        documents you currently have.
     </p>
 
     <div class="alert alert-success">
@@ -514,9 +378,7 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         <?php endforeach; ?>
 
-        <form method="post"
-              enctype="multipart/form-data"
-              class="form-grid">
+        <form method="post" class="form-grid">
 
             <input type="hidden"
                    name="csrf_token"
@@ -579,69 +441,25 @@ require_once __DIR__ . '/../includes/header.php';
             <h2>2. Supporting Documents</h2>
 
             <p class="muted">
-                Your existing files will remain saved unless you choose to
-                upload a replacement. You can also upload documents that
-                you have not submitted yet.
-                Accepted formats: PDF, JPG, JPEG, and PNG.
-                Maximum file size: 5 MB each.
+                Check the supporting documents you currently have. You may leave
+                documents unchecked if you do not have them yet.
             </p>
 
-            <?php foreach ($requiredDocuments as $index => $documentName): ?>
+            <div class="document-checklist">
+                <?php foreach ($requiredDocuments as $index => $documentName): ?>
+                    <?php $isSelected = in_array((string) $index, $values['available_documents'], true); ?>
 
-                <?php $existing = $existingDocuments[$documentName] ?? null; ?>
-
-                <div class="edit-document">
-
-                    <label>
-                        <input type="checkbox"
-                               name="upload_documents[]"
-                               value="<?= $index ?>"
-                               data-document-index="<?= $index ?>">
-
-                        <span>
-                            <?= $existing ? 'Replace or upload: ' : 'Upload: ' ?>
-                            <?= e($documentName) ?>
-                        </span>
-                    </label>
-
-                    <?php if ($existing): ?>
-
-                        <div class="current-file">
-                            Current status:
-                            <strong><?= e($existing['verification_status']) ?></strong>
-                            <br>
-
-                            <a href="<?= BASE_URL . '/' . e(ltrim($existing['file_path'], '/')) ?>"
-                               target="_blank"
-                               rel="noopener">
-                                View Current File
-                            </a>
-                        </div>
-
-                    <?php else: ?>
-
-                        <p class="current-file">Not submitted yet.</p>
-
-                    <?php endif; ?>
-
-                    <div id="edit-upload-<?= $index ?>"
-                         class="edit-upload"
-                         style="display:none;">
-
-                        <label for="edit-file-<?= $index ?>">
-                            Choose File
+                    <div class="document-checklist-item">
+                        <label class="document-checkbox">
+                            <input type="checkbox"
+                                   name="available_documents[]"
+                                   value="<?= $index ?>"
+                                   <?= $isSelected ? 'checked' : '' ?>>
+                            <span><?= e($documentName) ?></span>
                         </label>
-
-                        <input type="file"
-                               id="edit-file-<?= $index ?>"
-                               name="documents[<?= $index ?>]"
-                               accept=".pdf,.jpg,.jpeg,.png">
-
                     </div>
-
-                </div>
-
-            <?php endforeach; ?>
+                <?php endforeach; ?>
+            </div>
 
             <div class="edit-actions">
 
@@ -662,41 +480,6 @@ require_once __DIR__ . '/../includes/header.php';
 
 </section>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
 
-    const documentCheckboxes = document.querySelectorAll(
-        'input[name="upload_documents[]"]'
-    );
-
-    documentCheckboxes.forEach(function (checkbox) {
-
-        checkbox.addEventListener('change', function () {
-
-            const index = this.dataset.documentIndex;
-
-            const uploadArea = document.getElementById(
-                'edit-upload-' + index
-            );
-
-            const fileInput = document.getElementById(
-                'edit-file-' + index
-            );
-
-            if (this.checked) {
-                uploadArea.style.display = 'block';
-                fileInput.required = true;
-            } else {
-                uploadArea.style.display = 'none';
-                fileInput.required = false;
-                fileInput.value = '';
-            }
-
-        });
-
-    });
-
-});
-</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

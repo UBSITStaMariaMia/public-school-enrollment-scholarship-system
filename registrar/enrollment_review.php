@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
-require_role('System Administrator', 'School Registrar', 'Enrollment Committee');
+require_role('School Registrar');
 $pageTitle = 'Enrollment Review';
 $error = ''; $success = '';
 $allowedStatuses = ['Pending Review','Incomplete Requirements','Approved','Rejected'];

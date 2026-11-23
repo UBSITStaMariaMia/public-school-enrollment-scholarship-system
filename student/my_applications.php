@@ -79,15 +79,12 @@ $requiredDocuments = [
     'Good Moral Certificate'
 ];
 
-/* Get uploaded documents for each enrollment application */
+/* Get supporting document records for each enrollment application */
 $documentsByApplication = [];
 
 $documentQuery = $pdo->prepare(
     'SELECT
-        document_type,
-        file_path,
-        verification_status,
-        remarks
+        document_type
      FROM enrollment_documents
      WHERE application_id = :application_id'
 );
@@ -105,8 +102,9 @@ foreach ($applications as $application) {
 function status_class(string $status): string
 {
     return match ($status) {
-        'Approved', 'Accepted' => 'status-approved',
+        'Approved', 'Accepted', 'Available' => 'status-approved',
         'Rejected' => 'status-rejected',
+        'Not Available' => 'status-incomplete',
         'Pending Review', 'For Screening', 'For Verification' => 'status-pending',
         'Incomplete Requirements', 'Not Submitted' => 'status-incomplete',
         default => 'status-default'
@@ -117,134 +115,7 @@ $pageTitle = 'My Applications';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<style>
-.application-card {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 24px;
-    margin-top: 22px;
-    box-shadow: 0 8px 22px rgba(28, 35, 45, .04);
-}
 
-.application-card h2 {
-    color: var(--maroon);
-    margin: 0 0 14px;
-}
-
-.application-details {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 15px;
-    margin: 18px 0;
-}
-
-.detail-item {
-    padding: 12px;
-    background: #f8f8fa;
-    border-radius: 8px;
-}
-
-.detail-item small {
-    display: block;
-    color: var(--muted);
-    margin-bottom: 4px;
-}
-
-.detail-item strong {
-    color: var(--ink);
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 5px 11px;
-    border-radius: 20px;
-    font-size: .82rem;
-    font-weight: 700;
-}
-
-.status-approved {
-    background: #e8f7ed;
-    color: #17633a;
-}
-
-.status-rejected {
-    background: #fff0f0;
-    color: #9b1c1c;
-}
-
-.status-pending {
-    background: #fff5df;
-    color: #8a5a00;
-}
-
-.status-incomplete {
-    background: #fff0e6;
-    color: #a34b12;
-}
-
-.status-default {
-    background: #edf0f4;
-    color: #475467;
-}
-
-.document-list {
-    display: grid;
-    gap: 10px;
-    margin-top: 14px;
-}
-
-.document-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-}
-
-.document-item a {
-    font-size: .88rem;
-    font-weight: 600;
-}
-
-.application-section-title {
-    margin-top: 24px;
-    color: var(--maroon-dark);
-}
-
-.scholarship-card {
-    border-left: 5px solid var(--green);
-}
-
-.empty-state {
-    margin-top: 22px;
-    padding: 30px;
-    background: #fff;
-    border: 1px dashed #cfd4dc;
-    border-radius: 12px;
-    text-align: center;
-}
-
-.application-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 20px;
-}
-
-@media (max-width: 600px) {
-    .application-details {
-        grid-template-columns: 1fr;
-    }
-
-    .document-item {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-}
-</style>
 
 <section class="form-card form-card-wide">
 
@@ -349,34 +220,14 @@ require_once __DIR__ . '/../includes/header.php';
 
                             <?php if ($uploaded): ?>
 
-                                <div>
-
-                                    <span class="status-badge <?= e(status_class($uploaded['verification_status'])) ?>">
-                                        <?= e($uploaded['verification_status']) ?>
-                                    </span>
-
-                                    <?php if (!empty($uploaded['file_path'])): ?>
-                                        <br>
-
-                                        <a href="<?= BASE_URL . '/' . e(ltrim($uploaded['file_path'], '/')) ?>"
-                                           target="_blank"
-                                           rel="noopener">
-                                            View Uploaded File
-                                        </a>
-                                    <?php endif; ?>
-
-                                    <?php if (!empty($uploaded['remarks'])): ?>
-                                        <p class="muted">
-                                            Remarks: <?= e($uploaded['remarks']) ?>
-                                        </p>
-                                    <?php endif; ?>
-
-                                </div>
+                                <span class="status-badge <?= e(status_class('Available')) ?>">
+                                    Available
+                                </span>
 
                             <?php else: ?>
 
-                                <span class="status-badge status-incomplete">
-                                    Not Submitted
+                                <span class="status-badge <?= e(status_class('Not Available')) ?>">
+                                    Not Available
                                 </span>
 
                             <?php endif; ?>

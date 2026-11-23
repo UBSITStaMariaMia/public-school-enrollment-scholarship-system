@@ -1,10 +1,9 @@
-
 <?php
 declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 
-require_role('System Administrator', 'School Registrar');
+require_role('School Registrar');
 
 $pageTitle = 'Announcement Management';
 
@@ -180,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
 
-                redirect('/staff/announcements.php?saved=1');
+                redirect('/registrar/announcements.php?saved=1');
 
             } catch (Throwable $exception) {
 
@@ -219,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'announcement_id' => $announcementId
                 ]);
 
-                redirect('/staff/announcements.php?deleted=1');
+                redirect('/registrar/announcements.php?deleted=1');
 
             } catch (Throwable $exception) {
 
@@ -324,163 +323,7 @@ foreach ($announcements as $announcement) {
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<style>
-.announcement-management {
-    display: grid;
-    gap: 24px;
-}
 
-.announcement-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 15px;
-    margin: 20px 0;
-}
-
-.announcement-stat {
-    background: #f8f8fa;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 17px;
-}
-
-.announcement-stat small {
-    display: block;
-    color: var(--muted);
-    margin-bottom: 6px;
-}
-
-.announcement-stat strong {
-    font-size: 1.6rem;
-    color: var(--maroon);
-}
-
-.announcement-form-card,
-.announcement-list-card {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 22px;
-}
-
-.announcement-form-card h2,
-.announcement-list-card h2 {
-    color: var(--maroon);
-    margin-top: 0;
-}
-
-.announcement-form {
-    display: grid;
-    gap: 15px;
-}
-
-.announcement-form label {
-    display: grid;
-    gap: 7px;
-    font-weight: 600;
-}
-
-.announcement-form input,
-.announcement-form select,
-.announcement-form textarea {
-    width: 100%;
-}
-
-.announcement-form textarea {
-    min-height: 150px;
-    resize: vertical;
-}
-
-.announcement-form-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 5px;
-}
-
-.announcement-table-wrapper {
-    overflow-x: auto;
-}
-
-.announcement-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 750px;
-}
-
-.announcement-table th,
-.announcement-table td {
-    padding: 13px;
-    border-bottom: 1px solid var(--line);
-    text-align: left;
-    vertical-align: middle;
-}
-
-.announcement-table th {
-    background: #f8f8fa;
-    color: var(--maroon);
-}
-
-.announcement-category {
-    font-size: .82rem;
-    font-weight: 700;
-    color: var(--maroon);
-}
-
-.announcement-status {
-    display: inline-block;
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: .8rem;
-    font-weight: 700;
-}
-
-.status-published {
-    color: #17633a;
-    background: #e8f7ed;
-}
-
-.status-draft {
-    color: #8a5a00;
-    background: #fff5df;
-}
-
-.status-archived {
-    color: #475467;
-    background: #edf0f4;
-}
-
-.announcement-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.announcement-actions a,
-.announcement-actions button {
-    font-size: .85rem;
-}
-
-.announcement-empty {
-    padding: 25px;
-    text-align: center;
-    background: #f8f8fa;
-    border: 1px dashed #d4d4d8;
-    border-radius: 10px;
-    color: var(--muted);
-}
-
-@media (max-width: 650px) {
-    .announcement-stats {
-        grid-template-columns: 1fr;
-    }
-
-    .announcement-form-card,
-    .announcement-list-card {
-        padding: 16px;
-    }
-}
-</style>
 
 <section class="form-card form-card-wide announcement-management">
 
@@ -644,7 +487,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                 <?php if ($values['announcement_id'] !== ''): ?>
                     <a
-                        href="<?= BASE_URL ?>/staff/announcements.php"
+                        href="<?= BASE_URL ?>/registrar/announcements.php"
                         class="button button-outline"
                     >
                         Cancel Editing
@@ -723,7 +566,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <div class="announcement-actions">
 
                                         <a
-                                            href="<?= BASE_URL ?>/staff/announcements.php?edit=<?= (int) $announcement['announcement_id'] ?>"
+                                            href="<?= BASE_URL ?>/registrar/announcements.php?edit=<?= (int) $announcement['announcement_id'] ?>"
                                             class="button button-outline"
                                         >
                                             Edit
