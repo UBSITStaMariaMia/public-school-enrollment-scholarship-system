@@ -5870,3 +5870,159 @@ body.reminder-modal-open {
 .scholarship-year-note-spaced {
     margin-top: 18px;
 }
+
+
+/* =====================================================
+   SCHOLARSHIP PROGRAMS LAYOUT
+===================================================== */
+
+.scholarship-program-card {
+    max-width: 1100px;
+}
+
+.scholarship-program-table-wrap {
+    overflow-x: auto;
+}
+
+.scholarship-program-table {
+    min-width: 850px;
+}
+
+.scholarship-program-table th:last-child,
+.scholarship-program-table td:last-child {
+    min-width: 190px;
+}
+
+.scholarship-program-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
+.scholarship-toggle-form {
+    display: inline-flex;
+    margin: 0;
+    padding: 0;
+}
+
+.scholarship-edit-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 105px;
+    height: 46px;
+    min-width: 105px;
+    box-sizing: border-box;
+    padding: 0 10px;
+    border: none;
+    border-radius: 10px;
+    background-color: #701b35;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.scholarship-edit-link:hover {
+    background-color: #501326;
+    color: white;
+    text-decoration: none;
+}
+
+.scholarship-toggle-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 105px;
+    height: 46px;
+    min-width: 105px;
+    box-sizing: border-box;
+    padding: 0 10px;
+    border: none;
+    border-radius: 10px;
+    background-color: #eeeeee;
+    color: #111111;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.scholarship-toggle-button:hover {
+    background-color: #dddddd;
+}
+
+.scholarship-form-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 12px;
+}
+
+.scholarship-cancel-link {
+    display: inline-block;
+}
+
+/* PROGRAM STATUS */
+
+.program-status {
+    display: inline-block;
+    padding: 5px 11px;
+    border-radius: 20px;
+    font-size: .85rem;
+    font-weight: 700;
+}
+
+.program-status-active {
+    background: #e8f7ed;
+    color: #17633a;
+}
+
+.program-status-inactive {
+    background: #fff0f0;
+    color: #9b1c1c;
+}
+
+/* SCHOLARSHIP PROGRAM TABLE DIVIDERS */
+
+.scholarship-program-table {
+    width: 100%;
+    border-collapse: collapse !important;
+}
+
+/* Header cells */
+.scholarship-program-table thead th {
+    padding: 16px 15px;
+    border-bottom: 1px solid #d8cdd3 !important;
+    border-right: 1px solid #e3dce0;
+    text-align: left;
+}
+
+/* Body cells */
+.scholarship-program-table tbody td {
+    padding: 16px 15px;
+    border-bottom: 1px solid #dce1e7 !important;
+    border-right: 1px solid #e3e6eb;
+    vertical-align: middle;
+}
+
+/* Remove right border on last column */
+.scholarship-program-table th:last-child,
+.scholarship-program-table td:last-child {
+    border-right: none;
+}
+
+/* Remove bottom border on last row */
+.scholarship-program-table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* Hover effect */
+.scholarship-program-table tbody tr:hover {
+    background-color: #faf7f9;
+}
