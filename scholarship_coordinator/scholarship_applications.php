@@ -1,3 +1,4 @@
+
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_role('System Administrator', 'Scholarship Coordinator');
@@ -33,16 +34,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($screeningDate === '' || $screeningTime === '' || $screeningVenue === '') {
                 throw new RuntimeException('Provide the screening date, time, and venue before setting the application to For Screening.');
             }
+
             $dateObject = DateTime::createFromFormat('Y-m-d', $screeningDate);
+
             if (!$dateObject || $dateObject->format('Y-m-d') !== $screeningDate) {
                 throw new RuntimeException('Enter a valid screening date.');
             }
+
             if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $screeningTime)) {
                 throw new RuntimeException('Enter a valid screening time.');
             }
+
             if (strlen($screeningVenue) > 180) {
                 throw new RuntimeException('The screening venue must not exceed 180 characters.');
             }
+
         } else {
             $screeningDate = '';
             $screeningTime = '';
@@ -55,7 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              FROM scholarship_applications
              WHERE scholarship_application_id = :application_id'
         );
-        $applicationCheck->execute(['application_id' => $applicationId]);
+
+        $applicationCheck->execute([
+            'application_id' => $applicationId
+        ]);
+
         if (!$applicationCheck->fetch()) {
             throw new RuntimeException('The selected scholarship application could not be found.');
         }
@@ -72,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  reviewed_at = NOW()
              WHERE scholarship_application_id = :application_id'
         );
+
         $updateQuery->execute([
             'status' => $status,
             'remarks' => $remarks !== '' ? $remarks : null,
@@ -84,14 +95,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         $success = 'Scholarship application review and screening details have been saved.';
+
     } catch (PDOException $exception) {
         error_log('Scholarship application review: ' . $exception->getMessage());
         $error = 'Unable to update the application right now. Please try again.';
+
     } catch (RuntimeException $exception) {
         $error = $exception->getMessage();
     }
 }
 
+
+// GET ALL SCHOLARSHIP APPLICATIONS
 $applicationsQuery = $pdo->query(
     'SELECT
         sa.scholarship_application_id,
@@ -114,79 +129,306 @@ $applicationsQuery = $pdo->query(
      INNER JOIN school_years sy ON sy.school_year_id = sa.school_year_id
      ORDER BY sa.application_date DESC'
 );
+
 $applications = $applicationsQuery->fetchAll();
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<section class="form-card form-card-wide">
+<section class="form-card form-card-wide scholarship-applications-card">
+
     <h1>Scholarship Applications</h1>
-    <p class="muted">Review applicants, shortlist students for screening, assign their screening schedule, and record the screening attendance.</p>
 
-    <?php if ($success): ?><p class="success-message"><?= e($success) ?></p><?php endif; ?>
-    <?php if ($error): ?><p class="error-message"><?= e($error) ?></p><?php endif; ?>
+    <p class="muted">
+        Review applicants, shortlist students for screening,
+        assign their screening schedule, and record the screening attendance.
+    </p>
 
-    <?php if (!$applications): ?>
-        <div class="empty-state"><h3>No Scholarship Applications</h3><p class="muted">No students have submitted scholarship applications yet.</p></div>
-    <?php else: ?>
-        <div class="table-responsive">
-            <table>
-                <thead><tr><th>Applicant</th><th>Program</th><th>School Year</th><th>Submitted</th><th>Review and Screening</th></tr></thead>
-                <tbody>
-                <?php foreach ($applications as $application): ?>
-                    <tr>
-                        <td>
-                            <strong><?= e(trim($application['first_name'] . ' ' . ($application['middle_name'] ?? '') . ' ' . $application['last_name'])) ?></strong><br>
-                            <small>LRN: <?= e($application['lrn'] ?: 'Not recorded') ?></small>
-                        </td>
-                        <td><?= e($application['program_name']) ?></td>
-                        <td><?= e($application['school_year']) ?></td>
-                        <td><?= e($application['application_date']) ?></td>
-                        <td>
-                            <form method="post">
-                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                <input type="hidden" name="scholarship_application_id" value="<?= (int) $application['scholarship_application_id'] ?>">
 
-                                <label>Application Status
-                                    <select name="application_status" required>
-                                        <?php foreach ($statuses as $status): ?>
-                                            <option value="<?= e($status) ?>" <?= $application['application_status'] === $status ? 'selected' : '' ?>><?= e($status) ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </label>
-
-                                <fieldset class="screening-schedule-fieldset">
-                                    <legend>Screening Schedule (required for For Screening)</legend>
-                                    <label>Date
-                                        <input type="date" name="screening_date" value="<?= e($application['screening_date'] ?? '') ?>">
-                                    </label>
-                                    <label>Time
-                                        <input type="time" name="screening_time" value="<?= e($application['screening_time'] ? substr($application['screening_time'], 0, 5) : '') ?>">
-                                    </label>
-                                    <label>Venue
-                                        <input type="text" name="screening_venue" maxlength="180" value="<?= e($application['screening_venue'] ?? '') ?>" placeholder="Enter screening venue">
-                                    </label>
-                                    <label>Attendance
-                                        <select name="screening_attendance">
-                                            <?php foreach (['Pending', 'Present', 'Absent'] as $attendance): ?>
-                                                <option value="<?= e($attendance) ?>" <?= ($application['screening_attendance'] ?? 'Pending') === $attendance ? 'selected' : '' ?>><?= e($attendance) ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </label>
-                                </fieldset>
-
-                                <label>Remarks
-                                    <textarea name="remarks" rows="2" placeholder="Review or screening remarks"><?= e($application['remarks'] ?? '') ?></textarea>
-                                </label>
-                                <button type="submit" class="button button-primary">Save Review</button>
-                            </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+    <!-- SUCCESS MESSAGE -->
+    <?php if ($success): ?>
+        <p class="success-message">
+            <?= e($success) ?>
+        </p>
     <?php endif; ?>
+
+
+    <!-- ERROR MESSAGE -->
+    <?php if ($error): ?>
+        <p class="error-message">
+            <?= e($error) ?>
+        </p>
+    <?php endif; ?>
+
+
+    <!-- APPLICATIONS TABLE -->
+    <?php if (!$applications): ?>
+
+        <div class="empty-state">
+            <h3>No Scholarship Applications</h3>
+            <p class="muted">
+                No students have submitted scholarship applications yet.
+            </p>
+        </div>
+
+    <?php else: ?>
+
+        <div class="table-responsive scholarship-applications-table-wrap">
+
+            <table class="scholarship-applications-table">
+
+                <thead>
+                    <tr>
+                        <th>Applicant</th>
+                        <th>Program</th>
+                        <th>School Year</th>
+                        <th>Submitted</th>
+                        <th>Review and Screening</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <?php foreach ($applications as $application): ?>
+
+                        <tr>
+
+                            <!-- APPLICANT INFORMATION -->
+                            <td>
+
+                                <strong>
+                                    <?= e(trim(
+                                        $application['first_name'] . ' ' .
+                                        ($application['middle_name'] ?? '') . ' ' .
+                                        $application['last_name']
+                                    )) ?>
+                                </strong>
+
+                                <br>
+
+                                <small>
+                                    LRN: <?= e($application['lrn'] ?: 'Not recorded') ?>
+                                </small>
+
+                            </td>
+
+
+                            <!-- SCHOLARSHIP PROGRAM -->
+                            <td>
+                                <?= e($application['program_name']) ?>
+                            </td>
+
+
+                            <!-- SCHOOL YEAR -->
+                            <td>
+                                <?= e($application['school_year']) ?>
+                            </td>
+
+
+                            <!-- SUBMITTED DATE -->
+                            <td>
+                                <?= e($application['application_date']) ?>
+                            </td>
+
+
+                            <!-- REVIEW AND SCREENING -->
+                            <td>
+
+                                <form method="post">
+
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="<?= e(csrf_token()) ?>"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="scholarship_application_id"
+                                        value="<?= (int) $application['scholarship_application_id'] ?>"
+                                    >
+
+
+                                    <!-- APPLICATION STATUS -->
+                                    <label>
+                                        Application Status
+
+                                        <select
+                                            name="application_status"
+                                            class="application-status-select"
+                                            required
+                                            onchange="toggleScreeningSchedule(this)"
+                                        >
+
+                                            <?php foreach ($statuses as $status): ?>
+
+                                                <option
+                                                    value="<?= e($status) ?>"
+                                                    <?= $application['application_status'] === $status ? 'selected' : '' ?>
+                                                >
+                                                    <?= e($status) ?>
+                                                </option>
+
+                                            <?php endforeach; ?>
+
+                                        </select>
+
+                                    </label>
+
+
+                                    <!-- SCREENING SCHEDULE -->
+                                    <fieldset
+                                        class="screening-schedule-fieldset"
+                                        <?= $application['application_status'] === 'For Screening' ? '' : 'hidden' ?>
+                                    >
+
+                                        <legend>
+                                            Screening Schedule (required for For Screening)
+                                        </legend>
+
+
+                                        <!-- DATE -->
+                                        <label>
+                                            Date
+
+                                            <input
+                                                type="date"
+                                                name="screening_date"
+                                                value="<?= e($application['screening_date'] ?? '') ?>"
+                                                <?= $application['application_status'] === 'For Screening' ? 'required' : '' ?>
+                                            >
+                                        </label>
+
+
+                                        <!-- TIME -->
+                                        <label>
+                                            Time
+
+                                            <input
+                                                type="time"
+                                                name="screening_time"
+                                                value="<?= e($application['screening_time'] ? substr($application['screening_time'], 0, 5) : '') ?>"
+                                                <?= $application['application_status'] === 'For Screening' ? 'required' : '' ?>
+                                            >
+                                        </label>
+
+
+                                        <!-- VENUE -->
+                                        <label>
+                                            Venue
+
+                                            <input
+                                                type="text"
+                                                name="screening_venue"
+                                                maxlength="180"
+                                                value="<?= e($application['screening_venue'] ?? '') ?>"
+                                                placeholder="Enter screening venue"
+                                                <?= $application['application_status'] === 'For Screening' ? 'required' : '' ?>
+                                            >
+                                        </label>
+
+
+                                        <!-- ATTENDANCE -->
+                                        <label>
+                                            Attendance
+
+                                            <select name="screening_attendance">
+
+                                                <?php foreach (['Pending', 'Present', 'Absent'] as $attendance): ?>
+
+                                                    <option
+                                                        value="<?= e($attendance) ?>"
+                                                        <?= ($application['screening_attendance'] ?? 'Pending') === $attendance ? 'selected' : '' ?>
+                                                    >
+                                                        <?= e($attendance) ?>
+                                                    </option>
+
+                                                <?php endforeach; ?>
+
+                                            </select>
+                                        </label>
+
+                                    </fieldset>
+
+
+                                    <!-- REMARKS -->
+                                    <label>
+                                        Remarks
+
+                                        <textarea
+                                            name="remarks"
+                                            rows="2"
+                                            placeholder="Review or screening remarks"
+                                        ><?= e($application['remarks'] ?? '') ?></textarea>
+
+                                    </label>
+
+
+                                    <!-- SAVE BUTTON -->
+                                    <button
+                                        type="submit"
+                                        class="button button-primary"
+                                    >
+                                        Save Review
+                                    </button>
+
+                                </form>
+
+                            </td>
+
+                        </tr>
+
+                    <?php endforeach; ?>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    <?php endif; ?>
+
 </section>
+
+
+<!-- SHOW / HIDE SCREENING SCHEDULE -->
+<script>
+
+function toggleScreeningSchedule(statusSelect) {
+
+    const form = statusSelect.closest('form');
+
+    const schedule = form.querySelector(
+        '.screening-schedule-fieldset'
+    );
+
+    const showSchedule = statusSelect.value === 'For Screening';
+
+    // Show or hide the screening schedule
+    schedule.hidden = !showSchedule;
+
+    // Make date, time, and venue required only for screening
+    const requiredFields = schedule.querySelectorAll(
+        'input[name="screening_date"], ' +
+        'input[name="screening_time"], ' +
+        'input[name="screening_venue"]'
+    );
+
+    requiredFields.forEach(function(field) {
+        field.required = showSchedule;
+    });
+
+}
+
+
+// Initialize screening schedule when the page loads
+document.querySelectorAll('.application-status-select').forEach(function(select) {
+
+    toggleScreeningSchedule(select);
+
+});
+
+</script>
+
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
