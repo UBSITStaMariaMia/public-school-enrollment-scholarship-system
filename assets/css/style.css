@@ -6113,3 +6113,207 @@ body.reminder-modal-open {
         min-height: 235px;
     }
 }
+
+/* =========================================================
+   SCHOLARSHIP APPLICATIONS - APPLICANT CARD LAYOUT
+========================================================= */
+
+.scholarship-applications-card {
+    width: min(1160px, calc(100% - 32px));
+    max-width: 1160px;
+    box-sizing: border-box;
+}
+
+.scholarship-applications-description {
+    margin-bottom: 22px;
+    line-height: 1.6;
+}
+
+.scholarship-application-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 22px;
+}
+
+.scholarship-application-card {
+    min-width: 0;
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 3px 12px rgba(30, 20, 25, 0.04);
+}
+
+.scholarship-applicant-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+}
+
+.scholarship-applicant-header h2 {
+    margin: 0;
+    color: var(--ink);
+    font-size: 1.08rem;
+    line-height: 1.4;
+}
+
+.scholarship-applicant-lrn {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 0.86rem;
+}
+
+.scholarship-status-badge {
+    flex: 0 0 auto;
+    padding: 6px 11px;
+    border-radius: 20px;
+    background: #f8f1f4;
+    color: var(--maroon-dark);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.scholarship-applicant-details {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.scholarship-detail-item {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.scholarship-detail-item span {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.scholarship-detail-item strong {
+    color: var(--ink);
+    font-size: 0.92rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.scholarship-review-section {
+    padding-top: 17px;
+}
+
+.scholarship-review-section h3 {
+    margin: 0 0 15px;
+    color: var(--maroon-dark);
+    font-size: 1rem;
+}
+
+.scholarship-review-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.scholarship-review-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.scholarship-review-field label {
+    margin: 0;
+    color: var(--ink);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.scholarship-review-field input,
+.scholarship-review-field select,
+.scholarship-review-field textarea {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.screening-schedule-fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: #fcfafb;
+}
+
+.screening-schedule-fieldset[hidden] {
+    display: none !important;
+}
+
+.screening-schedule-fieldset legend {
+    padding: 0 6px;
+    color: var(--maroon-dark);
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.scholarship-schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 13px;
+}
+
+.scholarship-venue-field {
+    grid-column: 1 / -1;
+}
+
+.scholarship-review-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+}
+
+.scholarship-review-actions .button {
+    min-width: 145px;
+}
+
+@media (max-width: 700px) {
+    .scholarship-applications-card {
+        width: calc(100% - 20px);
+        padding: 20px 15px;
+    }
+
+    .scholarship-application-card {
+        padding: 17px;
+    }
+
+    .scholarship-applicant-details {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .scholarship-applicant-header {
+        flex-direction: column;
+    }
+
+    .scholarship-schedule-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .scholarship-venue-field {
+        grid-column: auto;
+    }
+
+    .scholarship-review-actions .button {
+        width: 100%;
+    }
+}
