@@ -5,326 +5,362 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_role('Student');
 
 $userId = (int) current_user()['user_id'];
+$error = '';
+$success = '';
+$documentOptions = [
+    'Latest Report Card',
+    '2x2 ID Picture',
+    'Recommendation Letter',
+    'Contest/Event Certificates',
+    'Other (Specify)'
+];
 
-/* Get the student's record */
+/* Retrieve the existing student record. Students do not re-enter these details. */
 $studentQuery = $pdo->prepare(
-    'SELECT student_id
-     FROM students
-     WHERE user_id = :user_id
+    'SELECT
+        st.student_id,
+        st.lrn,
+        st.first_name,
+        st.middle_name,
+        st.last_name,
+        st.birth_date,
+        st.sex,
+        st.contact_number,
+        st.current_address,
+        gl.grade_level,
+        sec.section_name
+     FROM students st
+     LEFT JOIN grade_levels gl
+        ON gl.grade_level_id = st.current_grade_level_id
+     LEFT JOIN sections sec
+        ON sec.section_id = st.current_section_id
+     WHERE st.user_id = :user_id
      LIMIT 1'
 );
-
 $studentQuery->execute(['user_id' => $userId]);
 $student = $studentQuery->fetch();
 
 if (!$student) {
     http_response_code(404);
-    exit('Student record not found.');
+    exit('Student record not found. Please contact the school.');
 }
 
 $studentId = (int) $student['student_id'];
 
-/* Get enrollment applications */
-$applicationQuery = $pdo->prepare(
-    'SELECT
-        ea.application_id,
-        ea.lrn,
-        ea.enrollment_type,
-        ea.application_status,
-        ea.school_year_id,
-        ea.requested_grade_level_id,
-        sy.school_year,
-        gl.grade_level
-     FROM enrollment_applications ea
-     INNER JOIN school_years sy
-        ON ea.school_year_id = sy.school_year_id
-     INNER JOIN grade_levels gl
-        ON ea.requested_grade_level_id = gl.grade_level_id
-     WHERE ea.student_id = :student_id
-     ORDER BY ea.application_id DESC'
+/* Retrieve the active school year. */
+$schoolYearQuery = $pdo->prepare(
+    "SELECT school_year_id, school_year
+     FROM school_years
+     WHERE status = 'Active'
+     ORDER BY school_year_id DESC
+     LIMIT 1"
 );
+$schoolYearQuery->execute();
+$activeSchoolYear = $schoolYearQuery->fetch();
 
-$applicationQuery->execute(['student_id' => $studentId]);
-$applications = $applicationQuery->fetchAll();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+            throw new RuntimeException('Invalid request. Please refresh the page and try again.');
+        }
 
-/* Get scholarship applications separately */
-$scholarshipQuery = $pdo->prepare(
-    'SELECT
-        sa.scholarship_application_id,
-        sa.program_id,
-        sa.school_year_id,
-        sa.application_status,
-        sa.screening_date,
-        sa.screening_time,
-        sa.screening_venue,
-        sa.screening_attendance,
-        sp.program_name,
-        sy.school_year
-     FROM scholarship_applications sa
-     INNER JOIN special_programs sp
-        ON sa.program_id = sp.program_id
-     INNER JOIN school_years sy
-        ON sa.school_year_id = sy.school_year_id
-     WHERE sa.student_id = :student_id
-     ORDER BY sa.scholarship_application_id DESC'
-);
+        if (!$activeSchoolYear) {
+            throw new RuntimeException('There is currently no active school year. Please contact the school.');
+        }
 
-$scholarshipQuery->execute(['student_id' => $studentId]);
-$scholarships = $scholarshipQuery->fetchAll();
+        $programId = filter_var($_POST['program_id'] ?? null, FILTER_VALIDATE_INT);
 
-/* Required supporting documents */
-$requiredDocuments = [
-    'PSA Birth Certificate',
-    'Old School Card (before moving up)',
-    'Good Moral Certificate'
-];
+        if (!$programId || $programId < 1) {
+            throw new RuntimeException('Please select one valid scholarship program.');
+        }
 
-/* Get supporting document records for each enrollment application */
-$documentsByApplication = [];
+        $selectedDocuments = $_POST['supporting_documents'] ?? [];
+        $submittedOtherDocument = $_POST['other_document'] ?? '';
 
-$documentQuery = $pdo->prepare(
-    'SELECT
-        document_type
-     FROM enrollment_documents
-     WHERE application_id = :application_id'
-);
+        if (!is_string($submittedOtherDocument)) {
+            throw new RuntimeException('Please enter a valid other document name.');
+        }
+        $otherDocument = trim($submittedOtherDocument);
 
-foreach ($applications as $application) {
-    $documentQuery->execute([
-        'application_id' => $application['application_id']
+        if (!is_array($selectedDocuments)) {
+            throw new RuntimeException('Please select valid supporting documents.');
+        }
+
+        $selectedDocuments = array_values(array_unique($selectedDocuments));
+        foreach ($selectedDocuments as $document) {
+            if (!in_array($document, $documentOptions, true)) {
+                throw new RuntimeException('One or more selected supporting documents are invalid.');
+            }
+        }
+
+        if (in_array('Other (Specify)', $selectedDocuments, true) && $otherDocument === '') {
+            throw new RuntimeException('Please specify the other supporting document.');
+        }
+
+        if (strlen($otherDocument) > 150) {
+            throw new RuntimeException('The other document name must not exceed 150 characters.');
+        }
+
+        $pdo->beginTransaction();
+
+        /* Lock this student's record so simultaneous submissions cannot create
+           applications for different programs in the same school year. */
+        $lockStudentQuery = $pdo->prepare(
+            'SELECT student_id FROM students WHERE student_id = :student_id FOR UPDATE'
+        );
+        $lockStudentQuery->execute(['student_id' => $studentId]);
+
+        /* A student may submit only one scholarship application per school year,
+           regardless of which special program is selected. */
+        $existingApplicationQuery = $pdo->prepare(
+            'SELECT scholarship_application_id
+             FROM scholarship_applications
+             WHERE student_id = :student_id
+               AND school_year_id = :school_year_id
+             LIMIT 1'
+        );
+        $existingApplicationQuery->execute([
+            'student_id' => $studentId,
+            'school_year_id' => $activeSchoolYear['school_year_id']
+        ]);
+
+        if ($existingApplicationQuery->fetch()) {
+            throw new RuntimeException('You have already submitted a scholarship application for the active school year. You may apply for only one scholarship program per school year.');
+        }
+
+        /* Confirm that the selected program is active. */
+        $programQuery = $pdo->prepare(
+            "SELECT program_id, program_name
+             FROM special_programs
+             WHERE program_id = :program_id
+               AND status = 'Active'
+             FOR UPDATE"
+        );
+        $programQuery->execute(['program_id' => $programId]);
+        $program = $programQuery->fetch();
+
+        if (!$program) {
+            throw new RuntimeException('The selected scholarship program is not currently available.');
+        }
+
+        /* available_slots represents scholar slots, not the number of applicants. */
+        $insertQuery = $pdo->prepare(
+            "INSERT INTO scholarship_applications
+                (student_id, program_id, school_year_id, application_status)
+             VALUES
+                (:student_id, :program_id, :school_year_id, 'Pending Review')"
+        );
+        $insertQuery->execute([
+            'student_id' => $studentId,
+            'program_id' => $programId,
+            'school_year_id' => $activeSchoolYear['school_year_id']
+        ]);
+
+        $applicationId = (int) $pdo->lastInsertId();
+
+        if ($selectedDocuments) {
+            $documentInsertQuery = $pdo->prepare(
+                'INSERT INTO scholarship_documents
+                    (scholarship_application_id, document_name, other_document)
+                 VALUES
+                    (:application_id, :document_name, :other_document)'
+            );
+
+            foreach ($selectedDocuments as $document) {
+                $documentInsertQuery->execute([
+                    'application_id' => $applicationId,
+                    'document_name' => $document,
+                    'other_document' => $document === 'Other (Specify)' ? $otherDocument : null
+                ]);
+            }
+        }
+
+        $pdo->commit();
+        $success = 'Your scholarship application has been submitted successfully. Please wait for the initial review.';
+    } catch (PDOException $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        if ($exception->getCode() === '23000') {
+            $error = 'You have already submitted a scholarship application for the active school year. You may apply for only one scholarship program per school year.';
+        } else {
+            $error = 'Unable to submit your application right now. Please try again later.';
+            error_log('Scholarship application submission: ' . $exception->getMessage());
+        }
+    } catch (RuntimeException $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $error = $exception->getMessage();
+    }
+}
+
+/* Check whether the student has already applied to any program this school year. */
+$existingApplication = null;
+$programs = [];
+
+if ($activeSchoolYear) {
+    $existingApplicationQuery = $pdo->prepare(
+        'SELECT
+            sa.scholarship_application_id,
+            sa.application_status,
+            sp.program_name
+         FROM scholarship_applications sa
+         INNER JOIN special_programs sp
+            ON sp.program_id = sa.program_id
+         WHERE sa.student_id = :student_id
+           AND sa.school_year_id = :school_year_id
+         ORDER BY sa.application_date DESC, sa.scholarship_application_id DESC
+         LIMIT 1'
+    );
+    $existingApplicationQuery->execute([
+        'student_id' => $studentId,
+        'school_year_id' => $activeSchoolYear['school_year_id']
     ]);
+    $existingApplication = $existingApplicationQuery->fetch() ?: null;
 
-    $documentsByApplication[$application['application_id']] =
-        $documentQuery->fetchAll();
+    $programQuery = $pdo->prepare(
+        "SELECT
+            sp.program_id,
+            sp.program_name,
+            sp.description,
+            sp.available_slots
+         FROM special_programs sp
+         WHERE sp.status = 'Active'
+         ORDER BY sp.program_name"
+    );
+    $programQuery->execute();
+    $programs = $programQuery->fetchAll();
 }
 
-/* Status styling */
-function status_class(string $status): string
-{
-    return match ($status) {
-        'Approved', 'Accepted', 'Available' => 'status-approved',
-        'Rejected' => 'status-rejected',
-        'Not Available' => 'status-incomplete',
-        'Pending Review', 'For Screening', 'For Verification' => 'status-pending',
-        'Incomplete Requirements', 'Not Submitted' => 'status-incomplete',
-        default => 'status-default'
-    };
-}
-
-$pageTitle = 'My Applications';
+$pageTitle = 'Scholarship Application';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-
+<style>
+.scholarship-intro { margin-bottom: 22px; }
+.scholarship-year-note { padding: 12px 15px; background: #f8f8fa; border-left: 4px solid var(--maroon); border-radius: 8px; margin: 18px 0; }
+.scholarship-profile-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 18px 0 24px; }
+.scholarship-profile-item { padding: 12px 14px; background: #f8f8fa; border: 1px solid var(--line); border-radius: 8px; }
+.scholarship-profile-item small { display: block; color: var(--muted); margin-bottom: 4px; }
+.scholarship-profile-item strong { color: var(--ink); overflow-wrap: anywhere; }
+.scholarship-program-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 20px; }
+.scholarship-program-option { display: block; height: 100%; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; transition: border-color .2s ease, box-shadow .2s ease; }
+.scholarship-program-option:has(input:checked) { border-color: var(--maroon); box-shadow: 0 0 0 2px rgba(105, 20, 45, .10); }
+.scholarship-program-option input { margin-right: 8px; accent-color: var(--maroon); }
+.scholarship-program-option h3 { display: inline; color: var(--maroon); margin: 0; }
+.scholarship-program-option p { margin: 13px 0; color: var(--muted); }
+.program-availability { display: block; font-size: .88rem; font-weight: 600; color: var(--ink); }
+.program-unavailable { opacity: .65; cursor: not-allowed; }
+.scholarship-existing-application { padding: 14px 16px; margin: 18px 0; background: #f8f8fa; border-left: 4px solid var(--maroon); border-radius: 8px; }
+.scholarship-existing-application p { margin: 5px 0 0; }
+.scholarship-form-actions { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 12px; }
+.scholarship-documents-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0 18px; }
+.scholarship-document-option { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.scholarship-document-option input { accent-color: var(--maroon); }
+.scholarship-other-document { margin-top: 12px; }
+@media (max-width: 700px) { .scholarship-documents-list { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .scholarship-program-list, .scholarship-profile-summary { grid-template-columns: 1fr; } }
+</style>
 
 <section class="form-card form-card-wide">
-
-    <a
-        href="<?= BASE_URL ?>/student/dashboard.php"
-        class="button button-outline applications-back-button"
-    >
-        &larr; Back to Dashboard
-    </a>
-
+    <a href="<?= BASE_URL ?>/student/dashboard.php" class="button button-outline applications-back-button">&larr; Back to Dashboard</a>
     <p class="eyebrow">Student Services</p>
-    <h1>My Applications</h1>
-
-    <p class="muted">
-        View your enrollment applications, supporting documents,
-        and special program scholarship applications.
+    <h1>Special Program Scholarship Application</h1>
+    <p class="muted scholarship-intro">
+        Apply for one of the BCNHS special program scholarships. Your existing student information is retrieved from your student record, so you do not need to enter it again.
     </p>
 
-    <h2 class="application-section-title">Enrollment Applications</h2>
+    <?php if ($success): ?><p class="success-message"><?= e($success) ?></p><?php endif; ?>
+    <?php if ($error): ?><p class="error-message"><?= e($error) ?></p><?php endif; ?>
 
-    <?php if (empty($applications)): ?>
+    <h2>Your Student Information</h2>
+    <p class="muted">These details come from your registered student record. Contact the school if any information needs correction.</p>
+    <div class="scholarship-profile-summary">
+        <div class="scholarship-profile-item"><small>Student Name</small><strong><?= e(trim($student['first_name'] . ' ' . ($student['middle_name'] ?? '') . ' ' . $student['last_name'])) ?></strong></div>
+        <div class="scholarship-profile-item"><small>LRN</small><strong><?= e($student['lrn'] ?: 'Not yet recorded') ?></strong></div>
+        <div class="scholarship-profile-item"><small>Birth Date</small><strong><?= e($student['birth_date'] ?: 'Not yet recorded') ?></strong></div>
+        <div class="scholarship-profile-item"><small>Sex</small><strong><?= e($student['sex'] ?: 'Not yet recorded') ?></strong></div>
+        <div class="scholarship-profile-item"><small>Grade Level</small><strong><?= $student['grade_level'] !== null ? 'Grade ' . e($student['grade_level']) : 'Not yet assigned' ?></strong></div>
+        <div class="scholarship-profile-item"><small>Current Section</small><strong><?= e($student['section_name'] ?: 'Not yet assigned') ?></strong></div>
+        <div class="scholarship-profile-item"><small>Contact Number</small><strong><?= e($student['contact_number'] ?: 'Not yet recorded') ?></strong></div>
+        <div class="scholarship-profile-item"><small>Current Address</small><strong><?= e($student['current_address'] ?: 'Not yet recorded') ?></strong></div>
+    </div>
 
-        <div class="empty-state">
-            <h3>No Enrollment Applications Yet</h3>
+    <?php if ($activeSchoolYear): ?>
+        <div class="scholarship-year-note"><strong>Active School Year:</strong> <?= e($activeSchoolYear['school_year']) ?></div>
 
-            <p class="muted">
-                You have not submitted an enrollment application.
-            </p>
-
-            <a href="<?= BASE_URL ?>/student/new_enrollment.php"
-               class="button button-primary">
-                Start New Enrollment
-            </a>
-        </div>
-
-    <?php else: ?>
-
-        <?php foreach ($applications as $application): ?>
-
-            <?php
-            $applicationId = (int) $application['application_id'];
-            $documents = $documentsByApplication[$applicationId] ?? [];
-
-            $documentMap = [];
-
-            foreach ($documents as $document) {
-                $documentMap[$document['document_type']] = $document;
-            }
-            ?>
-
-            <div class="application-card">
-
-                <h2>
-                    Enrollment Application #<?= $applicationId ?>
-                </h2>
-
-                <div>
-                    <strong>Application Status:</strong>
-
-                    <span class="status-badge <?= e(status_class($application['application_status'])) ?>">
-                        <?= e($application['application_status']) ?>
-                    </span>
+        <?php if (empty($programs)): ?>
+            <div class="empty-state"><h3>No Programs Currently Available</h3><p class="muted">There are no active scholarship programs available for application at this time.</p></div>
+        <?php else: ?>
+            <?php if ($existingApplication): ?>
+                <div class="scholarship-existing-application">
+                    <strong>You have already submitted an application for this school year.</strong>
+                    <p>Selected program: <?= e($existingApplication['program_name']) ?></p>
+                    <p>Application status: <?= e($existingApplication['application_status']) ?></p>
+                    <p>You may apply for only one scholarship program per school year. You can check your application progress under My Applications.</p>
                 </div>
+            <?php endif; ?>
 
-                <div class="application-details">
-
-                    <div class="detail-item">
-                        <small>School Year</small>
-                        <strong><?= e($application['school_year']) ?></strong>
-                    </div>
-
-                    <div class="detail-item">
-                        <small>Enrollment Type</small>
-                        <strong><?= e($application['enrollment_type']) ?></strong>
-                    </div>
-
-                    <div class="detail-item">
-                        <small>Requested Grade Level</small>
-                        <strong>Grade <?= e($application['grade_level']) ?></strong>
-                    </div>
-
-                    <div class="detail-item">
-                        <small>LRN</small>
-                        <strong><?= e($application['lrn'] ?? '') ?></strong>
-                    </div>
-
-                </div>
-
-                <h3>Supporting Documents</h3>
-
-                <div class="document-list">
-
-                    <?php foreach ($requiredDocuments as $documentName): ?>
-
-                        <?php
-                        $uploaded = $documentMap[$documentName] ?? null;
-                        ?>
-
-                        <div class="document-item">
-
-                            <strong><?= e($documentName) ?></strong>
-
-                            <?php if ($uploaded): ?>
-
-                                <span class="status-badge <?= e(status_class('Available')) ?>">
-                                    Available
-                                </span>
-
-                            <?php else: ?>
-
-                                <span class="status-badge <?= e(status_class('Not Available')) ?>">
-                                    Not Available
-                                </span>
-
-                            <?php endif; ?>
-
-                        </div>
-
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                <h2>Choose a Scholarship Program</h2>
+                <div class="scholarship-program-list">
+                    <?php foreach ($programs as $program): ?>
+                        <label class="scholarship-program-option <?= $existingApplication ? 'program-unavailable' : '' ?>">
+                            <input type="radio" name="program_id" value="<?= (int) $program['program_id'] ?>" required <?= $existingApplication ? 'disabled' : '' ?>>
+                            <h3><?= e($program['program_name']) ?></h3>
+                            <p><?= e($program['description'] ?: 'No program description is available.') ?></p>
+                            <span class="program-availability">
+                                <?php if ($existingApplication): ?>Applications are unavailable because you have already applied this school year.
+                                <?php elseif ($program['available_slots'] === null): ?>Applications are open.
+                                <?php else: ?>Scholar slot limit: <?= (int) $program['available_slots'] ?><?php endif; ?>
+                            </span>
+                        </label>
                     <?php endforeach; ?>
-
                 </div>
-
-                <?php if ($application['application_status'] === 'Pending Review'): ?>
-
-                    <p class="muted">
-                        Your application is pending review. You may edit it
-                        while it remains under this status.
-                    </p>
-
-                    <div class="application-actions">
-
-                        <a href="<?= BASE_URL ?>/student/edit_enrollment.php?application_id=<?= $applicationId ?>"
-                           class="button button-primary">
-                            Edit Application
-                        </a>
-
-                    </div>
-
-                <?php endif; ?>
-
-            </div>
-
-        <?php endforeach; ?>
-
-    <?php endif; ?>
-
-
-    <h2 class="application-section-title">
-        Special Program Scholarship Applications
-    </h2>
-
-    <?php if (empty($scholarships)): ?>
-
-        <div class="empty-state">
-
-            <h3>No Scholarship Applications</h3>
-
-            <p class="muted">
-                You have not submitted a special program scholarship application.
-            </p>
-
-        </div>
-
+                <h2>Scholarship Supporting Documents</h2>
+                <p class="muted">Select the supporting documents that you currently have. You do not need to upload any files here.</p>
+                <div class="scholarship-documents-list">
+                    <?php foreach ($documentOptions as $document): ?>
+                        <label class="scholarship-document-option">
+                            <input type="checkbox" name="supporting_documents[]" value="<?= e($document) ?>" <?= $existingApplication ? 'disabled' : '' ?> onchange="toggleOtherDocument()">
+                            <span><?= e($document) ?></span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+                <div class="scholarship-other-document" id="otherDocumentContainer" hidden>
+                    <label for="other_document">Specify Other Document</label>
+                    <input type="text" id="other_document" name="other_document" maxlength="150" placeholder="Enter document name" <?= $existingApplication ? 'disabled' : '' ?>>
+                </div>
+                <div class="scholarship-form-actions">
+                    <button type="submit" class="button button-primary" <?= $existingApplication ? 'disabled' : '' ?>>Submit Application</button>
+                    <a href="<?= BASE_URL ?>/student/my_applications.php" class="button button-secondary">View My Applications</a>
+                </div>
+                <p class="muted">You may select only one scholarship program per school year. After submission, your application will undergo an initial review. Shortlisted applicants will receive their screening schedule through the portal.</p>
+            </form>
+        <?php endif; ?>
     <?php else: ?>
-
-        <?php foreach ($scholarships as $scholarship): ?>
-
-            <div class="application-card scholarship-card">
-
-                <h2><?= e($scholarship['program_name']) ?></h2>
-
-                <div class="application-details">
-
-                    <div class="detail-item">
-                        <small>School Year</small>
-                        <strong><?= e($scholarship['school_year']) ?></strong>
-                    </div>
-
-                    <div class="detail-item">
-                        <small>Scholarship Status</small>
-
-                        <span class="status-badge <?= e(status_class($scholarship['application_status'])) ?>">
-                            <?= e($scholarship['application_status']) ?>
-                        </span>
-                    </div>
-
-                </div>
-
-                <?php if ($scholarship['application_status'] === 'For Screening' && !empty($scholarship['screening_date']) && !empty($scholarship['screening_time']) && !empty($scholarship['screening_venue'])): ?>
-                    <div class="detail-item">
-                        <strong>Screening Schedule</strong>
-                        <p><small>Date</small><?= e(date('F j, Y', strtotime($scholarship['screening_date']))) ?></p>
-                        <p><small>Time</small><?= e(date('g:i A', strtotime($scholarship['screening_time']))) ?></p>
-                        <p><small>Venue</small><?= e($scholarship['screening_venue']) ?></p>
-                        <p><small>Attendance</small><?= e($scholarship['screening_attendance'] ?? 'Pending') ?></p>
-                    </div>
-                <?php endif; ?>
-
-                <p class="muted">
-                    This scholarship application is reviewed separately from your enrollment application.
-                    Check Scholarship Application Status for screening updates.
-                </p>
-
-            </div>
-
-        <?php endforeach; ?>
-
+        <div class="empty-state"><h3>No Active School Year</h3><p class="muted">Scholarship applications are currently unavailable because no school year is marked as active. Please contact the school.</p></div>
     <?php endif; ?>
-
 </section>
+
+<script>
+function toggleOtherDocument() {
+    const otherCheckbox = document.querySelector('input[name="supporting_documents[]"][value="Other (Specify)"]');
+    const otherContainer = document.getElementById('otherDocumentContainer');
+    const otherInput = document.getElementById('other_document');
+
+    if (otherCheckbox && otherCheckbox.checked) {
+        otherContainer.hidden = false;
+        otherInput.required = true;
+    } else {
+        otherContainer.hidden = true;
+        otherInput.required = false;
+        otherInput.value = '';
+    }
+}
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
