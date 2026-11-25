@@ -1,5 +1,3 @@
-
-
 <?php
 
 require_once __DIR__ . '/../includes/bootstrap.php';
@@ -7,7 +5,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_role('School Registrar');
 
 $pageTitle = 'Student Records Management';
-$schoolName = $_SESSION['school_name'] ?? 'School Name';
+$schoolName = 'Baguio City National High School';
 
 $user = current_user();
 
