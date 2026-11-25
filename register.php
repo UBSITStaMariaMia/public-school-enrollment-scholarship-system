@@ -1372,36 +1372,19 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    // Updated key allows the reminder to appear again after this correction.
-    const storageKey = 'bcnhsRegistrationReminderDismissed_v2';
-
+    // Always show the reminder whenever the registration page is opened.
+    // Dismissing it only closes the modal for the current page view.
     function closeReminder() {
         overlay.classList.remove('is-visible');
         document.body.classList.remove('reminder-modal-open');
-
-        try {
-            sessionStorage.setItem(storageKey, '1');
-        } catch (error) {
-            // Modal can still close if browser storage is unavailable.
-        }
     }
 
-    let alreadyDismissed = false;
+    document.body.classList.add('reminder-modal-open');
 
-    try {
-        alreadyDismissed = sessionStorage.getItem(storageKey) === '1';
-    } catch (error) {
-        alreadyDismissed = false;
-    }
-
-    if (!alreadyDismissed) {
-        document.body.classList.add('reminder-modal-open');
-
-        // Allow the browser to apply the hidden state before animation.
-        requestAnimationFrame(function () {
-            overlay.classList.add('is-visible');
-        });
-    }
+    // Allow the browser to apply the initial hidden state before animation.
+    requestAnimationFrame(function () {
+        overlay.classList.add('is-visible');
+    });
 
     closeButton.addEventListener('click', closeReminder);
     confirmButton.addEventListener('click', closeReminder);

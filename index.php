@@ -90,7 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-/* Retrieve published announcements using the existing database schema. */
+/* Retrieve the latest published announcements, including future-dated posts.
+ * Drafts, archived posts, and expired announcements remain hidden.
+ */
 $announcements = [];
 
 try {

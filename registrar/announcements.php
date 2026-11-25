@@ -17,7 +17,7 @@ $announcementTypes = [
     'General' => 'General School Notices'
 ];
 
-$allowedStatuses = ['Draft', 'Published', 'Archived'];
+$allowedStatuses = ['Published', 'Archived'];
 
 $values = [
     'announcement_id' => '',
@@ -26,7 +26,7 @@ $values = [
     'announcement_type' => 'School',
     'publish_date' => date('Y-m-d\TH:i'),
     'expiry_date' => '',
-    'status' => 'Draft'
+    'status' => 'Published'
 ];
 
 /* Handle form submissions */
@@ -81,6 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $publishDate->format('Y-m-d\TH:i') !== $values['publish_date']
         ) {
             $errors[] = 'Enter a valid publication date.';
+        } elseif ($publishDate < new DateTime('today')) {
+            $errors[] = 'Publication date cannot be earlier than today.';
         }
 
         /* Validate optional expiry date */
@@ -279,7 +281,7 @@ if (
                 'expiry_date' => $announcement['expiry_date']
                     ? date('Y-m-d\TH:i', strtotime($announcement['expiry_date']))
                     : '',
-                'status' => $announcement['status']
+                'status' => $announcement['status'] === 'Draft' ? 'Archived' : $announcement['status']
             ];
 
         } else {
@@ -443,6 +445,7 @@ require_once __DIR__ . '/../includes/header.php';
                     type="datetime-local"
                     name="publish_date"
                     value="<?= e($values['publish_date']) ?>"
+                    min="<?= e(date('Y-m-d')) ?>T00:00"
                     required
                 >
             </label>
