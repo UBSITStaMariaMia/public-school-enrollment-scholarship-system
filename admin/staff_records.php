@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 
@@ -89,8 +88,6 @@ $staffMembers = $query->fetchAll(PDO::FETCH_ASSOC);
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-
-
 <section class="form-card">
 
     <p class="eyebrow">System Administration</p>
@@ -174,9 +171,44 @@ require_once __DIR__ . '/../includes/header.php';
 
 <section class="form-card">
 
-    <div class="section-heading">
-        <h2>School Personnel</h2>
-        <p><?= count($staffMembers) ?> record(s) found</p>
+    <div class="section-heading staff-records-heading">
+
+        <div>
+            <h2>School Personnel</h2>
+            <p><?= count($staffMembers) ?> record(s) found</p>
+        </div>
+
+        <?php if ($staffMembers): ?>
+
+            <?php
+            $reportParameters = http_build_query([
+                'search' => $search,
+                'search_by' => $searchBy
+            ]);
+            ?>
+
+            <div class="staff-record-actions">
+
+                <a
+                    href="<?= BASE_URL ?>/admin/staff_records_report.php?<?= e($reportParameters) ?>&print=1"
+                    class="button button-outline"
+                    target="_blank"
+                    rel="noopener"
+                >
+                    Print Records
+                </a>
+
+                <a
+                    href="<?= BASE_URL ?>/admin/staff_records_report.php?<?= e($reportParameters) ?>&download=1"
+                    class="button button-primary"
+                >
+                    Download Records
+                </a>
+
+            </div>
+
+        <?php endif; ?>
+
     </div>
 
     <?php if (!$staffMembers): ?>
@@ -212,6 +244,7 @@ require_once __DIR__ . '/../includes/header.php';
                             </td>
 
                             <td>
+
                                 <?php
                                 $fullName = trim(
                                     ($member['first_name'] ?? '') . ' ' .
@@ -221,6 +254,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 ?>
 
                                 <?= e($fullName !== '' ? $fullName : $member['username']) ?>
+
                             </td>
 
                             <td>
@@ -236,13 +270,17 @@ require_once __DIR__ . '/../includes/header.php';
                             </td>
 
                             <td>
+
                                 <?= e($member['position_title'] ?? '—') ?>
 
                                 <?php if (!empty($member['department'])): ?>
+
                                     <small class="staff-department">
                                         <?= e($member['department']) ?>
                                     </small>
+
                                 <?php endif; ?>
+
                             </td>
 
                             <td>
