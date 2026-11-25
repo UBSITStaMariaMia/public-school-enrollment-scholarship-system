@@ -95,7 +95,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-/* Get all scholarship applications */
 $applicationsQuery = $pdo->query(
     'SELECT
         sa.scholarship_application_id,
@@ -119,8 +118,6 @@ $applicationsQuery = $pdo->query(
 );
 
 $applications = $applicationsQuery->fetchAll();
-
-/* Get scholarship supporting documents */
 $documentsByApplication = [];
 
 $documentsQuery = $pdo->query(
@@ -137,38 +134,502 @@ foreach ($documentsQuery->fetchAll() as $document) {
     $documentsByApplication[$applicationId][] = $document;
 }
 
+$printReport = isset($_GET['print']);
+$downloadReport = isset($_GET['download']);
+
+if ($printReport || $downloadReport) {
+    if (!$applications) {
+        http_response_code(404);
+        exit('No scholarship applications found.');
+    }
+
+    $generatedDate = date('F d, Y h:i A');
+
+    if ($downloadReport) {
+        header('Content-Type: application/msword; charset=utf-8');
+        header('Content-Disposition: attachment; filename="scholarship_applications_' . date('Ymd_His') . '.doc"');
+        header('Cache-Control: max-age=0');
+        header('X-Content-Type-Options: nosniff');
+    } else {
+        header('Content-Type: text/html; charset=utf-8');
+    }
+    ?>
+    <!DOCTYPE html>
+    <html lang="en" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Scholarship Applications Report</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 30px;
+                background: #f3f4f6;
+                color: #222;
+                font-family: Arial, Helvetica, sans-serif;
+            }
+
+            .report-page {
+                max-width: 1050px;
+                margin: 0 auto;
+                padding: 38px;
+                background: #fff;
+                border: 1px solid #ddd;
+            }
+
+            .report-header {
+                padding-bottom: 20px;
+                text-align: center;
+                border-bottom: 3px solid #64152f;
+            }
+
+            .school-name {
+                margin: 0;
+                color: #64152f;
+                font-size: 23px;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+
+            .school-subtitle {
+                margin: 5px 0 0;
+                font-size: 12px;
+                letter-spacing: 1px;
+            }
+
+            .report-title {
+                margin: 25px 0 15px;
+                text-align: center;
+                font-size: 20px;
+                text-transform: uppercase;
+            }
+
+            .report-meta {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                margin: 18px 0;
+                font-size: 12px;
+            }
+
+            .application-report-card {
+                margin: 18px 0;
+                padding: 16px;
+                border: 1px solid #ccc;
+                page-break-inside: avoid;
+            }
+
+            .application-report-card h3 {
+                margin: 0 0 5px;
+                color: #64152f;
+                font-size: 16px;
+            }
+
+            .application-report-card table {
+                width: 100%;
+                margin-top: 12px;
+                border-collapse: collapse;
+            }
+
+            .application-report-card th,
+            .application-report-card td {
+                padding: 8px;
+                border: 1px solid #ccc;
+                text-align: left;
+                vertical-align: top;
+                font-size: 11px;
+                overflow-wrap: anywhere;
+            }
+
+            .application-report-card th {
+                width: 27%;
+                background: #f2e9ed;
+                color: #4b1020;
+            }
+
+            .report-footer {
+                margin-top: 25px;
+                padding-top: 12px;
+                border-top: 1px solid #ccc;
+                color: #666;
+                font-size: 10px;
+            }
+
+            .report-actions {
+                max-width: 1050px;
+                margin: 0 auto 15px;
+                text-align: right;
+            }
+
+            .report-actions button {
+                padding: 10px 18px;
+                border: 0;
+                border-radius: 5px;
+                background: #64152f;
+                color: #fff;
+                cursor: pointer;
+            }
+
+            @media print {
+                @page {
+                    size: portrait;
+                    margin: 12mm;
+                }
+
+                body {
+                    padding: 0;
+                    background: #fff;
+                }
+
+                .report-page {
+                    max-width: none;
+                    padding: 0;
+                    border: 0;
+                }
+
+                .report-actions {
+                    display: none;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <?php if (!$downloadReport): ?>
+
+            <div class="report-actions">
+                <button type="button" onclick="window.print()">
+                    Print Report
+                </button>
+            </div>
+
+        <?php endif; ?>
+
+        <main class="report-page">
+
+            <header class="report-header">
+                <h1 class="school-name">
+                    Baguio City National High School
+                </h1>
+
+                <p class="school-subtitle">
+                    OFFICIAL SCHOOL RECORDS
+                </p>
+            </header>
+
+            <h2 class="report-title">
+                Scholarship Applications Report
+            </h2>
+
+            <div class="report-meta">
+
+                <span>
+                    <strong>Total Applications:</strong>
+                    <?= count($applications) ?>
+                </span>
+
+                <span>
+                    <strong>Generated:</strong>
+                    <?= e($generatedDate) ?>
+                </span>
+
+            </div>
+
+            <?php foreach ($applications as $index => $application): ?>
+
+                <?php
+                $applicantName = trim(
+                    $application['first_name'] . ' ' .
+                    ($application['middle_name'] ?? '') . ' ' .
+                    $application['last_name']
+                );
+
+                $applicationDocuments = $documentsByApplication[
+                    (int) $application['scholarship_application_id']
+                ] ?? [];
+                ?>
+
+                <section class="application-report-card">
+
+                    <h3>
+                        Applicant #<?= $index + 1 ?> - <?= e($applicantName) ?>
+                    </h3>
+
+                    <table>
+
+                        <tr>
+                            <th>LRN</th>
+                            <td>
+                                <?= e($application['lrn'] ?: 'Not recorded') ?>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Scholarship Program</th>
+                            <td>
+                                <?= e($application['program_name']) ?>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>School Year</th>
+                            <td>
+                                <?= e($application['school_year']) ?>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Application Date</th>
+                            <td>
+                                <?= e($application['application_date']) ?>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Application Status</th>
+                            <td>
+                                <?= e($application['application_status']) ?>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Screening Date</th>
+                            <td>
+                                <?= e($application['screening_date'] ?: 'Not scheduled') ?>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Screening Time</th>
+                            <td>
+                                <?= e(
+                                    $application['screening_time']
+                                    ? date('h:i A', strtotime($application['screening_time']))
+                                    : 'Not scheduled'
+                                ) ?>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Screening Venue</th>
+                            <td>
+                                <?= e($application['screening_venue'] ?: 'Not assigned') ?>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Supporting Documents</th>
+                            <td>
+
+                                <?php if ($applicationDocuments): ?>
+
+                                    <?php foreach ($applicationDocuments as $document): ?>
+
+                                        <?= e($document['document_name']) ?>
+
+                                        <?php if (
+                                            $document['document_name'] === 'Other (Specify)'
+                                            && !empty($document['other_document'])
+                                        ): ?>
+                                            : <?= e($document['other_document']) ?>
+                                        <?php endif; ?>
+
+                                        <br>
+
+                                    <?php endforeach; ?>
+
+                                <?php else: ?>
+
+                                    No supporting documents selected.
+
+                                <?php endif; ?>
+
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>Review Remarks</th>
+                            <td>
+                                <?= nl2br(e($application['remarks'] ?: 'No remarks')) ?>
+                            </td>
+                        </tr>
+
+                    </table>
+
+                </section>
+
+            <?php endforeach; ?>
+
+            <div class="report-footer">
+                Baguio City National High School |
+                Scholarship Applications |
+                <?= count($applications) ?> record(s)
+            </div>
+
+        </main>
+
+        <?php if ($printReport): ?>
+
+            <script>
+                window.onload = function () {
+                    window.print();
+                };
+            </script>
+
+        <?php endif; ?>
+
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="form-card form-card-wide">
 
-    <h1>Scholarship Applications</h1>
+    <div class="scholarship-applications-heading">
 
-    <p class="muted">
-        Review applicants, shortlist students for screening,
-        assign their screening schedule, and record their review.
-    </p>
+        <div>
+            <h1>Scholarship Applications</h1>
+
+            <p class="muted">
+                Review applicants, shortlist students for screening,
+                assign their screening schedule, and record their review.
+            </p>
+        </div>
+
+        <?php if ($applications): ?>
+
+            <div class="scholarship-report-actions">
+
+                <a
+                    href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_applications.php?print=1"
+                    class="button button-outline scholarship-icon-button"
+                    target="_blank"
+                    rel="noopener"
+                    title="Print Applications"
+                    aria-label="Print Applications"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="20"
+                        height="20"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                    >
+                        <path d="M6 9V2h12v7"/>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                        <path d="M6 14h12v8H6z"/>
+                    </svg>
+                </a>
+
+                <a
+                    href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_applications.php?download=1"
+                    class="button button-primary scholarship-icon-button"
+                    title="Download Applications"
+                    aria-label="Download Applications"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="20"
+                        height="20"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                    >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <path d="m7 10 5 5 5-5"/>
+                        <path d="M12 15V3"/>
+                    </svg>
+                </a>
+
+            </div>
+
+        <?php endif; ?>
+
+    </div>
 
     <?php if ($success): ?>
-        <p class="success-message"><?= e($success) ?></p>
+
+        <p class="success-message">
+            <?= e($success) ?>
+        </p>
+
     <?php endif; ?>
 
     <?php if ($error): ?>
-        <p class="error-message"><?= e($error) ?></p>
+
+        <p class="error-message">
+            <?= e($error) ?>
+        </p>
+
     <?php endif; ?>
 
     <?php if (!$applications): ?>
 
         <div class="empty-state">
+
             <h3>No Scholarship Applications</h3>
+
             <p class="muted">
                 No students have submitted scholarship applications yet.
             </p>
+
         </div>
 
     <?php else: ?>
 
         <style>
+            .scholarship-applications-heading {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 18px;
+                flex-wrap: wrap;
+            }
+
+            .scholarship-applications-heading > div:first-child {
+                flex: 1 1 360px;
+            }
+
+            .scholarship-applications-heading h1 {
+                margin-top: 0;
+            }
+
+            .scholarship-report-actions {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 8px;
+                flex-wrap: wrap;
+                margin-top: 4px;
+            }
+
+            .scholarship-icon-button {
+                width: 42px;
+                height: 42px;
+                min-width: 42px;
+                padding: 0;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .scholarship-icon-button svg {
+                display: block;
+                flex-shrink: 0;
+            }
+
             .applicant-card-list {
                 display: grid;
                 gap: 18px;
@@ -258,6 +719,11 @@ require_once __DIR__ . '/../includes/header.php';
                 .applicant-info-grid {
                     grid-template-columns: 1fr;
                 }
+
+                .scholarship-report-actions {
+                    width: 100%;
+                    justify-content: flex-start;
+                }
             }
         </style>
 
@@ -269,10 +735,10 @@ require_once __DIR__ . '/../includes/header.php';
 
                 <article class="applicant-card">
 
-                    <!-- Applicant Number and Student Information -->
                     <div class="applicant-card-header">
 
                         <div>
+
                             <span class="applicant-number">
                                 Applicant #<?= $counter ?>
                             </span>
@@ -288,6 +754,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <small>
                                 LRN: <?= e($application['lrn'] ?: 'Not recorded') ?>
                             </small>
+
                         </div>
 
                         <strong>
@@ -296,27 +763,31 @@ require_once __DIR__ . '/../includes/header.php';
 
                     </div>
 
-                    <!-- Application Information -->
                     <div class="applicant-info-grid">
 
                         <div class="applicant-info-item">
                             <small>Scholarship Program</small>
-                            <strong><?= e($application['program_name']) ?></strong>
+                            <strong>
+                                <?= e($application['program_name']) ?>
+                            </strong>
                         </div>
 
                         <div class="applicant-info-item">
                             <small>School Year</small>
-                            <strong><?= e($application['school_year']) ?></strong>
+                            <strong>
+                                <?= e($application['school_year']) ?>
+                            </strong>
                         </div>
 
                         <div class="applicant-info-item">
                             <small>Application Date</small>
-                            <strong><?= e($application['application_date']) ?></strong>
+                            <strong>
+                                <?= e($application['application_date']) ?>
+                            </strong>
                         </div>
 
                     </div>
 
-                    <!-- Scholarship Supporting Documents -->
                     <div class="applicant-documents">
 
                         <strong>Scholarship Supporting Documents</strong>
@@ -331,20 +802,26 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php if ($applicationDocuments): ?>
 
                             <ul>
+
                                 <?php foreach ($applicationDocuments as $document): ?>
 
                                     <li>
+
                                         <?= e($document['document_name']) ?>
 
                                         <?php if (
                                             $document['document_name'] === 'Other (Specify)'
                                             && !empty($document['other_document'])
                                         ): ?>
+
                                             : <?= e($document['other_document']) ?>
+
                                         <?php endif; ?>
+
                                     </li>
 
                                 <?php endforeach; ?>
+
                             </ul>
 
                         <?php else: ?>
@@ -357,7 +834,6 @@ require_once __DIR__ . '/../includes/header.php';
 
                     </div>
 
-                    <!-- Review and Screening -->
                     <form method="post" class="applicant-review-form">
 
                         <input
@@ -382,6 +858,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 class="application-status-select"
                                 required
                             >
+
                                 <?php foreach ($statuses as $status): ?>
 
                                     <option
@@ -392,10 +869,10 @@ require_once __DIR__ . '/../includes/header.php';
                                     </option>
 
                                 <?php endforeach; ?>
+
                             </select>
                         </label>
 
-                        <!-- Only visible when status is For Screening -->
                         <fieldset
                             class="screening-schedule-fieldset"
                             <?= $application['application_status'] === 'For Screening' ? '' : 'hidden' ?>
@@ -468,25 +945,20 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
 
         <script>
-            // Show the screening schedule only when the status is For Screening.
             document.querySelectorAll('.applicant-review-form').forEach(function(form) {
 
                 var statusSelect = form.querySelector('.application-status-select');
                 var screeningSchedule = form.querySelector('.screening-schedule-fieldset');
 
                 function toggleScreeningSchedule() {
-
                     if (statusSelect.value === 'For Screening') {
                         screeningSchedule.hidden = false;
                     } else {
                         screeningSchedule.hidden = true;
                     }
-
                 }
 
                 statusSelect.addEventListener('change', toggleScreeningSchedule);
-
-                // Check the current status when the page loads.
                 toggleScreeningSchedule();
 
             });

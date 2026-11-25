@@ -1,25 +1,32 @@
-<?php
-declare(strict_types=1);
 
+<?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_role('System Administrator', 'Scholarship Coordinator');
 
-$pageTitle = 'Scholarship Beneficiaries';
+$pageTitle = 'Scholar Masterlist';
 
 $schoolYearFilter = filter_var($_GET['school_year'] ?? '', FILTER_VALIDATE_INT) ?: null;
 $programFilter = filter_var($_GET['program'] ?? '', FILTER_VALIDATE_INT) ?: null;
 $gradeFilter = filter_var($_GET['grade'] ?? '', FILTER_VALIDATE_INT) ?: null;
 $sectionFilter = filter_var($_GET['section'] ?? '', FILTER_VALIDATE_INT) ?: null;
+$participationFilter = trim((string) ($_GET['participation'] ?? ''));
 $search = trim((string) ($_GET['search'] ?? ''));
+
+$allowedParticipation = ['Currently Enrolled', 'Qualified', 'Not Monitored'];
+
+if (!in_array($participationFilter, $allowedParticipation, true)) {
+    $participationFilter = '';
+}
 
 $allowedColumns = [
     'lrn' => 'LRN',
     'student' => 'Student Name',
-    'program' => 'Special Program',
+    'contact' => 'Contact Number',
+    'program' => 'Scholarship Program',
     'school_year' => 'School Year',
     'grade' => 'Grade Level',
     'section' => 'Section',
-    'participation' => 'Participation Status',
+    'participation' => 'Scholar Status',
     'renewal' => 'Renewal Eligibility',
     'academic' => 'Academic Performance',
     'behavior' => 'Behavior Remarks',
@@ -30,8 +37,8 @@ $allowedColumns = [
 ];
 
 $selectedColumns = $_GET['columns'] ?? [
-    'lrn', 'student', 'program', 'school_year',
-    'grade', 'section', 'participation'
+    'lrn', 'student', 'contact', 'program', 'school_year',
+    'grade', 'section', 'participation', 'renewal'
 ];
 
 if (!is_array($selectedColumns)) {
@@ -42,7 +49,11 @@ $selectedColumns = array_values(
     array_intersect(array_keys($allowedColumns), $selectedColumns)
 );
 
-$where = ["sa.application_status = 'Approved'"];
+$where = [
+    "sa.application_status = 'Approved'",
+    "COALESCE(sm.participation_status, 'Not Monitored') <> 'Removed'"
+];
+
 $params = [];
 
 if ($schoolYearFilter !== null) {
@@ -65,12 +76,23 @@ if ($sectionFilter !== null) {
     $params['section'] = $sectionFilter;
 }
 
+if ($participationFilter !== '') {
+    if ($participationFilter === 'Not Monitored') {
+        $where[] = 'sm.participation_status IS NULL';
+    } else {
+        $where[] = 'sm.participation_status = :participation';
+        $params['participation'] = $participationFilter;
+    }
+}
+
 if ($search !== '') {
     $where[] = "(
         s.first_name LIKE :search_first
         OR s.middle_name LIKE :search_middle
         OR s.last_name LIKE :search_last
         OR s.lrn LIKE :search_lrn
+        OR s.contact_number LIKE :search_contact
+        OR sp.program_name LIKE :search_program
     )";
 
     $term = '%' . $search . '%';
@@ -78,6 +100,8 @@ if ($search !== '') {
     $params['search_middle'] = $term;
     $params['search_last'] = $term;
     $params['search_lrn'] = $term;
+    $params['search_contact'] = $term;
+    $params['search_program'] = $term;
 }
 
 $whereSql = implode(' AND ', $where);
@@ -134,16 +158,14 @@ try {
 
     $summarySql = "
         SELECT
-            COUNT(*) AS total_beneficiaries,
+            COUNT(*) AS total_scholars,
             COALESCE(SUM(
-                sm.participation_status = 'Currently Enrolled'
+                COALESCE(sm.participation_status, 'Not Monitored') = 'Currently Enrolled'
             ), 0) AS currently_enrolled,
             COALESCE(SUM(
-                sm.participation_status = 'Qualified'
+                COALESCE(sm.participation_status, 'Not Monitored') = 'Qualified'
             ), 0) AS qualified,
-            COALESCE(SUM(
-                sm.participation_status = 'Removed'
-            ), 0) AS removed
+            COALESCE(SUM(sm.participation_status IS NULL), 0) AS not_monitored
         $baseFrom
         WHERE $whereSql
     ";
@@ -165,9 +187,7 @@ try {
                 ) AS claimed_stipend,
                 SUM(
                     CASE
-                        WHEN claiming_status IN (
-                            'Pending Claim', 'Unclaimed'
-                        )
+                        WHEN claiming_status IN ('Pending Claim', 'Unclaimed')
                         THEN amount ELSE 0
                     END
                 ) AS pending_stipend,
@@ -182,15 +202,21 @@ try {
     $recordsSql = "
         SELECT
             sa.scholarship_application_id,
+            sa.application_date,
+            sa.remarks AS application_remarks,
             s.lrn,
             s.first_name,
             s.middle_name,
             s.last_name,
+            s.contact_number,
+            s.sex,
+            s.birth_date,
+            s.current_address,
             sp.program_name,
             sy.school_year,
             gl.grade_level,
             sec.section_name,
-            sm.participation_status,
+            COALESCE(sm.participation_status, 'Not Monitored') AS participation_status,
             sm.renewal_eligibility,
             sm.academic_performance,
             sm.behavior_remarks,
@@ -202,19 +228,19 @@ try {
         $baseFrom
         $stipendJoin
         WHERE $whereSql
-        ORDER BY s.last_name, s.first_name, s.middle_name
+        ORDER BY s.last_name, s.first_name, s.middle_name, sy.school_year DESC
     ";
 
     $recordsQuery = $pdo->prepare($recordsSql);
     $recordsQuery->execute($params);
-    $beneficiaries = $recordsQuery->fetchAll();
+    $scholars = $recordsQuery->fetchAll();
 
     if (($_GET['export'] ?? '') === 'csv') {
         if (!$selectedColumns) {
             $selectedColumns = ['student', 'program', 'participation'];
         }
 
-        $filename = 'scholarship-beneficiaries-' . date('Y-m-d') . '.csv';
+        $filename = 'scholar-masterlist-' . date('Y-m-d') . '.csv';
 
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -225,12 +251,14 @@ try {
         fwrite($output, "\xEF\xBB\xBF");
 
         $headers = [];
+
         foreach ($selectedColumns as $column) {
             $headers[] = $allowedColumns[$column];
         }
+
         fputcsv($output, $headers);
 
-        foreach ($beneficiaries as $row) {
+        foreach ($scholars as $row) {
             $fullName = trim(
                 $row['first_name'] . ' ' .
                 ($row['middle_name'] ?? '') . ' ' .
@@ -240,13 +268,14 @@ try {
             $values = [
                 'lrn' => $row['lrn'] ?: 'Not recorded',
                 'student' => $fullName,
+                'contact' => $row['contact_number'] ?: 'Not recorded',
                 'program' => $row['program_name'],
                 'school_year' => $row['school_year'],
                 'grade' => $row['grade_level'] !== null
                     ? 'Grade ' . $row['grade_level']
                     : 'Not assigned',
                 'section' => $row['section_name'] ?: 'Not assigned',
-                'participation' => $row['participation_status'] ?: 'Not Monitored',
+                'participation' => $row['participation_status'],
                 'renewal' => $row['renewal_eligibility'] ?: 'Pending',
                 'academic' => $row['academic_performance'] ?: '—',
                 'behavior' => $row['behavior_remarks'] ?: '—',
@@ -257,9 +286,11 @@ try {
             ];
 
             $line = [];
+
             foreach ($selectedColumns as $column) {
                 $line[] = $values[$column] ?? '';
             }
+
             fputcsv($output, $line);
         }
 
@@ -268,221 +299,1030 @@ try {
     }
 
 } catch (PDOException $exception) {
-    error_log('Scholarship beneficiaries report: ' . $exception->getMessage());
+    error_log('Scholar masterlist: ' . $exception->getMessage());
     http_response_code(500);
-    exit('Unable to load the scholarship beneficiaries report right now. Please try again later.');
+    exit('Unable to load the scholar masterlist right now. Please try again later.');
 }
 
-$totalBeneficiaries = (int) ($summary['total_beneficiaries'] ?? 0);
+$printReport = isset($_GET['print']);
+$downloadReport = isset($_GET['download']);
+
+if ($printReport || $downloadReport) {
+    $generatedDate = date('F d, Y h:i A');
+    $filterDescription = [];
+
+    if ($schoolYearFilter !== null) {
+        foreach ($schoolYears as $year) {
+            if ((int) $year['school_year_id'] === $schoolYearFilter) {
+                $filterDescription[] = 'School Year: ' . $year['school_year'];
+                break;
+            }
+        }
+    }
+
+    if ($programFilter !== null) {
+        foreach ($programs as $program) {
+            if ((int) $program['program_id'] === $programFilter) {
+                $filterDescription[] = 'Program: ' . $program['program_name'];
+                break;
+            }
+        }
+    }
+
+    if ($gradeFilter !== null) {
+        foreach ($grades as $grade) {
+            if ((int) $grade['grade_level_id'] === $gradeFilter) {
+                $filterDescription[] = 'Grade: ' . $grade['grade_level'];
+                break;
+            }
+        }
+    }
+
+    if ($sectionFilter !== null) {
+        foreach ($sections as $section) {
+            if ((int) $section['section_id'] === $sectionFilter) {
+                $filterDescription[] = 'Section: ' . $section['section_name'];
+                break;
+            }
+        }
+    }
+
+    if ($participationFilter !== '') {
+        $filterDescription[] = 'Status: ' . $participationFilter;
+    }
+
+    if ($search !== '') {
+        $filterDescription[] = 'Search: ' . $search;
+    }
+
+    if ($downloadReport) {
+        header('Content-Type: application/msword; charset=utf-8');
+        header('Content-Disposition: attachment; filename="scholar-masterlist-' . date('Ymd_His') . '.doc"');
+        header('Cache-Control: max-age=0');
+        header('X-Content-Type-Options: nosniff');
+    } else {
+        header('Content-Type: text/html; charset=utf-8');
+    }
+    ?>
+    <!DOCTYPE html>
+    <html lang="en" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+    <head>
+        <meta charset="UTF-8">
+        <title>Scholar Masterlist</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 28px;
+                background: #f2f3f5;
+                color: #222;
+                font-family: Arial, Helvetica, sans-serif;
+            }
+
+            .report-page {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 34px;
+                background: #fff;
+                border: 1px solid #ddd;
+            }
+
+            .report-header {
+                text-align: center;
+                padding-bottom: 18px;
+                border-bottom: 3px solid #64152f;
+            }
+
+            .school-name {
+                margin: 0;
+                color: #64152f;
+                font-size: 23px;
+                font-weight: bold;
+                text-transform: uppercase;
+            }
+
+            .school-subtitle {
+                margin: 5px 0 0;
+                font-size: 11px;
+                letter-spacing: 1px;
+            }
+
+            .report-title {
+                margin: 22px 0 8px;
+                text-align: center;
+                color: #333;
+                font-size: 20px;
+                text-transform: uppercase;
+            }
+
+            .report-description {
+                text-align: center;
+                margin: 0;
+                color: #666;
+                font-size: 11px;
+            }
+
+            .report-meta {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                margin: 18px 0;
+                font-size: 11px;
+            }
+
+            .report-table {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+            }
+
+            .report-table th,
+            .report-table td {
+                padding: 7px 6px;
+                border: 1px solid #cfd2d8;
+                text-align: left;
+                vertical-align: top;
+                font-size: 9px;
+                overflow-wrap: anywhere;
+            }
+
+            .report-table th {
+                background: #f2e9ed;
+                color: #4b1020;
+                font-weight: bold;
+            }
+
+            .report-table tr {
+                page-break-inside: avoid;
+            }
+
+            .report-footer {
+                margin-top: 20px;
+                padding-top: 10px;
+                border-top: 1px solid #ccc;
+                color: #666;
+                font-size: 9px;
+            }
+
+            .report-actions {
+                max-width: 1200px;
+                margin: 0 auto 14px;
+                text-align: right;
+            }
+
+            .report-actions button {
+                padding: 10px 18px;
+                border: 0;
+                border-radius: 6px;
+                background: #64152f;
+                color: #fff;
+                cursor: pointer;
+            }
+
+            @media print {
+                @page {
+                    size: landscape;
+                    margin: 10mm;
+                }
+
+                body {
+                    padding: 0;
+                    background: #fff;
+                }
+
+                .report-page {
+                    max-width: none;
+                    padding: 0;
+                    border: 0;
+                }
+
+                .report-actions {
+                    display: none;
+                }
+
+                .report-table th,
+                .report-table td {
+                    font-size: 8px;
+                    padding: 5px;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <?php if (!$downloadReport): ?>
+            <div class="report-actions">
+                <button type="button" onclick="window.print()">
+                    Print Masterlist
+                </button>
+            </div>
+        <?php endif; ?>
+
+        <main class="report-page">
+
+            <header class="report-header">
+                <h1 class="school-name">
+                    Baguio City National High School
+                </h1>
+
+                <p class="school-subtitle">
+                    OFFICIAL SCHOLARSHIP RECORDS
+                </p>
+            </header>
+
+            <h2 class="report-title">
+                Scholar Masterlist
+            </h2>
+
+            <p class="report-description">
+                Approved scholarship recipients excluding scholars marked as Removed
+            </p>
+
+            <div class="report-meta">
+                <span>
+                    <strong>Total Scholar Records:</strong>
+                    <?= count($scholars) ?>
+                </span>
+
+                <span>
+                    <strong>Generated:</strong>
+                    <?= e($generatedDate) ?>
+                </span>
+            </div>
+
+            <?php if ($filterDescription): ?>
+                <p style="font-size:10px;margin:0 0 12px">
+                    <strong>Applied Filters:</strong>
+                    <?= e(implode(' | ', $filterDescription)) ?>
+                </p>
+            <?php endif; ?>
+
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th style="width:3%">#</th>
+                        <th style="width:17%">Scholar Information</th>
+                        <th style="width:12%">Program / School Year</th>
+                        <th style="width:10%">Grade / Section</th>
+                        <th style="width:9%">Scholar Status</th>
+                        <th style="width:9%">Renewal</th>
+                        <th style="width:12%">Academic Performance</th>
+                        <th style="width:12%">Behavior Remarks</th>
+                        <th style="width:16%">Stipend Summary</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <?php foreach ($scholars as $index => $scholar): ?>
+
+                        <?php
+                        $fullName = trim(
+                            $scholar['first_name'] . ' ' .
+                            ($scholar['middle_name'] ?? '') . ' ' .
+                            $scholar['last_name']
+                        );
+                        ?>
+
+                        <tr>
+                            <td><?= $index + 1 ?></td>
+
+                            <td>
+                                <strong><?= e($fullName) ?></strong><br>
+                                LRN: <?= e($scholar['lrn'] ?: 'Not recorded') ?><br>
+                                Contact: <?= e($scholar['contact_number'] ?: 'Not recorded') ?>
+                            </td>
+
+                            <td>
+                                <?= e($scholar['program_name']) ?><br>
+                                <?= e($scholar['school_year']) ?>
+                            </td>
+
+                            <td>
+                                <?= $scholar['grade_level'] !== null ? 'Grade ' . e($scholar['grade_level']) : 'Not assigned' ?><br>
+                                <?= e($scholar['section_name'] ?: 'Not assigned') ?>
+                            </td>
+
+                            <td><?= e($scholar['participation_status']) ?></td>
+
+                            <td><?= e($scholar['renewal_eligibility'] ?: 'Pending') ?></td>
+
+                            <td><?= nl2br(e($scholar['academic_performance'] ?: 'Not recorded')) ?></td>
+
+                            <td><?= nl2br(e($scholar['behavior_remarks'] ?: 'Not recorded')) ?></td>
+
+                            <td>
+                                Total: ₱<?= number_format((float) $scholar['total_stipend'], 2) ?><br>
+                                Claimed: ₱<?= number_format((float) $scholar['claimed_stipend'], 2) ?><br>
+                                Pending: ₱<?= number_format((float) $scholar['pending_stipend'], 2) ?><br>
+                                Last Release: <?= e($scholar['last_release'] ?: '—') ?>
+                            </td>
+                        </tr>
+
+                    <?php endforeach; ?>
+
+                    <?php if (!$scholars): ?>
+                        <tr>
+                            <td colspan="9" style="text-align:center;padding:18px">
+                                No active approved scholars found.
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+
+            <div class="report-footer">
+                Baguio City National High School |
+                Scholar Masterlist |
+                <?= count($scholars) ?> record(s)
+            </div>
+
+        </main>
+
+        <?php if ($printReport): ?>
+            <script>
+                window.onload = function () {
+                    window.print();
+                };
+            </script>
+        <?php endif; ?>
+
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
+$totalScholars = (int) ($summary['total_scholars'] ?? 0);
 $currentlyEnrolled = (int) ($summary['currently_enrolled'] ?? 0);
 $qualified = (int) ($summary['qualified'] ?? 0);
-$removed = (int) ($summary['removed'] ?? 0);
-$notMonitored = max(0, $totalBeneficiaries - $currentlyEnrolled - $qualified - $removed);
+$notMonitored = (int) ($summary['not_monitored'] ?? 0);
+
+$filterParams = $_GET;
+
+unset(
+    $filterParams['print'],
+    $filterParams['download'],
+    $filterParams['export'],
+    $filterParams['columns']
+);
+
+$reportQuery = http_build_query($filterParams);
+$reportQuery = $reportQuery !== '' ? '&' . $reportQuery : '';
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <style>
-    .beneficiaries-page { display: grid; gap: 22px; }
-    .beneficiaries-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
-    .beneficiaries-heading h1 { margin: 0 0 6px; color: var(--text); }
-    .beneficiaries-heading p { margin: 0; }
-    .beneficiary-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-    .beneficiary-stat { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
-    .beneficiary-stat span { display: block; color: var(--muted); font-size: .88rem; }
-    .beneficiary-stat strong { display: block; margin-top: 7px; color: var(--maroon); font-size: 1.8rem; line-height: 1.2; }
-    .beneficiary-stat small { display: block; margin-top: 5px; color: var(--muted); font-size: .78rem; }
-    .beneficiary-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fafafb; }
-    .beneficiary-filters label { display: block; margin: 0; color: var(--text); font-size: .87rem; font-weight: 650; }
-    .beneficiary-filters input, .beneficiary-filters select { width: 100%; margin-top: 7px; }
-    .beneficiary-search { grid-column: span 2; }
-    .beneficiary-filter-actions { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; }
-    .beneficiary-filter-actions .button { white-space: nowrap; }
-    .beneficiary-table-wrap { width: 100%; overflow-x: auto; }
-    .beneficiary-table { width: 100%; min-width: 760px; border-collapse: collapse; }
-    .beneficiary-table th, .beneficiary-table td { padding: 13px 12px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--line); }
-    .beneficiary-table th { color: var(--maroon); background: #faf7f8; font-size: .84rem; white-space: nowrap; }
-    .beneficiary-table tbody tr:hover { background: #fcfafb; }
-    .beneficiary-student-name { display: block; color: var(--text); font-weight: 700; }
-    .beneficiary-subtext { display: block; margin-top: 4px; color: var(--muted); font-size: .78rem; }
-    .beneficiary-program { display: inline-block; padding: 5px 9px; border-radius: 20px; background: #f6edf1; color: var(--maroon); font-size: .78rem; font-weight: 700; }
-    .beneficiary-status { display: inline-block; padding: 5px 9px; border-radius: 20px; font-size: .77rem; font-weight: 700; white-space: nowrap; }
-    .beneficiary-status.enrolled { color: #17633a; background: #e8f7ed; }
-    .beneficiary-status.qualified { color: #24518a; background: #eaf2ff; }
-    .beneficiary-status.removed { color: #9b1c1c; background: #fff0f0; }
-    .beneficiary-status.unmonitored { color: #765a16; background: #fff5df; }
-    .beneficiary-empty { padding: 36px 18px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; background: #fcfcfd; }
-    .beneficiary-empty h2 { margin: 0 0 7px; color: var(--maroon); font-size: 1.1rem; }
-    .beneficiary-empty p { margin: 0; color: var(--muted); }
-    .beneficiary-export { display: grid; gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
-    .beneficiary-export h2 { margin: 0; font-size: 1.1rem; }
-    .beneficiary-export p { margin: 4px 0 0; color: var(--muted); font-size: .88rem; }
-    .beneficiary-export-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; }
-    .beneficiary-export-options label { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text); font-size: .86rem; }
-    .beneficiary-export-options input { width: auto; margin: 0; }
-    .beneficiary-export-actions { display: flex; justify-content: flex-end; }
-    @media (max-width: 900px) { .beneficiary-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .beneficiary-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .beneficiary-export-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 600px) { .beneficiary-filters { grid-template-columns: 1fr; } .beneficiary-search { grid-column: auto; } .beneficiary-filter-actions { align-items: stretch; } .beneficiary-export-options { grid-template-columns: 1fr; } }
+    .masterlist-page {
+        display: grid;
+        gap: 22px;
+    }
+
+    .masterlist-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .masterlist-heading h1 {
+        margin: 0 0 6px;
+        color: var(--text);
+    }
+
+    .masterlist-heading p {
+        margin: 0;
+    }
+
+    .masterlist-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .masterlist-icon-button {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .masterlist-icon-button svg {
+        display: block;
+        flex-shrink: 0;
+    }
+
+    .masterlist-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .masterlist-stat {
+        min-width: 0;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+    }
+
+    .masterlist-stat span {
+        display: block;
+        color: var(--muted);
+        font-size: .88rem;
+    }
+
+    .masterlist-stat strong {
+        display: block;
+        margin-top: 7px;
+        color: var(--maroon);
+        font-size: 1.8rem;
+        line-height: 1.2;
+    }
+
+    .masterlist-filters {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 13px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fafafb;
+    }
+
+    .masterlist-filters label {
+        display: block;
+        margin: 0;
+        color: var(--text);
+        font-size: .87rem;
+        font-weight: 650;
+    }
+
+    .masterlist-filters input,
+    .masterlist-filters select {
+        width: 100%;
+        margin-top: 7px;
+    }
+
+    .masterlist-search {
+        grid-column: span 2;
+    }
+
+    .masterlist-filter-actions {
+        display: flex;
+        align-items: end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .masterlist-filter-actions .button {
+        white-space: nowrap;
+    }
+
+    .masterlist-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .masterlist-table {
+        width: 100%;
+        min-width: 1050px;
+        border-collapse: collapse;
+    }
+
+    .masterlist-table th,
+    .masterlist-table td {
+        padding: 13px 12px;
+        text-align: left;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .masterlist-table th {
+        color: var(--maroon);
+        background: #faf7f8;
+        font-size: .84rem;
+        white-space: nowrap;
+    }
+
+    .masterlist-table tbody tr:hover {
+        background: #fcfafb;
+    }
+
+    .masterlist-student-name {
+        display: block;
+        color: var(--text);
+        font-weight: 700;
+    }
+
+    .masterlist-subtext {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: .78rem;
+    }
+
+    .masterlist-program {
+        display: inline-block;
+        padding: 5px 9px;
+        border-radius: 20px;
+        background: #f6edf1;
+        color: var(--maroon);
+        font-size: .78rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .masterlist-status {
+        display: inline-block;
+        padding: 5px 9px;
+        border-radius: 20px;
+        font-size: .77rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .masterlist-status.enrolled {
+        color: #17633a;
+        background: #e8f7ed;
+    }
+
+    .masterlist-status.qualified {
+        color: #24518a;
+        background: #eaf2ff;
+    }
+
+    .masterlist-status.unmonitored {
+        color: #765a16;
+        background: #fff5df;
+    }
+
+    .masterlist-empty {
+        padding: 36px 18px;
+        text-align: center;
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+        background: #fcfcfd;
+    }
+
+    .masterlist-empty h2 {
+        margin: 0 0 7px;
+        color: var(--maroon);
+        font-size: 1.1rem;
+    }
+
+    .masterlist-empty p {
+        margin: 0;
+        color: var(--muted);
+    }
+
+    .masterlist-export {
+        display: grid;
+        gap: 14px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+    }
+
+    .masterlist-export h2 {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .masterlist-export p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: .88rem;
+    }
+
+    .masterlist-export-options {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px 16px;
+    }
+
+    .masterlist-export-options label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        color: var(--text);
+        font-size: .86rem;
+    }
+
+    .masterlist-export-options input {
+        width: auto;
+        margin: 0;
+    }
+
+    .masterlist-export-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    @media (max-width: 900px) {
+        .masterlist-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .masterlist-filters {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .masterlist-export-options {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 600px) {
+        .masterlist-filters {
+            grid-template-columns: 1fr;
+        }
+
+        .masterlist-search {
+            grid-column: auto;
+        }
+
+        .masterlist-filter-actions {
+            align-items: stretch;
+        }
+
+        .masterlist-export-options {
+            grid-template-columns: 1fr;
+        }
+
+        .masterlist-actions {
+            width: auto;
+            justify-content: flex-end;
+        }
+    }
 </style>
 
-<section class="form-card form-card-wide beneficiaries-page">
-    <div class="beneficiaries-heading">
+<section class="form-card form-card-wide masterlist-page">
+
+    <div class="masterlist-heading">
+
         <div>
-            <h1>Scholarship Beneficiaries</h1>
-            <p class="muted">Monitor approved scholarship students and stipend records.</p>
+            <h1>Scholar Masterlist</h1>
+            <p class="muted">
+                View and monitor all approved and active scholarship recipients.
+            </p>
         </div>
+
     </div>
 
-    <div class="beneficiary-stats">
-        <div class="beneficiary-stat">
-            <span>Total Beneficiaries</span>
-            <strong><?= number_format($totalBeneficiaries) ?></strong>
-            <small>Approved scholarship applications</small>
+    <div class="masterlist-stats">
+
+        <div class="masterlist-stat">
+            <span>Total Scholar Records</span>
+            <strong><?= number_format($totalScholars) ?></strong>
+            <small>Approved and not removed</small>
         </div>
-        <div class="beneficiary-stat">
+
+        <div class="masterlist-stat">
             <span>Currently Enrolled</span>
             <strong><?= number_format($currentlyEnrolled) ?></strong>
             <small>Latest monitoring status</small>
         </div>
-        <div class="beneficiary-stat">
+
+        <div class="masterlist-stat">
             <span>Qualified</span>
             <strong><?= number_format($qualified) ?></strong>
             <small>Latest monitoring status</small>
         </div>
-        <div class="beneficiary-stat">
-            <span>Removed</span>
-            <strong><?= number_format($removed) ?></strong>
-            <small><?= number_format($notMonitored) ?> not yet monitored</small>
+
+        <div class="masterlist-stat">
+            <span>Not Yet Monitored</span>
+            <strong><?= number_format($notMonitored) ?></strong>
+            <small>Approved without monitoring record</small>
         </div>
+
     </div>
 
-    <form method="GET" class="beneficiary-filters">
+    <form method="GET" class="masterlist-filters">
+
         <label>School Year
             <select name="school_year">
                 <option value="">All School Years</option>
+
                 <?php foreach ($schoolYears as $year): ?>
-                    <option value="<?= (int) $year['school_year_id'] ?>" <?= $schoolYearFilter === (int) $year['school_year_id'] ? 'selected' : '' ?>><?= e($year['school_year']) ?></option>
+                    <option
+                        value="<?= (int) $year['school_year_id'] ?>"
+                        <?= $schoolYearFilter === (int) $year['school_year_id'] ? 'selected' : '' ?>
+                    >
+                        <?= e($year['school_year']) ?>
+                    </option>
                 <?php endforeach; ?>
+
             </select>
         </label>
 
-        <label>Program
+        <label>Scholarship Program
             <select name="program">
                 <option value="">All Programs</option>
+
                 <?php foreach ($programs as $program): ?>
-                    <option value="<?= (int) $program['program_id'] ?>" <?= $programFilter === (int) $program['program_id'] ? 'selected' : '' ?>><?= e($program['program_name']) ?></option>
+                    <option
+                        value="<?= (int) $program['program_id'] ?>"
+                        <?= $programFilter === (int) $program['program_id'] ? 'selected' : '' ?>
+                    >
+                        <?= e($program['program_name']) ?>
+                    </option>
                 <?php endforeach; ?>
+
             </select>
         </label>
 
         <label>Grade Level
             <select name="grade">
                 <option value="">All Grades</option>
+
                 <?php foreach ($grades as $grade): ?>
-                    <option value="<?= (int) $grade['grade_level_id'] ?>" <?= $gradeFilter === (int) $grade['grade_level_id'] ? 'selected' : '' ?>>Grade <?= e($grade['grade_level']) ?></option>
+                    <option
+                        value="<?= (int) $grade['grade_level_id'] ?>"
+                        <?= $gradeFilter === (int) $grade['grade_level_id'] ? 'selected' : '' ?>
+                    >
+                        Grade <?= e($grade['grade_level']) ?>
+                    </option>
                 <?php endforeach; ?>
+
             </select>
         </label>
 
         <label>Section
             <select name="section">
                 <option value="">All Sections</option>
+
                 <?php foreach ($sections as $section): ?>
-                    <option value="<?= (int) $section['section_id'] ?>" <?= $sectionFilter === (int) $section['section_id'] ? 'selected' : '' ?>><?= e($section['section_name']) ?></option>
+                    <option
+                        value="<?= (int) $section['section_id'] ?>"
+                        <?= $sectionFilter === (int) $section['section_id'] ? 'selected' : '' ?>
+                    >
+                        <?= e($section['section_name']) ?>
+                    </option>
                 <?php endforeach; ?>
+
             </select>
         </label>
 
-        <label class="beneficiary-search">Search Beneficiaries
-            <input type="search" name="search" value="<?= e($search) ?>" placeholder="Student name or LRN...">
+        <label>Scholar Status
+            <select name="participation">
+                <option value="">All Active Statuses</option>
+
+                <option value="Currently Enrolled" <?= $participationFilter === 'Currently Enrolled' ? 'selected' : '' ?>>
+                    Currently Enrolled
+                </option>
+
+                <option value="Qualified" <?= $participationFilter === 'Qualified' ? 'selected' : '' ?>>
+                    Qualified
+                </option>
+
+                <option value="Not Monitored" <?= $participationFilter === 'Not Monitored' ? 'selected' : '' ?>>
+                    Not Monitored
+                </option>
+
+            </select>
         </label>
 
-        <div class="beneficiary-filter-actions">
-            <button type="submit" class="button button-primary">Apply Filters</button>
-            <a class="button button-outline" href="<?= e(BASE_URL) ?>/scholarship_coordinator/scholarship_beneficiaries_report.php">Reset</a>
+        <label class="masterlist-search">Search Scholar
+            <input
+                type="search"
+                name="search"
+                value="<?= e($search) ?>"
+                placeholder="Student name, LRN, contact number, or program..."
+            >
+        </label>
+
+        <div class="masterlist-filter-actions">
+            <button type="submit" class="button button-primary">
+                Apply Filters
+            </button>
+
+            <a
+                class="button button-outline"
+                href="<?= e(BASE_URL) ?>/scholarship_coordinator/scholarship_beneficiaries_report.php"
+            >
+                Reset
+            </a>
         </div>
+
     </form>
 
     <div>
-        <div class="beneficiaries-heading" style="margin-bottom: 12px;">
+
+        <div class="masterlist-heading" style="margin-bottom:12px">
+
             <div>
-                <h2 style="margin:0;">Beneficiary Records</h2>
-                <p class="muted" style="margin-top:4px;">
-                    <?= number_format(count($beneficiaries)) ?> matching approved <?= count($beneficiaries) === 1 ? 'beneficiary' : 'beneficiaries' ?>
+                <h2 style="margin:0">Scholar Records</h2>
+
+                <p class="muted" style="margin-top:4px">
+                    <?= number_format(count($scholars)) ?> matching active
+                    <?= count($scholars) === 1 ? 'scholar' : 'scholars' ?>
                 </p>
             </div>
-            <span class="beneficiary-program">Approved Only</span>
+
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+
+                <span class="masterlist-program">
+                    Approved Scholars
+                </span>
+
+                <div class="masterlist-actions">
+
+                    <a
+                        href="<?= e(BASE_URL) ?>/scholarship_coordinator/scholarship_beneficiaries_report.php?print=1<?= e($reportQuery) ?>"
+                        class="button button-outline masterlist-icon-button"
+                        target="_blank"
+                        rel="noopener"
+                        title="Print Scholar Masterlist"
+                        aria-label="Print Scholar Masterlist"
+                    >
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M6 9V2h12v7"/>
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                            <path d="M6 14h12v8H6z"/>
+                        </svg>
+                    </a>
+
+                    <a
+                        href="<?= e(BASE_URL) ?>/scholarship_coordinator/scholarship_beneficiaries_report.php?download=1<?= e($reportQuery) ?>"
+                        class="button button-primary masterlist-icon-button"
+                        title="Download Scholar Masterlist"
+                        aria-label="Download Scholar Masterlist"
+                    >
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <path d="m7 10 5 5 5-5"/>
+                            <path d="M12 15V3"/>
+                        </svg>
+                    </a>
+
+                </div>
+
+            </div>
+
         </div>
 
-        <?php if (!$beneficiaries): ?>
-            <div class="beneficiary-empty">
-                <h2>No beneficiaries found</h2>
-                <p>There are no approved scholarship applications matching your selected filters.</p>
+        <?php if (!$scholars): ?>
+
+            <div class="masterlist-empty">
+                <h2>No active scholars found</h2>
+
+                <p>
+                    There are no approved scholarship applications matching your selected filters.
+                </p>
             </div>
+
         <?php else: ?>
-            <div class="beneficiary-table-wrap">
-                <table class="beneficiary-table">
+
+            <div class="masterlist-table-wrap">
+
+                <table class="masterlist-table">
+
                     <thead>
-                        <tr><th>Student</th><th>Program</th><th>Grade Level</th><th>Section</th><th>Status</th></tr>
+                        <tr>
+                            <th>Scholar</th>
+                            <th>Contact</th>
+                            <th>Program</th>
+                            <th>School Year</th>
+                            <th>Grade Level</th>
+                            <th>Section</th>
+                            <th>Scholar Status</th>
+                            <th>Renewal</th>
+                        </tr>
                     </thead>
+
                     <tbody>
-                        <?php foreach ($beneficiaries as $beneficiary): ?>
+
+                        <?php foreach ($scholars as $scholar): ?>
+
                             <?php
-                                $fullName = trim(
-                                    $beneficiary['first_name'] . ' ' .
-                                    ($beneficiary['middle_name'] ?? '') . ' ' .
-                                    $beneficiary['last_name']
-                                );
-                                $participation = $beneficiary['participation_status'] ?: 'Not Monitored';
-                                $statusClass = match ($participation) {
-                                    'Currently Enrolled' => 'enrolled',
-                                    'Qualified' => 'qualified',
-                                    'Removed' => 'removed',
-                                    default => 'unmonitored',
-                                };
+                            $fullName = trim(
+                                $scholar['first_name'] . ' ' .
+                                ($scholar['middle_name'] ?? '') . ' ' .
+                                $scholar['last_name']
+                            );
+
+                            $participation = $scholar['participation_status'];
+
+                            $statusClass = 'unmonitored';
+
+                            if ($participation === 'Currently Enrolled') {
+                                $statusClass = 'enrolled';
+                            } elseif ($participation === 'Qualified') {
+                                $statusClass = 'qualified';
+                            }
                             ?>
+
                             <tr>
+
                                 <td>
-                                    <span class="beneficiary-student-name"><?= e($fullName) ?></span>
-                                    <span class="beneficiary-subtext">LRN: <?= e($beneficiary['lrn'] ?: 'Not recorded') ?></span>
+                                    <span class="masterlist-student-name">
+                                        <?= e($fullName) ?>
+                                    </span>
+
+                                    <span class="masterlist-subtext">
+                                        LRN: <?= e($scholar['lrn'] ?: 'Not recorded') ?>
+                                    </span>
                                 </td>
-                                <td><span class="beneficiary-program"><?= e($beneficiary['program_name']) ?></span></td>
-                                <td><?= $beneficiary['grade_level'] !== null ? 'Grade ' . e($beneficiary['grade_level']) : 'Not assigned' ?></td>
-                                <td><?= e($beneficiary['section_name'] ?: 'Not assigned') ?></td>
-                                <td><span class="beneficiary-status <?= e($statusClass) ?>"><?= e($participation) ?></span></td>
+
+                                <td>
+                                    <?= e($scholar['contact_number'] ?: 'Not recorded') ?>
+                                </td>
+
+                                <td>
+                                    <span class="masterlist-program">
+                                        <?= e($scholar['program_name']) ?>
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <?= e($scholar['school_year']) ?>
+                                </td>
+
+                                <td>
+                                    <?= $scholar['grade_level'] !== null ? 'Grade ' . e($scholar['grade_level']) : 'Not assigned' ?>
+                                </td>
+
+                                <td>
+                                    <?= e($scholar['section_name'] ?: 'Not assigned') ?>
+                                </td>
+
+                                <td>
+                                    <span class="masterlist-status <?= e($statusClass) ?>">
+                                        <?= e($participation) ?>
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <?= e($scholar['renewal_eligibility'] ?: 'Pending') ?>
+                                </td>
+
                             </tr>
+
                         <?php endforeach; ?>
+
                     </tbody>
+
                 </table>
+
             </div>
+
         <?php endif; ?>
+
     </div>
 
-    <form method="GET" class="beneficiary-export">
+    <form method="GET" class="masterlist-export">
+
         <input type="hidden" name="school_year" value="<?= $schoolYearFilter !== null ? (int) $schoolYearFilter : '' ?>">
         <input type="hidden" name="program" value="<?= $programFilter !== null ? (int) $programFilter : '' ?>">
         <input type="hidden" name="grade" value="<?= $gradeFilter !== null ? (int) $gradeFilter : '' ?>">
         <input type="hidden" name="section" value="<?= $sectionFilter !== null ? (int) $sectionFilter : '' ?>">
+        <input type="hidden" name="participation" value="<?= e($participationFilter) ?>">
         <input type="hidden" name="search" value="<?= e($search) ?>">
 
         <div>
-            <h2>Export Report</h2>
-            <p>Select which columns to include in the exported CSV file. The file can be opened in Microsoft Excel.</p>
+            <h2>Export to Excel (CSV)</h2>
+
+            <p>
+                Select which columns to include in the spreadsheet.
+                The Print and Download icons above generate the formatted masterlist report.
+            </p>
         </div>
 
-        <div class="beneficiary-export-options">
+        <div class="masterlist-export-options">
+
             <?php foreach ($allowedColumns as $key => $label): ?>
+
                 <label>
-                    <input type="checkbox" name="columns[]" value="<?= e($key) ?>" <?= in_array($key, $selectedColumns, true) ? 'checked' : '' ?>>
+                    <input
+                        type="checkbox"
+                        name="columns[]"
+                        value="<?= e($key) ?>"
+                        <?= in_array($key, $selectedColumns, true) ? 'checked' : '' ?>
+                    >
+
                     <?= e($label) ?>
                 </label>
+
             <?php endforeach; ?>
+
         </div>
 
-        <div class="beneficiary-export-actions">
-            <button type="submit" name="export" value="csv" class="button button-primary">Export to Excel (CSV)</button>
+        <div class="masterlist-export-actions">
+            <button type="submit" name="export" value="csv" class="button button-primary">
+                Export to Excel (CSV)
+            </button>
         </div>
+
     </form>
+
 </section>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
