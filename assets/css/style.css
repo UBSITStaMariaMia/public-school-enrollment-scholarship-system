@@ -6317,3 +6317,17 @@ body.reminder-modal-open {
         width: 100%;
     }
 }
+.staff-records-heading {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.staff-record-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+}

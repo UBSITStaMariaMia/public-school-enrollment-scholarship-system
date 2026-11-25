@@ -1,5 +1,5 @@
+
 <?php
-/* Shared role-based sidebar. Menu destinations remain protected by each page's require_role(). */
 $sidebarUser = $user ?? current_user();
 $sidebarRole = $sidebarUser['role_name'] ?? '';
 $sidebarUserId = (int) ($sidebarUser['user_id'] ?? 0);
@@ -34,24 +34,30 @@ if ($sidebarRole === 'Student' && $sidebarUserId > 0) {
     $nameQuery = $pdo->prepare('SELECT first_name, middle_name, last_name FROM students WHERE user_id = :user_id LIMIT 1');
     $nameQuery->execute(['user_id' => $sidebarUserId]);
     $profileName = $nameQuery->fetch(PDO::FETCH_ASSOC);
+
     if ($profileName) {
         $middleInitial = '';
+
         if (!empty($profileName['middle_name'])) {
             $middleName = trim($profileName['middle_name']);
             $middleInitial = (function_exists('mb_substr') ? mb_substr($middleName, 0, 1, 'UTF-8') : substr($middleName, 0, 1)) . '.';
         }
+
         $sidebarDisplayName = trim($profileName['first_name'] . ' ' . ($middleInitial !== '' ? $middleInitial . ' ' : '') . $profileName['last_name']);
     }
 } elseif ($sidebarRole === 'Teacher' && $sidebarUserId > 0) {
     $nameQuery = $pdo->prepare('SELECT first_name, middle_name, last_name FROM staff_profiles WHERE user_id = :user_id LIMIT 1');
     $nameQuery->execute(['user_id' => $sidebarUserId]);
     $profileName = $nameQuery->fetch(PDO::FETCH_ASSOC);
+
     if ($profileName) {
         $middleInitial = '';
+
         if (!empty($profileName['middle_name'])) {
             $middleName = trim($profileName['middle_name']);
             $middleInitial = (function_exists('mb_substr') ? mb_substr($middleName, 0, 1, 'UTF-8') : substr($middleName, 0, 1)) . '.';
         }
+
         $sidebarDisplayName = trim($profileName['first_name'] . ' ' . ($middleInitial !== '' ? $middleInitial . ' ' : '') . $profileName['last_name']);
     }
 }
@@ -70,6 +76,7 @@ if ($sidebarRole === 'System Administrator') {
     $sidebarAdd('User Management', '/admin/user_management.php', 'user_management.php', 'users');
     $sidebarAdd('Student Records', '/admin/student_records.php', 'student_records.php', 'student-record');
     $sidebarAdd('Teacher and Staff Records', '/admin/staff_records.php', 'staff_records.php', 'staff-record');
+
 } elseif ($sidebarRole === 'School Registrar') {
     $sidebarHeading = 'School Registrar';
     $sidebarAdd('Dashboard', '/registrar/dashboard.php', 'dashboard.php', 'dashboard');
@@ -79,12 +86,14 @@ if ($sidebarRole === 'System Administrator') {
     $sidebarAdd('Section Management', '/registrar/sections.php', 'sections.php', 'section');
     $sidebarAdd('Enrollment Reports', '/registrar/enrollment_reports.php', 'enrollment_reports.php', 'report');
     $sidebarAdd('Announcements', '/registrar/announcements.php', 'announcements.php', 'announcement');
+
 } elseif ($sidebarRole === 'Teacher') {
     $sidebarHeading = $sidebarDisplayName;
     $sidebarAdd('Dashboard', '/staff/dashboard.php', 'dashboard.php', 'dashboard');
     $sidebarAdd('Subject Management', '/staff/subjects.php', 'subjects.php', 'subject');
     $sidebarAdd('My Assigned Sections', '/staff/my_sections.php', 'my_sections.php', 'classroom');
     $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
+
 } elseif ($sidebarRole === 'Student') {
     $sidebarHeading = $sidebarDisplayName;
     $sidebarAdd('Dashboard', '/student/dashboard.php', 'dashboard.php', 'dashboard');
@@ -93,9 +102,9 @@ if ($sidebarRole === 'System Administrator') {
     $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
     $sidebarAdd('My Profile', '/student/profile.php', 'profile.php', 'profile');
     $sidebarAdd('Change Password', '/student/change_password.php', 'change_password.php', 'password');
+
 } elseif ($sidebarRole === 'Enrollment Committee') {
     $sidebarHeading = $sidebarRole;
-
     $sidebarAdd('Dashboard', '/staff/dashboard.php', 'dashboard.php', 'dashboard');
     $sidebarAdd('Subject Management', '/staff/subjects.php', 'subjects.php', 'subject');
     $sidebarAdd('Student Records', '/staff/student_records.php', 'student_records.php', 'student-record');
@@ -106,14 +115,12 @@ if ($sidebarRole === 'System Administrator') {
 
 } elseif ($sidebarRole === 'Scholarship Coordinator') {
     $sidebarHeading = $sidebarRole;
-
     $sidebarAdd('Dashboard', '/scholarship_coordinator/dashboard.php', 'dashboard.php', 'dashboard');
     $sidebarAdd('Scholarship Programs', '/scholarship_coordinator/scholarship_programs.php', 'scholarship_programs.php', 'applications');
     $sidebarAdd('Scholarship Applications', '/scholarship_coordinator/scholarship_applications.php', 'scholarship_applications.php', 'applications');
-    $sidebarAdd('Scholarship Documents', '/scholarship_coordinator/scholarship_documents.php', 'scholarship_documents.php', 'document-check');
     $sidebarAdd('Scholarship Monitoring', '/scholarship_coordinator/scholarship_monitoring.php', 'scholarship_monitoring.php', 'report');
     $sidebarAdd('Stipend Records', '/scholarship_coordinator/stipend_records.php', 'stipend_records.php', 'report');
-    $sidebarAdd('Beneficiaries Report', '/scholarship_coordinator/scholarship_beneficiaries_report.php', 'scholarship_beneficiaries_report.php', 'report');
+    $sidebarAdd('Scholar Masterlist', '/scholarship_coordinator/scholarship_beneficiaries_report.php', 'scholarship_beneficiaries_report.php', 'student-record');
     $sidebarAdd('Renewal Report', '/scholarship_coordinator/scholarship_renewal_report.php', 'scholarship_renewal_report.php', 'report');
     $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
 }
@@ -130,29 +137,51 @@ if ($sidebarRole === 'System Administrator') {
                     </svg>
                 </span>
             <?php endif; ?>
+
             <div class="sidebar-identity-text">
                 <h2><?= e($sidebarHeading) ?></h2>
                 <p><?= e($sidebarRoleLabel) ?></p>
             </div>
         </div>
+
         <button type="button" class="main-sidebar-close" id="mainSidebarClose" aria-label="Close navigation menu">&times;</button>
     </div>
 
     <nav class="main-sidebar-nav" aria-label="<?= e($sidebarRole) ?> navigation">
         <?php if ($sidebarUser): ?>
             <p class="sidebar-section-label">Workspace</p>
+
             <?php foreach ($sidebarLinks as $link): ?>
                 <?php $isActive = in_array($sidebarPage, $link['pages'], true); ?>
+
                 <a href="<?= BASE_URL . $link['url'] ?>" class="sidebar-nav-link <?= $isActive ? 'active' : '' ?>" <?= $isActive ? 'aria-current="page"' : '' ?>>
                     <span class="sidebar-nav-icon"><?= $sidebarIcons[$link['icon']] ?></span>
                     <span class="sidebar-nav-text"><?= e($link['label']) ?></span>
                 </a>
             <?php endforeach; ?>
+
         <?php else: ?>
-            <a href="<?= BASE_URL ?>/index.php" class="sidebar-nav-link"><span class="sidebar-nav-icon"><?= $sidebarIcons['dashboard'] ?></span><span class="sidebar-nav-text">Home</span></a>
-            <a href="<?= BASE_URL ?>/announcements.php" class="sidebar-nav-link"><span class="sidebar-nav-icon"><?= $sidebarIcons['announcement'] ?></span><span class="sidebar-nav-text">Announcements</span></a>
-            <a href="<?= BASE_URL ?>/login.php" class="sidebar-nav-link"><span class="sidebar-nav-icon"><?= $sidebarIcons['profile'] ?></span><span class="sidebar-nav-text">Log In</span></a>
-            <a href="<?= BASE_URL ?>/register.php" class="sidebar-nav-link"><span class="sidebar-nav-icon"><?= $sidebarIcons['new-enrollment'] ?></span><span class="sidebar-nav-text">Student Registration</span></a>
+
+            <a href="<?= BASE_URL ?>/index.php" class="sidebar-nav-link">
+                <span class="sidebar-nav-icon"><?= $sidebarIcons['dashboard'] ?></span>
+                <span class="sidebar-nav-text">Home</span>
+            </a>
+
+            <a href="<?= BASE_URL ?>/announcements.php" class="sidebar-nav-link">
+                <span class="sidebar-nav-icon"><?= $sidebarIcons['announcement'] ?></span>
+                <span class="sidebar-nav-text">Announcements</span>
+            </a>
+
+            <a href="<?= BASE_URL ?>/login.php" class="sidebar-nav-link">
+                <span class="sidebar-nav-icon"><?= $sidebarIcons['profile'] ?></span>
+                <span class="sidebar-nav-text">Log In</span>
+            </a>
+
+            <a href="<?= BASE_URL ?>/register.php" class="sidebar-nav-link">
+                <span class="sidebar-nav-icon"><?= $sidebarIcons['new-enrollment'] ?></span>
+                <span class="sidebar-nav-text">Student Registration</span>
+            </a>
+
         <?php endif; ?>
     </nav>
 
