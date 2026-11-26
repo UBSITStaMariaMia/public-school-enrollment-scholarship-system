@@ -219,9 +219,38 @@ require_once __DIR__ . '/../includes/header.php';
 
 <section class="form-card">
 
-    <div class="section-heading">
-        <h2>Registered Students</h2>
-        <p><?= count($students) ?> record(s) found</p>
+    <div class="section-heading student-records-heading">
+        <div>
+            <h2>Registered Students</h2>
+            <p><?= count($students) ?> record(s) found</p>
+        </div>
+
+        <?php if ($students): ?>
+            <?php
+            $reportParameters = http_build_query([
+                'search' => $search,
+                'search_by' => $searchBy
+            ]);
+            ?>
+
+            <div class="student-record-actions">
+                <a
+                    href="<?= BASE_URL ?>/admin/student_records_report.php?<?= e($reportParameters) ?>&print=1"
+                    class="button button-outline"
+                    target="_blank"
+                    rel="noopener"
+                >
+                    Print Records
+                </a>
+
+                <a
+                    href="<?= BASE_URL ?>/admin/student_records_report.php?<?= e($reportParameters) ?>&download=1"
+                    class="button button-primary"
+                >
+                    Download Records
+                </a>
+            </div>
+        <?php endif; ?>
     </div>
 
     <?php if (!$students): ?>
@@ -342,6 +371,39 @@ require_once __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 
 </section>
+
+
+<style>
+.student-records-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.student-record-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .student-records-heading {
+        align-items: flex-start;
+    }
+
+    .student-record-actions {
+        width: 100%;
+    }
+
+    .student-record-actions .button {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

@@ -752,7 +752,7 @@ require_once __DIR__ . '/includes/header.php';
             <h2>1. Student Personal Information</h2>
 
             <label>
-                Learner Reference Number (LRN)
+                *Learner Reference Number (LRN)
                 <input
                     type="text"
                     name="lrn"
@@ -766,7 +766,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                First Name
+                *First Name
                 <input
                     type="text"
                     name="first_name"
@@ -779,7 +779,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <label>
                 <span class="inline-label">
-                    <span>Middle Name</span>
+                    <span>*Middle Name</span>
                     <span class="muted">(Optional)</span>
                 </span>
                 <input
@@ -792,7 +792,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Last Name
+                *Last Name
                 <input
                     type="text"
                     name="last_name"
@@ -804,7 +804,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Email Address
+                *Email Address
                 <input
                     type="email"
                     name="email"
@@ -816,7 +816,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Date of Birth
+                *Date of Birth
                 <input
                     type="date"
                     name="birth_date"
@@ -825,7 +825,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Place of Birth
+                *Place of Birth
                 <input
                     type="text"
                     name="birthplace"
@@ -835,7 +835,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Sex
+                *Sex
                 <select name="sex">
                     <option value="">Select</option>
                     <option value="Male" <?= $values['sex'] === 'Male' ? 'selected' : '' ?>>Male</option>
@@ -845,7 +845,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Civil Status
+                *Civil Status
                 <select name="civil_status">
                     <option value="">Select civil status</option>
                     <option value="Single" <?= $values['civil_status'] === 'Single' ? 'selected' : '' ?>>Single</option>
@@ -858,7 +858,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Nationality
+                *Nationality
                 <select name="nationality_choice" id="nationalityChoice">
                     <option value="">Select nationality</option>
                     <option value="Filipino" <?= $values['nationality_choice'] === 'Filipino' ? 'selected' : '' ?>>Filipino</option>
@@ -940,7 +940,7 @@ require_once __DIR__ . '/includes/header.php';
             <h2>2. Contact Information</h2>
 
             <label>
-                Contact Number
+                *Contact Number
                 <div class="phone-input-wrapper">
                     <span class="phone-prefix">+63</span>
                     <span class="phone-divider" aria-hidden="true"></span>
@@ -960,7 +960,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <div class="address-section">
-                <h3>Current Address</h3>
+                <h3>*Current Address</h3>
                 <div class="address-fields">
                     <label>House / Building No.<input type="text" name="current_house" maxlength="150" value="<?= e($values['current_house']) ?>"></label>
                     <label>Street / Sitio / Purok<input type="text" name="current_street" maxlength="150" value="<?= e($values['current_street']) ?>"></label>
@@ -971,7 +971,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
             <div class="address-section">
-                <h3>Permanent Address</h3>
+                <h3>*Permanent Address</h3>
                 <label class="checkbox-inline"><input type="checkbox" name="permanent_same_as_current" value="1" <?= $values['permanent_same_as_current'] === '1' ? 'checked' : '' ?>> Same as current address</label>
                 <div class="address-fields" data-address-fields="permanent">
                     <label>House / Building No.<input type="text" name="permanent_house" maxlength="150" value="<?= e($values['permanent_house']) ?>"></label>
@@ -986,7 +986,7 @@ require_once __DIR__ . '/includes/header.php';
             <h2>3. Mother's Information</h2>
 
             <label>
-                Mother's Full Name
+                *Mother's Full Name
                 <input
                     type="text"
                     name="mother_name"
@@ -996,7 +996,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Occupation
+                *Occupation
                 <input
                     type="text"
                     name="mother_occupation"
@@ -1006,7 +1006,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Contact Number
+                *Contact Number
                 <div class="phone-input-wrapper">
                     <span class="phone-prefix">+63</span>
                     <span class="phone-divider" aria-hidden="true"></span>
@@ -1026,7 +1026,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Email Address
+                *Email Address
                 <input
                     type="email"
                     name="mother_email"
@@ -1036,7 +1036,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <div class="address-section">
-                <h3>Mother's Address</h3>
+                <h3>*Mother's Address</h3>
                 <label class="checkbox-inline"><input type="checkbox" name="mother_same_as_current" value="1" <?= $values['mother_same_as_current'] === '1' ? 'checked' : '' ?>> Same as student's current address</label>
                 <div class="address-fields" data-address-fields="mother">
                     <label>House / Building No.<input type="text" name="mother_house" maxlength="150" value="<?= e($values['mother_house']) ?>"></label>
@@ -1051,7 +1051,7 @@ require_once __DIR__ . '/includes/header.php';
             <h2>4. Father's Information</h2>
 
             <label>
-                Father's Full Name
+                *Father's Full Name
                 <input
                     type="text"
                     name="father_name"
@@ -1061,7 +1061,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Occupation
+                *Occupation
                 <input
                     type="text"
                     name="father_occupation"
@@ -1071,7 +1071,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Contact Number
+                *Contact Number
                 <div class="phone-input-wrapper">
                     <span class="phone-prefix">+63</span>
                     <span class="phone-divider" aria-hidden="true"></span>
@@ -1091,7 +1091,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Email Address
+                *Email Address
                 <input
                     type="email"
                     name="father_email"
@@ -1101,7 +1101,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <div class="address-section">
-                <h3>Father's Address</h3>
+                <h3>*Father's Address</h3>
                 <label class="checkbox-inline"><input type="checkbox" name="father_same_as_current" value="1" <?= $values['father_same_as_current'] === '1' ? 'checked' : '' ?>> Same as student's current address</label>
                 <div class="address-fields" data-address-fields="father">
                     <label>House / Building No.<input type="text" name="father_house" maxlength="150" value="<?= e($values['father_house']) ?>"></label>
@@ -1197,7 +1197,7 @@ require_once __DIR__ . '/includes/header.php';
             <h2>Account Security</h2>
 
             <label>
-                Password
+                *Password
                 <input
                     type="password"
                     name="password"
@@ -1208,7 +1208,7 @@ require_once __DIR__ . '/includes/header.php';
             </label>
 
             <label>
-                Confirm Password
+                *Confirm Password
                 <input
                     type="password"
                     name="confirm_password"
@@ -1372,36 +1372,19 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    // Updated key allows the reminder to appear again after this correction.
-    const storageKey = 'bcnhsRegistrationReminderDismissed_v2';
-
+    // Always show the reminder whenever the registration page is opened.
+    // Dismissing it only closes the modal for the current page view.
     function closeReminder() {
         overlay.classList.remove('is-visible');
         document.body.classList.remove('reminder-modal-open');
-
-        try {
-            sessionStorage.setItem(storageKey, '1');
-        } catch (error) {
-            // Modal can still close if browser storage is unavailable.
-        }
     }
 
-    let alreadyDismissed = false;
+    document.body.classList.add('reminder-modal-open');
 
-    try {
-        alreadyDismissed = sessionStorage.getItem(storageKey) === '1';
-    } catch (error) {
-        alreadyDismissed = false;
-    }
-
-    if (!alreadyDismissed) {
-        document.body.classList.add('reminder-modal-open');
-
-        // Allow the browser to apply the hidden state before animation.
-        requestAnimationFrame(function () {
-            overlay.classList.add('is-visible');
-        });
-    }
+    // Allow the browser to apply the initial hidden state before animation.
+    requestAnimationFrame(function () {
+        overlay.classList.add('is-visible');
+    });
 
     closeButton.addEventListener('click', closeReminder);
     confirmButton.addEventListener('click', closeReminder);
