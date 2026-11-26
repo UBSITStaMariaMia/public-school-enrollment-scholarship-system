@@ -31,7 +31,7 @@ $enrollmentTypes = [
 $yearStmt = $pdo->query(
     'SELECT school_year_id, school_year, status
      FROM school_years
-     ORDER BY school_year_id DESC'
+     ORDER BY school_year DESC, school_year_id DESC'
 );
 $yearList = $yearStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -86,14 +86,40 @@ foreach ($yearList as $year) {
     }
 }
 
+// Load grade levels and aggregate application status counts by grade.
+$gradeStmt = $pdo->query(
+    'SELECT grade_level_id, grade_level
+     FROM grade_levels
+     ORDER BY grade_level_id ASC'
+);
+$gradeLevels = $gradeStmt->fetchAll(PDO::FETCH_ASSOC);
+
+$selectedGradeId = filter_var($_GET['grade_id'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 0;
+$gradesById = array_column($gradeLevels, 'grade_level', 'grade_level_id');
+$selectedGradeLabel = isset($gradesById[$selectedGradeId]) ? 'Grade ' . $gradesById[$selectedGradeId] : '';
+$gradeSevenId = (int) array_search('7', $gradesById);
+$effectiveGrade = $gradeSevenId
+    ? "(CASE WHEN enrollment_type = 'Incoming Grade 7' THEN $gradeSevenId ELSE requested_grade_level_id END)"
+    : 'requested_grade_level_id';
+$reportScope = ['school_year_id' => $selectedYearId];
+if ($selectedGradeLabel !== '') {
+    $reportScope['grade_id'] = $selectedGradeId;
+    $gradeLevels = array_values(array_filter($gradeLevels, static fn(array $grade): bool => (int) $grade['grade_level_id'] === $selectedGradeId));
+}
+$reportParams = $reportScope;
+$reportWhere = 'WHERE school_year_id = :school_year_id';
+if ($selectedGradeLabel !== '') {
+    $reportWhere .= " AND $effectiveGrade = :grade_id";
+}
+
 // Fetch application totals in one query.
 $statusStmt = $pdo->prepare(
-    'SELECT application_status, COUNT(*) AS total
+    "SELECT application_status, COUNT(*) AS total
      FROM enrollment_applications
-     WHERE school_year_id = :school_year_id
-     GROUP BY application_status'
+     $reportWhere
+     GROUP BY application_status"
 );
-$statusStmt->execute(['school_year_id' => $selectedYearId]);
+$statusStmt->execute($reportParams);
 $statusRows = $statusStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $statusCounts = array_fill_keys($applicationStatuses, 0);
@@ -106,12 +132,12 @@ $totalApplications = array_sum($statusCounts);
 
 // Fetch enrollment type totals in one query.
 $typeStmt = $pdo->prepare(
-    'SELECT enrollment_type, COUNT(*) AS total
+    "SELECT enrollment_type, COUNT(*) AS total
      FROM enrollment_applications
-     WHERE school_year_id = :school_year_id
-     GROUP BY enrollment_type'
+     $reportWhere
+     GROUP BY enrollment_type"
 );
-$typeStmt->execute(['school_year_id' => $selectedYearId]);
+$typeStmt->execute($reportParams);
 $typeRows = $typeStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $typeCounts = array_fill_keys($enrollmentTypes, 0);
@@ -121,14 +147,6 @@ foreach ($typeRows as $row) {
     }
 }
 $totalByType = array_sum($typeCounts);
-
-// Load grade levels and aggregate application status counts by grade.
-$gradeStmt = $pdo->query(
-    'SELECT grade_level_id, grade_level
-     FROM grade_levels
-     ORDER BY grade_level_id ASC'
-);
-$gradeLevels = $gradeStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $gradeCounts = [];
 $gradeTotals = [];
@@ -140,12 +158,12 @@ foreach ($gradeLevels as $grade) {
 }
 
 $gradeSummaryStmt = $pdo->prepare(
-    'SELECT requested_grade_level_id, application_status, COUNT(*) AS total
+    "SELECT $effectiveGrade AS requested_grade_level_id, application_status, COUNT(*) AS total
      FROM enrollment_applications
-     WHERE school_year_id = :school_year_id
-     GROUP BY requested_grade_level_id, application_status'
+     $reportWhere
+     GROUP BY $effectiveGrade, application_status"
 );
-$gradeSummaryStmt->execute(['school_year_id' => $selectedYearId]);
+$gradeSummaryStmt->execute($reportParams);
 $gradeSummaryRows = $gradeSummaryStmt->fetchAll(PDO::FETCH_ASSOC);
 
 foreach ($gradeSummaryRows as $row) {
@@ -162,7 +180,7 @@ foreach ($gradeSummaryRows as $row) {
 // Prepare CSV export before the shared page header outputs HTML.
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $filenameYear = preg_replace('/[^A-Za-z0-9_-]/', '_', $selectedYearName);
-    $filename = 'enrollment-report-' . ($filenameYear !== '' ? $filenameYear : $selectedYearId) . '.csv';
+    $filename = 'enrollment-report-' . ($filenameYear !== '' ? $filenameYear : $selectedYearId) . ($selectedGradeLabel !== '' ? '-grade-' . $gradesById[$selectedGradeId] : '') . '.csv';
 
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -173,7 +191,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     // UTF-8 BOM helps spreadsheet programs display the text correctly.
     fwrite($outputHandle, "\xEF\xBB\xBF");
 
-    fputcsv($outputHandle, ['Enrollment Reports', $selectedYearName]);
+    fputcsv($outputHandle, ['Enrollment Reports', $selectedYearName, $selectedGradeLabel ?: 'All grades']);
     fputcsv($outputHandle, []);
     fputcsv($outputHandle, ['Applications by Status']);
     fputcsv($outputHandle, ['Application Status', 'Total', 'Percentage']);
@@ -220,6 +238,23 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     exit;
 }
 
+if (($_GET['print'] ?? '') === '1') {
+    $formalTitle = 'Enrollment Report' . ($selectedGradeLabel !== '' ? ' — ' . $selectedGradeLabel : ' — All Grades');
+    $formalAutoPrint = true;
+    $formalBackLabel = 'Back to enrollment reports';
+    $formalOffice = "Registrar's Office";
+    $formalBackUrl = BASE_URL . '/registrar/enrollment_reports.php?' . http_build_query($reportScope);
+    require __DIR__ . '/../includes/formal_report_start.php';
+    ?>
+    <p>School year <?= e($selectedYearName) ?> · <?= e($selectedYearStatus) ?></p>
+    <?php require __DIR__ . '/../includes/enrollment_report_tables.php'; ?>
+    </main>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
 $statusColors = [
     'Pending Review' => 'pending',
     'Incomplete Requirements' => 'incomplete',
@@ -237,14 +272,21 @@ require_once __DIR__ . '/../includes/header.php';
 
     .report-year-form {
         display: grid;
-        grid-template-columns: minmax(220px, 1fr) auto;
+        grid-template-columns: minmax(0, 360px) max-content;
         align-items: end;
         gap: 12px;
         margin-bottom: 24px;
     }
 
     .report-year-form label {
+        display: grid;
+        gap: 5px;
         margin: 0;
+    }
+
+    .report-year-form .report-view-button {
+        justify-self: start;
+        min-height: 45px;
     }
 
     .report-summary-grid {
@@ -399,57 +441,34 @@ require_once __DIR__ . '/../includes/header.php';
         }
     }
 
-    @media print {
-        body {
-            background: #fff !important;
-        }
-
-        .site-header,
-        header,
-        nav,
-        footer,
-        .report-year-form,
-        .report-actions,
-        .menu-toggle,
-        .mobile-menu-toggle {
-            display: none !important;
-        }
-
-        .form-card,
-        .report-chart-card,
-        .report-stat-card {
-            box-shadow: none !important;
-            break-inside: avoid;
-        }
-
-        .form-card {
-            width: 100% !important;
-            max-width: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: 0 !important;
-        }
-
-        .report-section,
-        .report-chart-grid {
-            break-inside: avoid;
-        }
-
-        table {
-            font-size: 10pt;
-        }
-    }
 </style>
 
 <section class="form-card form-card-wide">
     <div class="report-intro">
-        <h1>Enrollment Reports</h1>
+        <div class="portal-page-actions">
+            <h1>Enrollment Reports</h1>
+            <div class="report-export-icons">
+                <a class="button button-outline report-export-icon"
+                   href="?<?= e(http_build_query($reportScope + ['print' => '1'])) ?>" target="_blank" rel="noopener"
+                   title="Print report" aria-label="Print report">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v7H7z"/><path d="M17 11h.01"/></svg>
+                </a>
+                <a class="button button-primary report-export-icon"
+                   href="?<?= e(http_build_query($reportScope + ['export' => 'csv'])) ?>"
+                   title="Download CSV" aria-label="Download CSV">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 17v4h16v-4"/></svg>
+                </a>
+            </div>
+        </div>
         <p class="muted">
             Enrollment statistics and enrollment-status summaries for the selected school year.
         </p>
     </div>
 
     <form method="get" class="report-year-form">
+        <?php if ($selectedGradeLabel !== ''): ?>
+            <input type="hidden" name="grade_id" value="<?= $selectedGradeId ?>">
+        <?php endif; ?>
         <label>
             School Year
             <select name="school_year_id">
@@ -462,10 +481,19 @@ require_once __DIR__ . '/../includes/header.php';
             </select>
         </label>
 
-        <div class="form-actions">
-            <button type="submit" class="button button-primary">View Report</button>
-        </div>
+        <button type="submit" class="button button-primary report-view-button">View Report</button>
     </form>
+
+    <nav class="application-status-links" aria-label="Enrollment report grade">
+        <?php foreach ([0 => 'All grades'] + $gradesById as $tabGradeId => $tabGrade): ?>
+            <?php $isCurrentGrade = $selectedGradeLabel === '' ? $tabGradeId === 0 : $tabGradeId === $selectedGradeId; ?>
+            <a class="button <?= $isCurrentGrade ? 'button-primary' : 'button-outline' ?>"
+               href="?<?= e(http_build_query(['school_year_id' => $selectedYearId, 'grade_id' => $tabGradeId])) ?>"
+               <?= $isCurrentGrade ? 'aria-current="true"' : '' ?>>
+                <?= e($tabGradeId === 0 ? $tabGrade : 'Grade ' . $tabGrade) ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
 
     <div class="report-summary-grid">
         <div class="report-stat-card">
@@ -518,21 +546,29 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="report-chart-card">
-            <h3>Applications by Grade Level</h3>
+            <h3><?= e($selectedGradeLabel === '' ? 'Applications by Grade Level' : 'Applications by Enrollment Type') ?></h3>
 
             <?php if ($totalApplications === 0): ?>
                 <p class="report-empty">No applications found for this school year.</p>
             <?php else: ?>
                 <div class="report-bar-list">
-                    <?php foreach ($gradeLevels as $grade): ?>
+                    <?php
+                    $chartGroups = [];
+                    if ($selectedGradeLabel !== '') {
+                        $chartGroups = $typeCounts;
+                    } else {
+                        foreach ($gradeLevels as $grade) {
+                            $chartGroups['Grade ' . $grade['grade_level']] = $gradeTotals[(int) $grade['grade_level_id']] ?? 0;
+                        }
+                    }
+                    ?>
+                    <?php foreach ($chartGroups as $chartLabel => $count): ?>
                         <?php
-                        $gradeId = (int) $grade['grade_level_id'];
-                        $count = $gradeTotals[$gradeId] ?? 0;
                         $percentage = ($count / $totalApplications) * 100;
                         ?>
                         <div class="report-bar-item">
                             <div class="report-bar-heading">
-                                <span>Grade <?= e($grade['grade_level']) ?></span>
+                                <span><?= e($chartLabel) ?></span>
                                 <strong><?= e($count) ?> <span class="report-percent">(<?= e(number_format($percentage, 1)) ?>%)</span></strong>
                             </div>
                             <div class="report-bar-track">
@@ -546,134 +582,8 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 
-    <div class="report-section">
-        <h2>1. Applications by Status (<?= e($selectedYearName) ?>)</h2>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Application Status</th>
-                        <th>Total</th>
-                        <th>Percentage</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($applicationStatuses as $status): ?>
-                        <?php
-                        $total = $statusCounts[$status];
-                        $percentage = $totalApplications > 0
-                            ? ($total / $totalApplications) * 100
-                            : 0;
-                        ?>
-                        <tr>
-                            <td><?= e($status) ?></td>
-                            <td><?= e($total) ?></td>
-                            <td><?= e(number_format($percentage, 1)) ?>%</td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <tr class="report-table-total">
-                        <td>Total Applications</td>
-                        <td><?= e($totalApplications) ?></td>
-                        <td><?= $totalApplications > 0 ? '100%' : '0%' ?></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <?php require __DIR__ . '/../includes/enrollment_report_tables.php'; ?>
 
-    <div class="report-section">
-        <h2>2. Applications by Enrollment Type</h2>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Enrollment Type</th>
-                        <th>Total</th>
-                        <th>Percentage</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($enrollmentTypes as $type): ?>
-                        <?php
-                        $total = $typeCounts[$type];
-                        $percentage = $totalByType > 0
-                            ? ($total / $totalByType) * 100
-                            : 0;
-                        ?>
-                        <tr>
-                            <td><?= e($type) ?></td>
-                            <td><?= e($total) ?></td>
-                            <td><?= e(number_format($percentage, 1)) ?>%</td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <tr class="report-table-total">
-                        <td>Total Applications by Type</td>
-                        <td><?= e($totalByType) ?></td>
-                        <td><?= $totalByType > 0 ? '100%' : '0%' ?></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="report-section">
-        <h2>3. Applications by Requested Grade Level</h2>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Grade Level</th>
-                        <?php foreach ($applicationStatuses as $status): ?>
-                            <th><?= e($status) ?></th>
-                        <?php endforeach; ?>
-                        <th>Total</th>
-                        <th>Share</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($gradeLevels as $grade): ?>
-                        <?php
-                        $gradeId = (int) $grade['grade_level_id'];
-                        $gradeTotal = $gradeTotals[$gradeId] ?? 0;
-                        $gradeShare = $totalApplications > 0
-                            ? ($gradeTotal / $totalApplications) * 100
-                            : 0;
-                        ?>
-                        <tr>
-                            <td>Grade <?= e($grade['grade_level']) ?></td>
-                            <?php foreach ($applicationStatuses as $status): ?>
-                                <td><?= e($gradeCounts[$gradeId][$status] ?? 0) ?></td>
-                            <?php endforeach; ?>
-                            <td><strong><?= e($gradeTotal) ?></strong></td>
-                            <td><?= e(number_format($gradeShare, 1)) ?>%</td>
-                        </tr>
-                    <?php endforeach; ?>
-
-                    <?php if (!$gradeLevels): ?>
-                        <tr>
-                            <td colspan="7">No grade levels found.</td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="report-actions">
-        <a class="button button-primary"
-           href="?school_year_id=<?= e($selectedYearId) ?>&amp;export=csv">
-            Export to Excel (CSV)
-        </a>
-
-        <button type="button" class="button button-secondary" onclick="window.print()">
-            Print / Save as PDF
-        </button>
-    </div>
-
-    <p class="muted" style="margin-top: 14px;">
-        Report school year: <?= e($selectedYearName) ?> (<?= e($selectedYearStatus) ?>).
-        Exported and printed reports use the selected school year.
-    </p>
 </section>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

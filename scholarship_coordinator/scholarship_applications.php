@@ -7,6 +7,10 @@ $pageTitle = 'Scholarship Applications';
 $error = '';
 $success = '';
 $statuses = ['Pending Review', 'For Screening', 'Approved', 'Rejected'];
+$statusFilter = $_GET['status'] ?? '';
+if (!in_array($statusFilter, $statuses, true)) {
+    $statusFilter = '';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -95,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$applicationsQuery = $pdo->query(
+$applicationsQuery = $pdo->prepare(
     'SELECT
         sa.scholarship_application_id,
         sa.application_status,
@@ -114,24 +118,34 @@ $applicationsQuery = $pdo->query(
      INNER JOIN special_programs sp ON sp.program_id = sa.program_id
      INNER JOIN students st ON st.student_id = sa.student_id
      INNER JOIN school_years sy ON sy.school_year_id = sa.school_year_id
-     ORDER BY sa.application_date DESC'
+     ' . ($statusFilter !== '' ? 'WHERE sa.application_status = :status' : '') .
+    ' ORDER BY sa.application_date DESC'
 );
+$applicationsQuery->execute($statusFilter !== '' ? ['status' => $statusFilter] : []);
 
 $applications = $applicationsQuery->fetchAll();
 $documentsByApplication = [];
 
-$documentsQuery = $pdo->query(
-    'SELECT
-        scholarship_application_id,
-        document_name,
-        other_document
-     FROM scholarship_documents
-     ORDER BY scholarship_document_id'
-);
+$documentDataAvailable = true;
+try {
+    $documentsQuery = $pdo->query(
+        'SELECT
+            scholarship_application_id,
+            document_name,
+            other_document
+         FROM scholarship_documents
+         ORDER BY scholarship_document_id'
+    );
 
-foreach ($documentsQuery->fetchAll() as $document) {
-    $applicationId = (int) $document['scholarship_application_id'];
-    $documentsByApplication[$applicationId][] = $document;
+    foreach ($documentsQuery->fetchAll() as $document) {
+        $applicationId = (int) $document['scholarship_application_id'];
+        $documentsByApplication[$applicationId][] = $document;
+    }
+} catch (PDOException $exception) {
+    if ($exception->getCode() !== '42S02') {
+        throw $exception;
+    }
+    $documentDataAvailable = false;
 }
 
 $printReport = isset($_GET['print']);
@@ -160,138 +174,7 @@ if ($printReport || $downloadReport) {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Scholarship Applications Report</title>
-        <style>
-            body {
-                margin: 0;
-                padding: 30px;
-                background: #f3f4f6;
-                color: #222;
-                font-family: Arial, Helvetica, sans-serif;
-            }
-
-            .report-page {
-                max-width: 1050px;
-                margin: 0 auto;
-                padding: 38px;
-                background: #fff;
-                border: 1px solid #ddd;
-            }
-
-            .report-header {
-                padding-bottom: 20px;
-                text-align: center;
-                border-bottom: 3px solid #64152f;
-            }
-
-            .school-name {
-                margin: 0;
-                color: #64152f;
-                font-size: 23px;
-                font-weight: bold;
-                text-transform: uppercase;
-            }
-
-            .school-subtitle {
-                margin: 5px 0 0;
-                font-size: 12px;
-                letter-spacing: 1px;
-            }
-
-            .report-title {
-                margin: 25px 0 15px;
-                text-align: center;
-                font-size: 20px;
-                text-transform: uppercase;
-            }
-
-            .report-meta {
-                display: flex;
-                justify-content: space-between;
-                gap: 12px;
-                margin: 18px 0;
-                font-size: 12px;
-            }
-
-            .application-report-card {
-                margin: 18px 0;
-                padding: 16px;
-                border: 1px solid #ccc;
-                page-break-inside: avoid;
-            }
-
-            .application-report-card h3 {
-                margin: 0 0 5px;
-                color: #64152f;
-                font-size: 16px;
-            }
-
-            .application-report-card table {
-                width: 100%;
-                margin-top: 12px;
-                border-collapse: collapse;
-            }
-
-            .application-report-card th,
-            .application-report-card td {
-                padding: 8px;
-                border: 1px solid #ccc;
-                text-align: left;
-                vertical-align: top;
-                font-size: 11px;
-                overflow-wrap: anywhere;
-            }
-
-            .application-report-card th {
-                width: 27%;
-                background: #f2e9ed;
-                color: #4b1020;
-            }
-
-            .report-footer {
-                margin-top: 25px;
-                padding-top: 12px;
-                border-top: 1px solid #ccc;
-                color: #666;
-                font-size: 10px;
-            }
-
-            .report-actions {
-                max-width: 1050px;
-                margin: 0 auto 15px;
-                text-align: right;
-            }
-
-            .report-actions button {
-                padding: 10px 18px;
-                border: 0;
-                border-radius: 5px;
-                background: #64152f;
-                color: #fff;
-                cursor: pointer;
-            }
-
-            @media print {
-                @page {
-                    size: portrait;
-                    margin: 12mm;
-                }
-
-                body {
-                    padding: 0;
-                    background: #fff;
-                }
-
-                .report-page {
-                    max-width: none;
-                    padding: 0;
-                    border: 0;
-                }
-
-                .report-actions {
-                    display: none;
-                }
-            }
-        </style>
+        <?php require __DIR__ . '/../includes/formal_report_styles.php'; ?>
     </head>
 
     <body>
@@ -441,7 +324,7 @@ if ($printReport || $downloadReport) {
 
                                 <?php else: ?>
 
-                                    No supporting documents selected.
+                                    <?= $documentDataAvailable ? 'No supporting documents selected.' : 'Document information is unavailable in this installation.' ?>
 
                                 <?php endif; ?>
 
@@ -506,7 +389,7 @@ require_once __DIR__ . '/../includes/header.php';
             <div class="scholarship-report-actions">
 
                 <a
-                    href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_applications.php?print=1"
+                    href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_applications.php?<?= e(http_build_query(['print' => 1, 'status' => $statusFilter])) ?>"
                     class="button button-outline scholarship-icon-button"
                     target="_blank"
                     rel="noopener"
@@ -531,7 +414,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </a>
 
                 <a
-                    href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_applications.php?download=1"
+                    href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_applications.php?<?= e(http_build_query(['download' => 1, 'status' => $statusFilter])) ?>"
                     class="button button-primary scholarship-icon-button"
                     title="Download Applications"
                     aria-label="Download Applications"
@@ -574,6 +457,16 @@ require_once __DIR__ . '/../includes/header.php';
         </p>
 
     <?php endif; ?>
+
+    <nav class="application-status-links" aria-label="Scholarship application status">
+        <?php foreach (array_merge([''], $statuses) as $quickStatus): ?>
+            <a class="button <?= $statusFilter === $quickStatus ? 'button-primary' : 'button-outline' ?>"
+               href="?<?= e(http_build_query(['status' => $quickStatus])) ?>"
+               <?= $statusFilter === $quickStatus ? 'aria-current="true"' : '' ?>>
+                <?= e($quickStatus ?: 'All applications') ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
 
     <?php if (!$applications): ?>
 
@@ -827,7 +720,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php else: ?>
 
                             <p class="muted">
-                                No supporting documents selected.
+                                <?= $documentDataAvailable ? 'No supporting documents selected.' : 'Document information is unavailable in this installation.' ?>
                             </p>
 
                         <?php endif; ?>

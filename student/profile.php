@@ -334,7 +334,6 @@ require_once __DIR__ . '/../includes/header.php';
 
 <section class="form-card form-card-wide <?= $isEditing ? 'profile-editing' : '' ?>">
 
-    <p class="eyebrow">Student Information</p>
 
     <h1>My Profile</h1>
 

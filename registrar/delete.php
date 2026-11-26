@@ -10,10 +10,26 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Verify CSRF token.
-if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+$token = $_POST['csrf_token'] ?? null;
+if (!is_string($token) || !verify_csrf_token($token)) {
     http_response_code(403);
     exit('Invalid request. Please refresh the page and try again.');
 }
+
+$returnFilters = [];
+if (is_string($_GET['q'] ?? null) && trim($_GET['q']) !== '') {
+    $returnFilters['q'] = mb_substr(trim($_GET['q']), 0, 100);
+}
+if (in_array($_GET['grade'] ?? null, ['7', '8', '9', '10'], true)) {
+    $returnFilters['grade'] = $_GET['grade'];
+}
+$returnYear = filter_var($_GET['year'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+if ($returnYear) {
+    $returnFilters['year'] = $returnYear;
+}
+$returnToSections = static function (array $result) use ($returnFilters): never {
+    redirect('/registrar/sections.php?' . http_build_query($returnFilters + $result));
+};
 
 // Validate section ID.
 $sectionId = filter_var(
@@ -22,7 +38,7 @@ $sectionId = filter_var(
 );
 
 if (!$sectionId || $sectionId < 1) {
-    redirect('/registrar/sections.php?error=invalid');
+    $returnToSections(['error' => 'invalid']);
 }
 
 $registrar = current_user();
@@ -48,7 +64,7 @@ try {
 
     if (!$section) {
         $pdo->rollBack();
-        redirect('/registrar/sections.php?error=not_found');
+        $returnToSections(['error' => 'not_found']);
     }
 
     /*
@@ -103,7 +119,7 @@ try {
         $pdo->rollBack();
 
         // Keep the message concise in the URL; sections.php can display it.
-        redirect('/registrar/sections.php?error=in_use');
+        $returnToSections(['error' => 'in_use']);
     }
 
     // Record the deletion in the audit log before removing the section.
@@ -140,7 +156,7 @@ try {
 
     $pdo->commit();
 
-    redirect('/registrar/sections.php?deleted=1');
+    $returnToSections(['deleted' => '1']);
 
 } catch (PDOException $exception) {
     if ($pdo->inTransaction()) {
@@ -149,11 +165,11 @@ try {
 
     error_log('Section deletion error: ' . $exception->getMessage());
 
-    if ($exception->getCode() === '23000') {
-        redirect('/registrar/sections.php?error=in_use');
+    if ((int) ($exception->errorInfo[1] ?? 0) === 1451) {
+        $returnToSections(['error' => 'in_use']);
     }
 
-    redirect('/registrar/sections.php?error=delete_failed');
+    $returnToSections(['error' => 'delete_failed']);
 
 } catch (RuntimeException $exception) {
     if ($pdo->inTransaction()) {
@@ -162,6 +178,6 @@ try {
 
     error_log('Section deletion error: ' . $exception->getMessage());
 
-    redirect('/registrar/sections.php?error=delete_failed');
+    $returnToSections(['error' => 'delete_failed']);
 }
 ?>

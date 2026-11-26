@@ -87,7 +87,8 @@ if ($participationFilter !== '') {
 
 if ($search !== '') {
     $where[] = "(
-        s.first_name LIKE :search_first
+        CONCAT_WS(' ', s.first_name, NULLIF(s.middle_name, ''), s.last_name) LIKE :search_full
+        OR s.first_name LIKE :search_first
         OR s.middle_name LIKE :search_middle
         OR s.last_name LIKE :search_last
         OR s.lrn LIKE :search_lrn
@@ -96,6 +97,7 @@ if ($search !== '') {
     )";
 
     $term = '%' . $search . '%';
+    $params['search_full'] = '%' . $search . '%';
     $params['search_first'] = $term;
     $params['search_middle'] = $term;
     $params['search_last'] = $term;
@@ -368,144 +370,10 @@ if ($printReport || $downloadReport) {
     <html lang="en" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Scholar Masterlist</title>
-        <style>
-            body {
-                margin: 0;
-                padding: 28px;
-                background: #f2f3f5;
-                color: #222;
-                font-family: Arial, Helvetica, sans-serif;
-            }
-
-            .report-page {
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 34px;
-                background: #fff;
-                border: 1px solid #ddd;
-            }
-
-            .report-header {
-                text-align: center;
-                padding-bottom: 18px;
-                border-bottom: 3px solid #64152f;
-            }
-
-            .school-name {
-                margin: 0;
-                color: #64152f;
-                font-size: 23px;
-                font-weight: bold;
-                text-transform: uppercase;
-            }
-
-            .school-subtitle {
-                margin: 5px 0 0;
-                font-size: 11px;
-                letter-spacing: 1px;
-            }
-
-            .report-title {
-                margin: 22px 0 8px;
-                text-align: center;
-                color: #333;
-                font-size: 20px;
-                text-transform: uppercase;
-            }
-
-            .report-description {
-                text-align: center;
-                margin: 0;
-                color: #666;
-                font-size: 11px;
-            }
-
-            .report-meta {
-                display: flex;
-                justify-content: space-between;
-                gap: 12px;
-                margin: 18px 0;
-                font-size: 11px;
-            }
-
-            .report-table {
-                width: 100%;
-                border-collapse: collapse;
-                table-layout: fixed;
-            }
-
-            .report-table th,
-            .report-table td {
-                padding: 7px 6px;
-                border: 1px solid #cfd2d8;
-                text-align: left;
-                vertical-align: top;
-                font-size: 9px;
-                overflow-wrap: anywhere;
-            }
-
-            .report-table th {
-                background: #f2e9ed;
-                color: #4b1020;
-                font-weight: bold;
-            }
-
-            .report-table tr {
-                page-break-inside: avoid;
-            }
-
-            .report-footer {
-                margin-top: 20px;
-                padding-top: 10px;
-                border-top: 1px solid #ccc;
-                color: #666;
-                font-size: 9px;
-            }
-
-            .report-actions {
-                max-width: 1200px;
-                margin: 0 auto 14px;
-                text-align: right;
-            }
-
-            .report-actions button {
-                padding: 10px 18px;
-                border: 0;
-                border-radius: 6px;
-                background: #64152f;
-                color: #fff;
-                cursor: pointer;
-            }
-
-            @media print {
-                @page {
-                    size: landscape;
-                    margin: 10mm;
-                }
-
-                body {
-                    padding: 0;
-                    background: #fff;
-                }
-
-                .report-page {
-                    max-width: none;
-                    padding: 0;
-                    border: 0;
-                }
-
-                .report-actions {
-                    display: none;
-                }
-
-                .report-table th,
-                .report-table td {
-                    font-size: 8px;
-                    padding: 5px;
-                }
-            }
-        </style>
+        <?php $formalLandscape = true; ?>
+    <?php require __DIR__ . '/../includes/formal_report_styles.php'; ?>
     </head>
 
     <body>
@@ -551,7 +419,7 @@ if ($printReport || $downloadReport) {
             </div>
 
             <?php if ($filterDescription): ?>
-                <p style="font-size:10px;margin:0 0 12px">
+                <p>
                     <strong>Applied Filters:</strong>
                     <?= e(implode(' | ', $filterDescription)) ?>
                 </p>
@@ -1005,113 +873,116 @@ require_once __DIR__ . '/../includes/header.php';
 
     </div>
 
-    <form method="GET" class="masterlist-filters">
+    <form method="get" class="table-search-form">
+        <div class="table-search-toolbar">
+            <div class="table-search-field">
+                <label class="masterlist-search">Search Scholar
+                            <input
+                                type="search" data-student-suggestions="scholars" data-suggestion-url="<?= BASE_URL ?>/includes/student_suggestions.php"
+                                name="search"
+                                value="<?= e($search) ?>"
+                                placeholder="Student name, LRN, contact number, or program..."
+                            >
+                        </label>
+            </div>
+            <button type="submit" class="button button-primary">Search</button>
+            <details class="table-search-disclosure">
+                <summary class="button button-outline">
+                    Filters<?= ($schoolYearFilter || $programFilter || $gradeFilter || $sectionFilter || $participationFilter !== '') ? ' (active)' : '' ?>
+                </summary>
+                <div class="table-search-panel">
+                    <h3 class="table-search-panel-title">Filter results</h3>
+                    <div class="table-search-fields">
+                        <label>School Year
+                            <select name="school_year">
+                                <option value="">All School Years</option>
 
-        <label>School Year
-            <select name="school_year">
-                <option value="">All School Years</option>
+                                <?php foreach ($schoolYears as $year): ?>
+                                    <option
+                                        value="<?= (int) $year['school_year_id'] ?>"
+                                        <?= $schoolYearFilter === (int) $year['school_year_id'] ? 'selected' : '' ?>
+                                    >
+                                        <?= e($year['school_year']) ?>
+                                    </option>
+                                <?php endforeach; ?>
 
-                <?php foreach ($schoolYears as $year): ?>
-                    <option
-                        value="<?= (int) $year['school_year_id'] ?>"
-                        <?= $schoolYearFilter === (int) $year['school_year_id'] ? 'selected' : '' ?>
-                    >
-                        <?= e($year['school_year']) ?>
-                    </option>
-                <?php endforeach; ?>
+                            </select>
+                        </label>
 
-            </select>
-        </label>
+                        <label>Scholarship Program
+                            <select name="program">
+                                <option value="">All Programs</option>
 
-        <label>Scholarship Program
-            <select name="program">
-                <option value="">All Programs</option>
+                                <?php foreach ($programs as $program): ?>
+                                    <option
+                                        value="<?= (int) $program['program_id'] ?>"
+                                        <?= $programFilter === (int) $program['program_id'] ? 'selected' : '' ?>
+                                    >
+                                        <?= e($program['program_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
 
-                <?php foreach ($programs as $program): ?>
-                    <option
-                        value="<?= (int) $program['program_id'] ?>"
-                        <?= $programFilter === (int) $program['program_id'] ? 'selected' : '' ?>
-                    >
-                        <?= e($program['program_name']) ?>
-                    </option>
-                <?php endforeach; ?>
+                            </select>
+                        </label>
 
-            </select>
-        </label>
+                        <label>Grade Level
+                            <select name="grade">
+                                <option value="">All Grades</option>
 
-        <label>Grade Level
-            <select name="grade">
-                <option value="">All Grades</option>
+                                <?php foreach ($grades as $grade): ?>
+                                    <option
+                                        value="<?= (int) $grade['grade_level_id'] ?>"
+                                        <?= $gradeFilter === (int) $grade['grade_level_id'] ? 'selected' : '' ?>
+                                    >
+                                        Grade <?= e($grade['grade_level']) ?>
+                                    </option>
+                                <?php endforeach; ?>
 
-                <?php foreach ($grades as $grade): ?>
-                    <option
-                        value="<?= (int) $grade['grade_level_id'] ?>"
-                        <?= $gradeFilter === (int) $grade['grade_level_id'] ? 'selected' : '' ?>
-                    >
-                        Grade <?= e($grade['grade_level']) ?>
-                    </option>
-                <?php endforeach; ?>
+                            </select>
+                        </label>
 
-            </select>
-        </label>
+                        <label>Section
+                            <select name="section">
+                                <option value="">All Sections</option>
 
-        <label>Section
-            <select name="section">
-                <option value="">All Sections</option>
+                                <?php foreach ($sections as $section): ?>
+                                    <option
+                                        value="<?= (int) $section['section_id'] ?>"
+                                        <?= $sectionFilter === (int) $section['section_id'] ? 'selected' : '' ?>
+                                    >
+                                        <?= e($section['section_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
 
-                <?php foreach ($sections as $section): ?>
-                    <option
-                        value="<?= (int) $section['section_id'] ?>"
-                        <?= $sectionFilter === (int) $section['section_id'] ? 'selected' : '' ?>
-                    >
-                        <?= e($section['section_name']) ?>
-                    </option>
-                <?php endforeach; ?>
+                            </select>
+                        </label>
 
-            </select>
-        </label>
+                        <label>Scholar Status
+                            <select name="participation">
+                                <option value="">All Active Statuses</option>
 
-        <label>Scholar Status
-            <select name="participation">
-                <option value="">All Active Statuses</option>
+                                <option value="Currently Enrolled" <?= $participationFilter === 'Currently Enrolled' ? 'selected' : '' ?>>
+                                    Currently Enrolled
+                                </option>
 
-                <option value="Currently Enrolled" <?= $participationFilter === 'Currently Enrolled' ? 'selected' : '' ?>>
-                    Currently Enrolled
-                </option>
+                                <option value="Qualified" <?= $participationFilter === 'Qualified' ? 'selected' : '' ?>>
+                                    Qualified
+                                </option>
 
-                <option value="Qualified" <?= $participationFilter === 'Qualified' ? 'selected' : '' ?>>
-                    Qualified
-                </option>
+                                <option value="Not Monitored" <?= $participationFilter === 'Not Monitored' ? 'selected' : '' ?>>
+                                    Not Monitored
+                                </option>
 
-                <option value="Not Monitored" <?= $participationFilter === 'Not Monitored' ? 'selected' : '' ?>>
-                    Not Monitored
-                </option>
-
-            </select>
-        </label>
-
-        <label class="masterlist-search">Search Scholar
-            <input
-                type="search"
-                name="search"
-                value="<?= e($search) ?>"
-                placeholder="Student name, LRN, contact number, or program..."
-            >
-        </label>
-
-        <div class="masterlist-filter-actions">
-            <button type="submit" class="button button-primary">
-                Apply Filters
-            </button>
-
-            <a
-                class="button button-outline"
-                href="<?= e(BASE_URL) ?>/scholarship_coordinator/scholarship_beneficiaries_report.php"
-            >
-                Reset
-            </a>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="table-search-actions">
+                        <button type="submit" class="button button-primary">Apply filters</button>
+                        <a class="button button-outline" href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_beneficiaries_report.php">Clear filters</a>
+                    </div>
+                </div>
+            </details>
         </div>
-
     </form>
 
     <div>
@@ -1325,4 +1196,5 @@ require_once __DIR__ . '/../includes/header.php';
 
 </section>
 
+<script src="<?= BASE_URL ?>/assets/js/student_suggestions.js" defer></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

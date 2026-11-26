@@ -8,96 +8,16 @@ $registrarName = $user['username'] ?? 'Registrar';
 
 $pageTitle = 'Registrar Dashboard';
 
+$dashboardLinks = [
+    ['Student Registration', '/registrar/student_registration.php', 'new-enrollment', 'Create a student portal account at the registrar’s office.'],
+    ['Enrollment Review', '/registrar/enrollment_review.php', 'enrollment', 'Review applications and verify supporting documents.'],
+    ['Student Records', '/registrar/student_records.php', 'student-record', 'Find student profiles, grades, and attendance records.'],
+    ['Section Management', '/registrar/sections.php', 'section', 'Create class sections and organize them by grade.'],
+    ['Enrollment Reports', '/registrar/enrollment_reports.php', 'report', 'View application totals by status, grade, and school year.'],
+    ['Announcements', '/registrar/announcements.php', 'announcement', 'Publish and manage notices for the school community.'],
+];
+$dashboardHeading = 'Welcome, ' . $registrarName;
+
 require_once __DIR__ . '/../includes/header.php';
-?>
-
-<section class="welcome-banner">
-
-    <p class="eyebrow">Registrar Portal</p>
-
-    <h1>Welcome, <?= e($registrarName) ?></h1>
-
-    <p>
-        Manage enrollment applications, verify student documents,
-        maintain student records, and generate enrollment reports.
-    </p>
-
-</section>
-
-<section class="dashboard-grid" aria-label="Registrar services">
-
-    <a
-        class="dashboard-card"
-        href="<?= BASE_URL ?>/registrar/enrollment_review.php"
-    >
-        <span class="card-kicker">01</span>
-        <h2>Enrollment Applications</h2>
-        <p>Review and manage student enrollment applications.</p>
-        <span class="dashboard-card-action">
-            Review Applications <span aria-hidden="true">&rarr;</span>
-        </span>
-    </a>
-
-    <a
-        class="dashboard-card"
-        href="<?= BASE_URL ?>/registrar/enrollment_documents.php"
-    >
-        <span class="card-kicker">02</span>
-        <h2>Document Verification</h2>
-        <p>Review supporting documents and update their verification status.</p>
-        <span class="dashboard-card-action">
-            Verify Documents <span aria-hidden="true">&rarr;</span>
-        </span>
-    </a>
-
-    <a
-        class="dashboard-card"
-        href="<?= BASE_URL ?>/registrar/student_records.php"
-    >
-        <span class="card-kicker">03</span>
-        <h2>Student Records</h2>
-        <p>View and maintain student information and academic records.</p>
-        <span class="dashboard-card-action">
-            View Records <span aria-hidden="true">&rarr;</span>
-        </span>
-    </a>
-
-    <a
-        class="dashboard-card"
-        href="<?= BASE_URL ?>/registrar/sections.php"
-    >
-        <span class="card-kicker">04</span>
-        <h2>Section Management</h2>
-        <p>Manage school sections and their assigned students.</p>
-        <span class="dashboard-card-action">
-            Manage Sections <span aria-hidden="true">&rarr;</span>
-        </span>
-    </a>
-
-    <a
-        class="dashboard-card"
-        href="<?= BASE_URL ?>/registrar/enrollment_reports.php"
-    >
-        <span class="card-kicker">05</span>
-        <h2>Enrollment Reports</h2>
-        <p>Generate and review reports about student enrollment.</p>
-        <span class="dashboard-card-action">
-            View Reports <span aria-hidden="true">&rarr;</span>
-        </span>
-    </a>
-
-    <a
-        class="dashboard-card"
-        href="<?= BASE_URL ?>/registrar/announcements.php"
-    >
-        <span class="card-kicker">06</span>
-        <h2>Announcements</h2>
-        <p>View and manage announcements for the school community.</p>
-        <span class="dashboard-card-action">
-            Manage Announcements <span aria-hidden="true">&rarr;</span>
-        </span>
-    </a>
-
-</section>
-
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+require __DIR__ . '/../includes/dashboard_shortcuts.php';
+require_once __DIR__ . '/../includes/footer.php';

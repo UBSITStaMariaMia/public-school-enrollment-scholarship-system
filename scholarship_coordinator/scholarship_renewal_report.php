@@ -30,8 +30,9 @@ if (in_array($participation, ['Qualified', 'Currently Enrolled', 'Removed'], tru
     $params['participation'] = $participation;
 }
 if ($search !== '') {
-    $where[] = '(s.first_name LIKE :first_name OR s.middle_name LIKE :middle_name OR s.last_name LIKE :last_name OR s.lrn LIKE :lrn)';
+    $where[] = "(CONCAT_WS(' ', s.first_name, NULLIF(s.middle_name, ''), s.last_name) LIKE :full_name OR s.first_name LIKE :first_name OR s.middle_name LIKE :middle_name OR s.last_name LIKE :last_name OR s.lrn LIKE :lrn)";
     $term = '%' . $search . '%';
+    $params['full_name'] = $term;
     $params['first_name'] = $term; $params['middle_name'] = $term;
     $params['last_name'] = $term; $params['lrn'] = $term;
 }
@@ -137,7 +138,6 @@ require_once __DIR__ . '/../includes/header.php';
 
 <section class="form-card form-card-wide renewal-page">
     <div class="renewal-hero">
-        <p class="eyebrow">Scholarship Monitoring</p>
         <h1>Scholarship Renewal Report</h1>
         <p>Track academic performance, behavior, program participation, and renewal decisions for approved scholars.</p>
     </div>
@@ -157,45 +157,60 @@ require_once __DIR__ . '/../includes/header.php';
 
     <div>
         <div class="renewal-section-title"><h2>Find Renewal Records</h2><span class="muted">Use filters to narrow the list</span></div>
-        <form method="GET" class="renewal-filters">
-            <label>School Year
-                <select name="school_year"><option value="">All School Years</option>
-                    <?php foreach ($schoolYears as $year): ?><option value="<?= (int) $year['school_year_id'] ?>" <?= $schoolYear === (int) $year['school_year_id'] ? 'selected' : '' ?>><?= e($year['school_year']) ?></option><?php endforeach; ?>
-                </select>
-            </label>
-            <label>Special Program
-                <select name="program"><option value="">All Programs</option>
-                    <?php foreach ($programs as $item): ?><option value="<?= (int) $item['program_id'] ?>" <?= $program === (int) $item['program_id'] ? 'selected' : '' ?>><?= e($item['program_name']) ?></option><?php endforeach; ?>
-                </select>
-            </label>
-            <label>Grade Level
-                <select name="grade"><option value="">All Grades</option>
-                    <?php foreach ($grades as $item): ?><option value="<?= (int) $item['grade_level_id'] ?>" <?= $grade === (int) $item['grade_level_id'] ? 'selected' : '' ?>>Grade <?= e($item['grade_level']) ?></option><?php endforeach; ?>
-                </select>
-            </label>
-            <label>Section
-                <select name="section"><option value="">All Sections</option>
-                    <?php foreach ($sections as $item): ?><option value="<?= (int) $item['section_id'] ?>" <?= $section === (int) $item['section_id'] ? 'selected' : '' ?>><?= e($item['section_name']) ?></option><?php endforeach; ?>
-                </select>
-            </label>
-            <label>Renewal Eligibility
-                <select name="status"><option value="">All Statuses</option>
-                    <?php foreach (['Eligible', 'Not Eligible', 'Pending', 'Not Monitored'] as $item): ?><option value="<?= e($item) ?>" <?= $status === $item ? 'selected' : '' ?>><?= e($item) ?></option><?php endforeach; ?>
-                </select>
-            </label>
-            <label>Participation Status
-                <select name="participation"><option value="">All Participation</option>
-                    <?php foreach (['Qualified', 'Currently Enrolled', 'Removed'] as $item): ?><option value="<?= e($item) ?>" <?= $participation === $item ? 'selected' : '' ?>><?= e($item) ?></option><?php endforeach; ?>
-                </select>
-            </label>
-            <label class="renewal-search">Search Scholar
-                <input type="search" name="search" value="<?= e($search) ?>" placeholder="Enter student name or LRN">
-            </label>
-            <div class="renewal-filter-actions">
-                <button type="submit" class="button button-primary">Apply Filters</button>
-                <a class="button button-outline" href="<?= e(BASE_URL) ?>/scholarship_coordinator/scholarship_renewal_report.php">Clear Filters</a>
+        <form method="get" class="table-search-form">
+        <div class="table-search-toolbar">
+            <div class="table-search-field">
+                <label class="renewal-search">Search Scholar
+                                <input type="search" data-student-suggestions="scholars" data-suggestion-url="<?= BASE_URL ?>/includes/student_suggestions.php" name="search" value="<?= e($search) ?>" placeholder="Enter student name or LRN">
+                            </label>
             </div>
-        </form>
+            <button type="submit" class="button button-primary">Search</button>
+            <details class="table-search-disclosure">
+                <summary class="button button-outline">
+                    Filters<?= ($schoolYear || $program || $grade || $section || $status !== '' || $participation !== '') ? ' (active)' : '' ?>
+                </summary>
+                <div class="table-search-panel">
+                    <h3 class="table-search-panel-title">Filter results</h3>
+                    <div class="table-search-fields">
+                        <label>School Year
+                            <select name="school_year"><option value="">All School Years</option>
+                                <?php foreach ($schoolYears as $year): ?><option value="<?= (int) $year['school_year_id'] ?>" <?= $schoolYear === (int) $year['school_year_id'] ? 'selected' : '' ?>><?= e($year['school_year']) ?></option><?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label>Special Program
+                            <select name="program"><option value="">All Programs</option>
+                                <?php foreach ($programs as $item): ?><option value="<?= (int) $item['program_id'] ?>" <?= $program === (int) $item['program_id'] ? 'selected' : '' ?>><?= e($item['program_name']) ?></option><?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label>Grade Level
+                            <select name="grade"><option value="">All Grades</option>
+                                <?php foreach ($grades as $item): ?><option value="<?= (int) $item['grade_level_id'] ?>" <?= $grade === (int) $item['grade_level_id'] ? 'selected' : '' ?>>Grade <?= e($item['grade_level']) ?></option><?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label>Section
+                            <select name="section"><option value="">All Sections</option>
+                                <?php foreach ($sections as $item): ?><option value="<?= (int) $item['section_id'] ?>" <?= $section === (int) $item['section_id'] ? 'selected' : '' ?>><?= e($item['section_name']) ?></option><?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label>Renewal Eligibility
+                            <select name="status"><option value="">All Statuses</option>
+                                <?php foreach (['Eligible', 'Not Eligible', 'Pending', 'Not Monitored'] as $item): ?><option value="<?= e($item) ?>" <?= $status === $item ? 'selected' : '' ?>><?= e($item) ?></option><?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label>Participation Status
+                            <select name="participation"><option value="">All Participation</option>
+                                <?php foreach (['Qualified', 'Currently Enrolled', 'Removed'] as $item): ?><option value="<?= e($item) ?>" <?= $participation === $item ? 'selected' : '' ?>><?= e($item) ?></option><?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="table-search-actions">
+                        <button type="submit" class="button button-primary">Apply filters</button>
+                        <a class="button button-outline" href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_renewal_report.php">Clear filters</a>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </form>
     </div>
 
     <div class="renewal-records">
@@ -245,4 +260,5 @@ require_once __DIR__ . '/../includes/header.php';
 
     <p class="renewal-note">Academic performance is considered for the following school year's renewal evaluation. Serious behavior violations may result in removal during the current school year. Removal from a special program and renewal eligibility are recorded separately.</p>
 </section>
+<script src="<?= BASE_URL ?>/assets/js/student_suggestions.js" defer></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

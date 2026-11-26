@@ -90,81 +90,76 @@ require_once __DIR__ . '/../includes/header.php';
 
 <section class="form-card">
 
-    <p class="eyebrow">System Administration</p>
 
     <h1>Teacher and Staff Records</h1>
 
     <p>View school personnel accounts, assigned roles, and available staff profile information.</p>
 
-    <form method="GET" action="" class="student-search-form">
+    <form method="get" class="table-search-form student-search-form">
+        <div class="table-search-toolbar">
+            <div class="table-search-field">
+                <label for="search">Search Personnel</label>
 
-        <div class="student-search-options">
-
-            <label>Search By:</label>
-
-            <div class="student-search-filters">
-
-                <label>
-                    <input type="radio" name="search_by" value="name"
-                        <?= $searchBy === 'name' ? 'checked' : '' ?>>
-                    <span>Name</span>
-                </label>
-
-                <label>
-                    <input type="radio" name="search_by" value="id"
-                        <?= $searchBy === 'id' ? 'checked' : '' ?>>
-                    <span>ID</span>
-                </label>
-
-                <label>
-                    <input type="radio" name="search_by" value="role"
-                        <?= $searchBy === 'role' ? 'checked' : '' ?>>
-                    <span>Role</span>
-                </label>
-
-                <label>
-                    <input type="radio" name="search_by" value="position"
-                        <?= $searchBy === 'position' ? 'checked' : '' ?>>
-                    <span>Position / Department</span>
-                </label>
-
-                <label>
-                    <input type="radio" name="search_by" value="username"
-                        <?= $searchBy === 'username' ? 'checked' : '' ?>>
-                    <span>Username</span>
-                </label>
-
+                <input
+                    type="search"
+                    id="search"
+                    name="search"
+                    value="<?= e($search) ?>"
+                    placeholder="Enter personnel name..."
+                >
             </div>
+            <button type="submit" class="button button-primary">Search</button>
+            <details class="table-search-disclosure">
+                <summary class="button button-outline">
+                    Filters<?= ($searchBy !== 'name') ? ' (active)' : '' ?>
+                </summary>
+                <div class="table-search-panel">
+                    <h3 class="table-search-panel-title">Filter results</h3>
+                    <div class="table-search-fields">
+                        <fieldset class="table-search-mode">
+                            <legend>Search by</legend>
+                        <div class="student-search-filters">
 
+                                        <label>
+                                            <input type="radio" name="search_by" value="name"
+                                                <?= $searchBy === 'name' ? 'checked' : '' ?>>
+                                            <span>Name</span>
+                                        </label>
+
+                                        <label>
+                                            <input type="radio" name="search_by" value="id"
+                                                <?= $searchBy === 'id' ? 'checked' : '' ?>>
+                                            <span>ID</span>
+                                        </label>
+
+                                        <label>
+                                            <input type="radio" name="search_by" value="role"
+                                                <?= $searchBy === 'role' ? 'checked' : '' ?>>
+                                            <span>Role</span>
+                                        </label>
+
+                                        <label>
+                                            <input type="radio" name="search_by" value="position"
+                                                <?= $searchBy === 'position' ? 'checked' : '' ?>>
+                                            <span>Position / Department</span>
+                                        </label>
+
+                                        <label>
+                                            <input type="radio" name="search_by" value="username"
+                                                <?= $searchBy === 'username' ? 'checked' : '' ?>>
+                                            <span>Username</span>
+                                        </label>
+
+                                    </div>
+                        </fieldset>
+                    </div>
+                    <div class="table-search-actions">
+                        <button type="submit" class="button button-primary">Apply filters</button>
+                        <a class="button button-outline" href="<?= BASE_URL ?>/admin/staff_records.php">Clear filters</a>
+                    </div>
+                </div>
+            </details>
         </div>
-
-        <div class="form-group">
-
-            <label for="search">Search Personnel</label>
-
-            <input
-                type="search"
-                id="search"
-                name="search"
-                value="<?= e($search) ?>"
-                placeholder="Enter personnel name..."
-            >
-
-        </div>
-
-        <div class="form-actions">
-
-            <button type="submit" class="button button-primary">
-                Search
-            </button>
-
-            <a href="<?= BASE_URL ?>/admin/staff_records.php"
-               class="button button-outline">
-                Clear
-            </a>
-
-        </div>
-
     </form>
 
 </section>

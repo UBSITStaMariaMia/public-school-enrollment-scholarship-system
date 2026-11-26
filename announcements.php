@@ -51,17 +51,6 @@ require_once __DIR__ . '/includes/header.php';
     }
 
     /*
-     * This public page is intentionally standalone.
-     * Hide the complete shared header and public navigation.
-     */
-    .site-header,
-    .main-sidebar-overlay,
-    #mainSidebar,
-    .menu-toggle {
-        display: none !important;
-    }
-
-    /*
      * header.php opens this shared page container.
      * Let it expand and push the footer to the bottom.
      */
@@ -209,14 +198,14 @@ require_once __DIR__ . '/includes/header.php';
     }
 </style>
 
-<main class="public-announcements-page">
-    <a class="public-announcements-back" href="<?= BASE_URL ?>/index.php">
-        <span aria-hidden="true">&larr;</span>
+<div class="public-announcements-page">
+    <div class="portal-back-row">
+    <a class="portal-back-link" href="<?= BASE_URL ?>/index.php">
         Back to Login
     </a>
+    </div>
 
     <section class="public-announcements-card" aria-labelledby="publicAnnouncementsTitle">
-        <p class="public-announcements-eyebrow">School Updates</p>
         <h1 class="public-announcements-title" id="publicAnnouncementsTitle">
             Public Announcements
         </h1>
@@ -256,6 +245,6 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         <?php endif; ?>
     </section>
-</main>
+</div>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

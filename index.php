@@ -163,7 +163,7 @@ require_once __DIR__ . '/includes/header.php';
 
         <p class="login-register-link">
             Don't have a student account?
-            <a href="<?= BASE_URL ?>/register.php">Register here</a>
+            <a href="<?= BASE_URL ?>/register.php">How to Register?</a>
         </p>
     </section>
 
