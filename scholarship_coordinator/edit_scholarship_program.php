@@ -102,13 +102,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<section class="form-card form-card-wide scholarship-program-card">
+<div class="portal-back-row">
     <a
-        href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_programs.php"
-        class="button button-outline scholarship-back-button"
+    href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_programs.php"
+    class="portal-back-link"
     >
-        &larr; Back to Scholarship Programs
+    Back to Scholarship Programs
     </a>
+</div>
+<section class="form-card form-card-wide scholarship-program-card">
 
     <h1>Edit Scholarship Program</h1>
     <p class="muted">Update the details of this special program.</p>

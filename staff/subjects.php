@@ -337,7 +337,6 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="form-card subject-management-card">
-    <p class="eyebrow">Staff workspace</p>
     <h1>Subject Management</h1>
     <p>Assign and manage student subjects for the active school year.</p>
 

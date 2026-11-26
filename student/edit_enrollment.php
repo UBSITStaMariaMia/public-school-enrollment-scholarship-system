@@ -161,17 +161,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     /* Validate grade level */
-    $validGrade = false;
+    $selectedGrade = null;
 
     foreach ($gradeLevels as $grade) {
         if ((string) $grade['grade_level_id'] === $values['requested_grade_level_id']) {
-            $validGrade = true;
+            $selectedGrade = $grade;
             break;
         }
     }
 
-    if (!$validGrade) {
+    if (!$selectedGrade) {
         $errors[] = 'Select a valid grade level.';
+    } elseif ($values['enrollment_type'] === 'Incoming Grade 7' && (int) $selectedGrade['grade_level'] !== 7) {
+        $errors[] = 'Incoming Grade 7 applications must request Grade 7.';
     }
 
     /* Validate selected supporting document checkboxes */
@@ -340,9 +342,14 @@ require_once __DIR__ . '/../includes/header.php';
 
 
 
+<div class="portal-back-row">
+    <a href="<?= BASE_URL ?>/student/my_applications.php"
+    class="portal-back-link">
+    Back to My Applications
+    </a>
+</div>
 <section class="form-card form-card-wide">
 
-    <p class="eyebrow">Student Services</p>
     <h1>Edit Enrollment Application</h1>
 
     <p class="muted">
@@ -365,10 +372,6 @@ require_once __DIR__ . '/../includes/header.php';
             <?= e($application['application_status']) ?>.
         </div>
 
-        <a href="<?= BASE_URL ?>/student/my_applications.php"
-           class="button button-primary">
-            Back to My Applications
-        </a>
 
     <?php else: ?>
 
@@ -429,7 +432,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <option value="">Select grade level</option>
 
                     <?php foreach ($gradeLevels as $grade): ?>
-                        <option value="<?= (int) $grade['grade_level_id'] ?>"
+                        <option data-grade-level="<?= e($grade['grade_level']) ?>" value="<?= (int) $grade['grade_level_id'] ?>"
                             <?= $values['requested_grade_level_id'] === (string) $grade['grade_level_id'] ? 'selected' : '' ?>>
                             Grade <?= e($grade['grade_level']) ?>
                         </option>
@@ -482,4 +485,5 @@ require_once __DIR__ . '/../includes/header.php';
 
 
 
+<?php require __DIR__ . '/../includes/enrollment_grade_selection.php'; ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -621,7 +621,6 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="form-card">
-    <p class="eyebrow">Administrator workspace</p>
     <h1>Staff Records Management</h1>
 
     <p>
@@ -986,7 +985,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     </td>
 
                                     <td>
-                                        <form method="POST" onsubmit="return confirm('Remove this teacher from the selected section?');">
+                                        <form method="POST" data-confirm-delete="Remove this teacher from the selected section?">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="remove_section">
                                             <input type="hidden" name="user_id" value="<?= (int) $selectedStaff['user_id'] ?>">

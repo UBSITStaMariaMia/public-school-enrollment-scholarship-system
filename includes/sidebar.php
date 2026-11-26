@@ -21,14 +21,25 @@ $sidebarIcons = [
     'applications' => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16v13H4zM7 4h10v3H7z"/><path d="M8 11h8M8 14h5M8 17h7"/></svg>',
     'profile' => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c.6-4 2.9-6 7-6s6.4 2 7 6"/><path d="M18 4.5h2.5M19.25 3.25v2.5"/></svg>',
     'password' => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>',
+    'graduation' => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m2 9 10-5 10 5-10 5zM6 11v6c4 3 8 3 12 0v-6M22 9v6"/></svg>',
+    'shield' => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 4.5 6v5.5c0 4.3 3.3 7.9 7.5 9.5 4.2-1.6 7.5-5.2 7.5-9.5V6zM8.5 11.5l2.5 2.5 4.5-5"/></svg>',
+    'award' => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="9" r="5.5"/><path d="m8 13-2 8 6-3 6 3-2-8m-6-4 1.5 1.5L14 8"/></svg>',
     'logout' => '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 4H5v16h5M14 8l4 4-4 4M8 12h10"/></svg>',
 ];
 
+$sidebarRoleIcon = match ($sidebarRole) {
+    'School Registrar' => 'student-record',
+    'Student' => 'graduation',
+    'Teacher' => 'subject',
+    'System Administrator' => 'shield',
+    'Scholarship Coordinator' => 'award',
+    'Enrollment Committee' => 'users',
+    default => null
+};
+
 $sidebarLinks = [];
 $sidebarHeading = 'Navigation';
-$sidebarSubheading = 'BCNHS Portal';
 $sidebarDisplayName = '';
-$sidebarRoleLabel = $sidebarRole . ' Portal';
 
 if ($sidebarRole === 'Student' && $sidebarUserId > 0) {
     $nameQuery = $pdo->prepare('SELECT first_name, middle_name, last_name FROM students WHERE user_id = :user_id LIMIT 1');
@@ -80,8 +91,8 @@ if ($sidebarRole === 'System Administrator') {
 } elseif ($sidebarRole === 'School Registrar') {
     $sidebarHeading = 'School Registrar';
     $sidebarAdd('Dashboard', '/registrar/dashboard.php', 'dashboard.php', 'dashboard');
+    $sidebarAdd('Student Registration', '/registrar/student_registration.php', 'student_registration.php', 'new-enrollment');
     $sidebarAdd('Enrollment Review', '/registrar/enrollment_review.php', 'enrollment_review.php', 'enrollment');
-    $sidebarAdd('Document Verification', '/registrar/enrollment_documents.php', 'enrollment_documents.php', 'document-check');
     $sidebarAdd('Student Records', '/registrar/student_records.php', 'student_records.php', 'student-record');
     $sidebarAdd('Section Management', '/registrar/sections.php', 'sections.php', 'section');
     $sidebarAdd('Enrollment Reports', '/registrar/enrollment_reports.php', 'enrollment_reports.php', 'report');
@@ -123,73 +134,64 @@ if ($sidebarRole === 'System Administrator') {
     $sidebarAdd('Scholar Masterlist', '/scholarship_coordinator/scholarship_beneficiaries_report.php', 'scholarship_beneficiaries_report.php', 'student-record');
     $sidebarAdd('Renewal Report', '/scholarship_coordinator/scholarship_renewal_report.php', 'scholarship_renewal_report.php', 'report');
     $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
+} else {
+    $sidebarAdd('Home', '/index.php', 'index.php', 'dashboard');
+    $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
+    $sidebarAdd('Log In', '/login.php', 'login.php', 'profile');
+    $sidebarAdd('How to Register?', '/register.php', 'register.php', 'new-enrollment');
 }
+
+$sidebarRelatedPages = [
+    'enrollment_review.php' => ['review_application.php'],
+    'my_applications.php' => ['edit_enrollment.php', 'scholarship_application.php'],
+    'scholarship_programs.php' => ['add_scholarship_program.php', 'edit_scholarship_program.php'],
+    'student_records.php' => ['student_records_report.php'],
+    'staff_records.php' => ['staff_records_report.php'],
+];
 ?>
 
-<aside class="main-sidebar" id="mainSidebar" aria-label="Main navigation menu" aria-hidden="true">
+<aside class="main-sidebar" id="mainSidebar" aria-label="Portal menu" aria-hidden="true" inert>
     <div class="main-sidebar-header sidebar-heading">
-        <div class="sidebar-identity">
-            <?php if ($sidebarUser): ?>
-                <span class="sidebar-avatar" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false">
-                        <circle cx="12" cy="8" r="3.5"></circle>
-                        <path d="M4.5 20c.6-4.1 3.1-6.2 7.5-6.2s6.9 2.1 7.5 6.2"></path>
-                    </svg>
-                </span>
+        <div class="sidebar-role-identity">
+            <?php if ($sidebarRoleIcon): ?>
+                <span class="sidebar-nav-icon sidebar-role-icon" aria-hidden="true"><?= $sidebarIcons[$sidebarRoleIcon] ?></span>
             <?php endif; ?>
-
             <div class="sidebar-identity-text">
                 <h2><?= e($sidebarHeading) ?></h2>
-                <p><?= e($sidebarRoleLabel) ?></p>
+                <?php if ($sidebarUser && $sidebarHeading !== $sidebarRole): ?>
+                    <p><?= e($sidebarRole) ?></p>
+                <?php endif; ?>
             </div>
         </div>
-
+        <button type="button" class="sidebar-compact-toggle" id="sidebarCompactToggle"
+                aria-label="Collapse navigation" title="Collapse navigation"
+                aria-controls="portalNavigationLinks" aria-expanded="true">
+            <span aria-hidden="true">&lsaquo;</span>
+        </button>
         <button type="button" class="main-sidebar-close" id="mainSidebarClose" aria-label="Close navigation menu">&times;</button>
     </div>
 
-    <nav class="main-sidebar-nav" aria-label="<?= e($sidebarRole) ?> navigation">
-        <?php if ($sidebarUser): ?>
-            <p class="sidebar-section-label">Workspace</p>
-
-            <?php foreach ($sidebarLinks as $link): ?>
-                <?php $isActive = in_array($sidebarPage, $link['pages'], true); ?>
-
-                <a href="<?= BASE_URL . $link['url'] ?>" class="sidebar-nav-link <?= $isActive ? 'active' : '' ?>" <?= $isActive ? 'aria-current="page"' : '' ?>>
-                    <span class="sidebar-nav-icon"><?= $sidebarIcons[$link['icon']] ?></span>
-                    <span class="sidebar-nav-text"><?= e($link['label']) ?></span>
-                </a>
-            <?php endforeach; ?>
-
-        <?php else: ?>
-
-            <a href="<?= BASE_URL ?>/index.php" class="sidebar-nav-link">
-                <span class="sidebar-nav-icon"><?= $sidebarIcons['dashboard'] ?></span>
-                <span class="sidebar-nav-text">Home</span>
+    <nav class="main-sidebar-nav" id="portalNavigationLinks" aria-label="Portal navigation">
+        <?php foreach ($sidebarLinks as $link): ?>
+            <?php
+            $sidebarLinkPage = $link['pages'][0];
+            $isCurrentPage = $sidebarPage === $sidebarLinkPage;
+            $isActive = $isCurrentPage || in_array($sidebarPage, $sidebarRelatedPages[$sidebarLinkPage] ?? [], true);
+            ?>
+            <a href="<?= BASE_URL . $link['url'] ?>" class="sidebar-nav-link <?= $isActive ? 'active' : '' ?>"
+               aria-label="<?= e($link['label']) ?>" title="<?= e($link['label']) ?>"
+               <?= $isActive ? 'aria-current="' . ($isCurrentPage ? 'page' : 'location') . '"' : '' ?>>
+                <span class="sidebar-nav-icon"><?= $sidebarIcons[$link['icon']] ?></span>
+                <span class="sidebar-nav-text"><?= e($link['label']) ?></span>
             </a>
-
-            <a href="<?= BASE_URL ?>/announcements.php" class="sidebar-nav-link">
-                <span class="sidebar-nav-icon"><?= $sidebarIcons['announcement'] ?></span>
-                <span class="sidebar-nav-text">Announcements</span>
-            </a>
-
-            <a href="<?= BASE_URL ?>/login.php" class="sidebar-nav-link">
-                <span class="sidebar-nav-icon"><?= $sidebarIcons['profile'] ?></span>
-                <span class="sidebar-nav-text">Log In</span>
-            </a>
-
-            <a href="<?= BASE_URL ?>/register.php" class="sidebar-nav-link">
-                <span class="sidebar-nav-icon"><?= $sidebarIcons['new-enrollment'] ?></span>
-                <span class="sidebar-nav-text">Student Registration</span>
-            </a>
-
-        <?php endif; ?>
+        <?php endforeach; ?>
     </nav>
 
     <?php if ($sidebarUser): ?>
         <div class="main-sidebar-footer">
-            <a href="#" class="nav-logout" data-logout-trigger>
+            <a href="#" class="nav-logout" data-logout-trigger aria-label="Log Out" title="Log Out">
                 <span class="sidebar-nav-icon"><?= $sidebarIcons['logout'] ?></span>
-                <span>Logout</span>
+                <span class="sidebar-nav-text">Log Out</span>
             </a>
         </div>
     <?php endif; ?>

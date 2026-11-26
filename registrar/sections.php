@@ -4,9 +4,23 @@ require_role('School Registrar');
 
 $pageTitle = 'Section Management';
 $error = '';
-$success = '';
+$success = $_SESSION['section_feedback'] ?? '';
+unset($_SESSION['section_feedback']);
 
 $editingSection = null;
+$search = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 100) : '';
+$gradeFilter = $_GET['grade'] ?? '';
+if (!in_array($gradeFilter, ['7', '8', '9', '10'], true)) {
+    $gradeFilter = '';
+}
+$yearFilter = filter_var($_GET['year'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: '';
+$sectionFilters = array_filter(['q' => $search, 'grade' => $gradeFilter, 'year' => $yearFilter]);
+$listPath = BASE_URL . '/registrar/sections.php';
+$listQuery = $sectionFilters ? '?' . http_build_query($sectionFilters) : '';
+$listUrl = $listPath . $listQuery;
+$addUrl = $listPath . '?' . http_build_query($sectionFilters + ['add' => '1']);
+$isAdding = ($_GET['add'] ?? '') === '1';
+$deleteUrl = BASE_URL . '/registrar/delete.php' . ($sectionFilters ? '?' . http_build_query($sectionFilters) : '');
 
 // Display feedback returned by registrar/delete.php.
 if (isset($_GET['deleted']) && $_GET['deleted'] === '1') {
@@ -32,14 +46,15 @@ if (isset($_GET['error'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
+        $token = $_POST['csrf_token'] ?? null;
+        if (!is_string($token) || !verify_csrf_token($token)) {
             throw new RuntimeException('Invalid request. Please refresh the page and try again.');
         }
 
         $action = $_POST['action'] ?? '';
 
         if ($action === 'create' || $action === 'update') {
-            $name = trim($_POST['section_name'] ?? '');
+            $name = is_string($_POST['section_name'] ?? null) ? trim($_POST['section_name']) : '';
             $gradeId = filter_var($_POST['grade_level_id'] ?? null, FILTER_VALIDATE_INT);
             $yearId = filter_var($_POST['school_year_id'] ?? null, FILTER_VALIDATE_INT);
 
@@ -74,7 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'year' => $yearId
                 ]);
 
-                $success = 'Section created successfully.';
+                $_SESSION['section_feedback'] = 'Section created successfully.';
+                redirect('/registrar/sections.php' . $listQuery);
             } else {
                 $sectionId = filter_var($_POST['section_id'] ?? null, FILTER_VALIDATE_INT);
 
@@ -103,78 +119,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'id' => $sectionId
                 ]);
 
-                $success = 'Section updated successfully.';
+                $_SESSION['section_feedback'] = 'Section updated successfully.';
+                redirect('/registrar/sections.php' . $listQuery);
             }
-        } elseif ($action === 'delete') {
-            $sectionId = filter_var($_POST['section_id'] ?? null, FILTER_VALIDATE_INT);
-
-            if (!$sectionId) {
-                throw new RuntimeException('Invalid section selected.');
-            }
-
-            // Confirm the section exists before attempting deletion.
-            $sectionCheck = $pdo->prepare(
-                'SELECT section_id FROM sections WHERE section_id = :id'
-            );
-            $sectionCheck->execute(['id' => $sectionId]);
-
-            if (!$sectionCheck->fetchColumn()) {
-                throw new RuntimeException('The section was not found or has already been deleted.');
-            }
-
-            // Find records in tables that have a foreign key pointing to this section.
-            // This allows us to explain why MySQL prevents deletion instead of failing silently.
-            $referenceQuery = $pdo->prepare(
-                'SELECT TABLE_NAME, COLUMN_NAME
-                 FROM information_schema.KEY_COLUMN_USAGE
-                 WHERE REFERENCED_TABLE_SCHEMA = DATABASE()
-                   AND REFERENCED_TABLE_NAME = :table_name
-                   AND REFERENCED_COLUMN_NAME = :column_name'
-            );
-            $referenceQuery->execute([
-                'table_name' => 'sections',
-                'column_name' => 'section_id'
-            ]);
-
-            $references = $referenceQuery->fetchAll(PDO::FETCH_ASSOC);
-            $blockingRecords = [];
-
-            foreach ($references as $reference) {
-                $tableName = str_replace('`', '``', $reference['TABLE_NAME']);
-                $columnName = str_replace('`', '``', $reference['COLUMN_NAME']);
-
-                $countSql = "SELECT COUNT(*) FROM `{$tableName}` WHERE `{$columnName}` = :section_id";
-                $countQuery = $pdo->prepare($countSql);
-                $countQuery->execute(['section_id' => $sectionId]);
-                $count = (int)$countQuery->fetchColumn();
-
-                if ($count > 0) {
-                    $blockingRecords[] = $reference['TABLE_NAME'] . ' (' . $count . ')';
-                }
-            }
-
-            if ($blockingRecords) {
-                throw new RuntimeException(
-                    'This section cannot be deleted because it is still referenced by: ' .
-                    implode(', ', $blockingRecords) .
-                    '. Reassign or remove those related records first.'
-                );
-            }
-
-            $stmt = $pdo->prepare('DELETE FROM sections WHERE section_id = :id');
-            $stmt->execute(['id' => $sectionId]);
-
-            if ($stmt->rowCount() !== 1) {
-                throw new RuntimeException('The section was not deleted. Please refresh the page and try again.');
-            }
-
-            $success = 'Section deleted successfully.';
         } else {
             throw new RuntimeException('Invalid section action.');
         }
     } catch (PDOException $ex) {
-        if ($ex->getCode() === '23000') {
-            $error = 'The database prevented this change because the section is still being used by related records. Reassign or remove those records first.';
+        if ((int) ($ex->errorInfo[1] ?? 0) === 1062) {
+            $error = 'A section with this name already exists for that grade and school year.';
+        } elseif ($ex->getCode() === '23000') {
+            $error = 'The database prevented this change because the section is still being used by related records.';
         } else {
             $error = 'Unable to complete the section action. Please try again. Details have been recorded in the PHP error log.';
         }
@@ -214,25 +169,70 @@ if ($editId) {
     }
 }
 
-$sections = $pdo->query(
-    'SELECT
-        s.section_id,
-        s.section_name,
-        s.grade_level_id,
-        s.school_year_id,
-        g.grade_level,
-        y.school_year
-     FROM sections s
-     JOIN grade_levels g ON g.grade_level_id = s.grade_level_id
-     JOIN school_years y ON y.school_year_id = s.school_year_id
-     ORDER BY y.school_year_id DESC, g.grade_level_id, s.section_name'
-)->fetchAll(PDO::FETCH_ASSOC);
+$showSectionForm = $isAdding || $editingSection !== null;
+if ($showSectionForm) {
+    $pageTitle = $editingSection ? 'Edit Section' : 'Add Section';
+    $formName = $editingSection['section_name'] ?? '';
+    $formGrade = $editingSection['grade_level_id'] ?? '';
+    $formYear = $editingSection['school_year_id'] ?? $yearFilter;
+    if (!$editingSection && $gradeFilter !== '') {
+        foreach ($grades as $grade) {
+            if ((string) $grade['grade_level'] === $gradeFilter) {
+                $formGrade = $grade['grade_level_id'];
+                break;
+            }
+        }
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $formName = $name ?? $formName;
+        $formGrade = $gradeId ?? $formGrade;
+        $formYear = $yearId ?? $formYear;
+    }
+} else {
+    $conditions = [];
+    $params = [];
+    if ($search !== '') {
+        $conditions[] = "s.section_name LIKE :search ESCAPE '!'";
+        $params['search'] = '%' . strtr($search, ['!' => '!!', '%' => '!%', '_' => '!_']) . '%';
+    }
+    if ($gradeFilter !== '') {
+        $conditions[] = 'g.grade_level = :grade';
+        $params['grade'] = $gradeFilter;
+    }
+    if ($yearFilter !== '') {
+        $conditions[] = 's.school_year_id = :year';
+        $params['year'] = $yearFilter;
+    }
+    $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
+    $sectionsQuery = $pdo->prepare(
+        "SELECT s.section_id, s.section_name, g.grade_level, y.school_year,
+                (SELECT COUNT(*) FROM students st WHERE st.current_section_id = s.section_id) AS assigned_students,
+                EXISTS (SELECT 1 FROM enrollment_applications ea WHERE ea.assigned_section_id = s.section_id) AS has_applications,
+                EXISTS (SELECT 1 FROM teacher_section_assignments tsa WHERE tsa.section_id = s.section_id) AS has_teachers
+         FROM sections s
+         JOIN grade_levels g ON g.grade_level_id = s.grade_level_id
+         JOIN school_years y ON y.school_year_id = s.school_year_id
+         $where
+         ORDER BY y.school_year_id DESC, g.grade_level_id, s.section_name"
+    );
+    $sectionsQuery->execute($params);
+    $sections = $sectionsQuery->fetchAll(PDO::FETCH_ASSOC);
+}
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
+<?php if ($showSectionForm): ?>
+    <div class="portal-back-row">
+        <a class="portal-back-link" href="<?= e($listUrl) ?>">Back to sections</a>
+    </div>
+<?php endif; ?>
 <section class="form-card form-card-wide">
-    <h1>Section Management</h1>
-    <p class="muted">Create and review class sections by grade level and school year.</p>
+    <?php if ($showSectionForm): ?>
+        <h1><?= e($pageTitle) ?></h1>
+    <?php else: ?>
+        <h1>Section Management</h1>
+        <p class="muted">Create and review class sections by grade level and school year.</p>
+    <?php endif; ?>
 
     <?php if ($success): ?>
         <p class="success-message"><?= e($success) ?></p>
@@ -242,34 +242,27 @@ require_once __DIR__ . '/../includes/header.php';
         <p class="error-message"><?= e($error) ?></p>
     <?php endif; ?>
 
-    <?php if ($editingSection): ?>
-        <h2 class="section-edit-heading">Edit Section</h2>
-
-        <form method="post">
+    <?php if ($showSectionForm): ?>
+        <form method="post" class="section-editor">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="action" value="update">
-            <input type="hidden" name="section_id" value="<?= (int)$editingSection['section_id'] ?>">
+            <input type="hidden" name="action" value="<?= $editingSection ? 'update' : 'create' ?>">
+            <?php if ($editingSection): ?>
+                <input type="hidden" name="section_id" value="<?= (int) $editingSection['section_id'] ?>">
+            <?php endif; ?>
 
             <label>
                 Section name
-                <input
-                    name="section_name"
-                    maxlength="100"
-                    value="<?= e($editingSection['section_name']) ?>"
-                    required
-                >
+                <input name="section_name" maxlength="100" value="<?= e($formName) ?>" required>
             </label>
 
             <label>
                 Grade level
                 <select name="grade_level_id" required>
                     <option value="">Select grade</option>
-                    <?php foreach ($grades as $g): ?>
-                        <option
-                            value="<?= (int)$g['grade_level_id'] ?>"
-                            <?= (int)$editingSection['grade_level_id'] === (int)$g['grade_level_id'] ? 'selected' : '' ?>
-                        >
-                            Grade <?= e($g['grade_level']) ?>
+                    <?php foreach ($grades as $grade): ?>
+                        <option value="<?= (int) $grade['grade_level_id'] ?>"
+                                <?= (string) $formGrade === (string) $grade['grade_level_id'] ? 'selected' : '' ?>>
+                            Grade <?= e($grade['grade_level']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -279,63 +272,74 @@ require_once __DIR__ . '/../includes/header.php';
                 School year
                 <select name="school_year_id" required>
                     <option value="">Select school year</option>
-                    <?php foreach ($years as $y): ?>
-                        <option
-                            value="<?= (int)$y['school_year_id'] ?>"
-                            <?= (int)$editingSection['school_year_id'] === (int)$y['school_year_id'] ? 'selected' : '' ?>
-                        >
-                            <?= e($y['school_year']) ?><?= $y['status'] === 'Active' ? ' (Active)' : '' ?>
+                    <?php foreach ($years as $year): ?>
+                        <option value="<?= (int) $year['school_year_id'] ?>"
+                                <?= (string) $formYear === (string) $year['school_year_id'] ? 'selected' : '' ?>>
+                            <?= e($year['school_year']) ?><?= $year['status'] === 'Active' ? ' (Active)' : '' ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
             </label>
 
             <div class="section-form-actions">
-                <button class="button button-primary" type="submit">Save Changes</button>
-                <a class="button button-secondary" href="<?= e(BASE_URL) ?>/registrar/sections.php">Cancel</a>
+                <button class="button button-primary" type="submit"><?= $editingSection ? 'Save Changes' : 'Add Section' ?></button>
+                <a class="button button-outline" href="<?= e($listUrl) ?>">Cancel</a>
             </div>
         </form>
     <?php else: ?>
-        <h2>Add Section</h2>
 
-        <form method="post">
-            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="action" value="create">
+    <div class="portal-list-toolbar">
+        <h2>Existing Sections</h2>
+        <a class="button button-primary portal-add-action" href="<?= e($addUrl) ?>"><span class="portal-add-icon" aria-hidden="true">+</span>Add Section</a>
+    </div>
 
-            <label>
-                Section name
-                <input name="section_name" maxlength="100" required>
-            </label>
+    <nav class="application-status-links" aria-label="Filter sections by grade">
+        <?php foreach (['', '7', '8', '9', '10'] as $tabGrade): ?>
+            <?php
+            $tabFilters = $sectionFilters;
+            $tabFilters['grade'] = $tabGrade;
+            ?>
+            <a class="button <?= $gradeFilter === $tabGrade ? 'button-primary' : 'button-outline' ?>"
+               href="<?= e($listPath . '?' . http_build_query($tabFilters)) ?>#section-results"
+               <?= $gradeFilter === $tabGrade ? 'aria-current="true"' : '' ?>>
+                <?= e($tabGrade === '' ? 'All grades' : 'Grade ' . $tabGrade) ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
 
-            <label>
-                Grade level
-                <select name="grade_level_id" required>
-                    <option value="">Select grade</option>
-                    <?php foreach ($grades as $g): ?>
-                        <option value="<?= (int)$g['grade_level_id'] ?>">
-                            Grade <?= e($g['grade_level']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
+    <form method="get" class="table-search-form" action="<?= e($listPath) ?>#section-results">
+        <input type="hidden" name="grade" value="<?= e($gradeFilter) ?>">
+        <div class="table-search-toolbar">
+            <div class="table-search-field">
+                <label for="section-search">Search section name</label>
+                <input type="search" name="q" id="section-search" maxlength="100" value="<?= e($search) ?>">
+            </div>
+            <button class="button button-primary" type="submit">Search</button>
+            <details class="table-search-disclosure">
+                <summary class="button button-outline">Filters<?= $yearFilter !== '' ? ' (active)' : '' ?></summary>
+                <div class="table-search-panel">
+                    <h3 class="table-search-panel-title">Filter results</h3>
+                    <label>School year
+                        <select name="year">
+                            <option value="">All school years</option>
+                            <?php foreach ($years as $year): ?>
+                                <option value="<?= (int) $year['school_year_id'] ?>"
+                                        <?= $yearFilter === (int) $year['school_year_id'] ? 'selected' : '' ?>>
+                                    <?= e($year['school_year']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <div class="table-search-actions">
+                        <button class="button button-primary" type="submit">Apply filters</button>
+                        <a class="button button-outline" href="<?= e($listPath . '?' . http_build_query(['grade' => $gradeFilter])) ?>#section-results">Clear filters</a>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </form>
 
-            <label>
-                School year
-                <select name="school_year_id" required>
-                    <option value="">Select school year</option>
-                    <?php foreach ($years as $y): ?>
-                        <option value="<?= (int)$y['school_year_id'] ?>">
-                            <?= e($y['school_year']) ?><?= $y['status'] === 'Active' ? ' (Active)' : '' ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-
-            <button class="button button-primary" type="submit">Add Section</button>
-        </form>
-    <?php endif; ?>
-
-    <h2>Existing Sections</h2>
+    <p class="muted" id="section-results"><?= count($sections) ?> <?= count($sections) === 1 ? 'section' : 'sections' ?> found</p>
 
     <div class="table-responsive">
         <table>
@@ -344,6 +348,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <th>Section</th>
                     <th>Grade</th>
                     <th>School Year</th>
+                    <th class="portal-table-number">Students assigned</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -354,24 +359,32 @@ require_once __DIR__ . '/../includes/header.php';
                         <td><?= e($row['section_name']) ?></td>
                         <td><?= e($row['grade_level']) ?></td>
                         <td><?= e($row['school_year']) ?></td>
+                        <td class="portal-table-number"><?= number_format((int) $row['assigned_students']) ?></td>
                         <td>
                             <div class="section-row-actions">
                                 <a
                                     class="button button-outline"
-                                    href="<?= e(BASE_URL) ?>/registrar/sections.php?edit=<?= (int)$row['section_id'] ?>"
+                                    href="<?= e($listPath . '?' . http_build_query($sectionFilters + ['edit' => (int) $row['section_id']])) ?>"
                                 >
                                     Edit
                                 </a>
 
-                                <form
-                                    method="post"
-                                    action="<?= e(BASE_URL) ?>/registrar/delete.php"
-                                    onsubmit="return confirm('Are you sure you want to delete this section? Sections assigned to students or other records cannot be deleted.');"
-                                >
-                                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                    <input type="hidden" name="section_id" value="<?= (int)$row['section_id'] ?>">
-                                    <button class="button button-secondary" type="submit">Delete</button>
-                                </form>
+                                <?php
+                                $usedBy = [];
+                                if ($row['assigned_students']) $usedBy[] = 'student records';
+                                if ($row['has_applications']) $usedBy[] = 'enrollment applications';
+                                if ($row['has_teachers']) $usedBy[] = 'teacher assignments';
+                                ?>
+                                <?php if ($usedBy): ?>
+                                    <span class="muted section-in-use">In use by <?= e(implode(', ', $usedBy)) ?></span>
+                                <?php else: ?>
+                                    <form method="post" action="<?= e($deleteUrl) ?>"
+                                          data-confirm-delete="Delete <?= e($row['section_name']) ?> (Grade <?= e($row['grade_level']) ?>, <?= e($row['school_year']) ?>)? This action cannot be undone.">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="section_id" value="<?= (int) $row['section_id'] ?>">
+                                        <button class="button button-outline" type="submit">Delete</button>
+                                    </form>
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
@@ -379,15 +392,36 @@ require_once __DIR__ . '/../includes/header.php';
 
                 <?php if (!$sections): ?>
                     <tr>
-                        <td colspan="4">No sections have been created.</td>
+                        <td colspan="5">No sections match your search and filters.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
+    <?php endif; ?>
 </section>
 
 <style>
+.section-editor {
+    display: grid;
+    gap: 14px;
+    max-width: 440px;
+    margin-top: 18px;
+}
+
+.section-editor label {
+    display: grid;
+    gap: 5px;
+}
+
+#section-results {
+    scroll-margin-top: 110px;
+}
+
+.section-in-use {
+    font-size: .9rem;
+}
+
 .section-row-actions,
 .section-form-actions {
     display: flex;

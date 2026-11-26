@@ -264,9 +264,10 @@ require_once __DIR__ . '/../includes/header.php';
 @media (max-width: 700px) { .scholarship-program-list, .scholarship-profile-summary { grid-template-columns: 1fr; } }
 </style>
 
+<div class="portal-back-row">
+    <a href="<?= BASE_URL ?>/student/dashboard.php" class="portal-back-link">Back to Dashboard</a>
+</div>
 <section class="form-card form-card-wide">
-    <a href="<?= BASE_URL ?>/student/dashboard.php" class="button button-outline applications-back-button">&larr; Back to Dashboard</a>
-    <p class="eyebrow">Student Services</p>
     <h1>Special Program Scholarship Application</h1>
     <p class="muted scholarship-intro">
         Apply for one of the BCNHS special program scholarships. Your existing student information is retrieved from your student record, so you do not need to enter it again.

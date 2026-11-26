@@ -73,8 +73,9 @@ try {
         $params['status'] = $statusFilter;
     }
     if ($search !== '') {
-        $conditions[] = '(sr.recipient_name LIKE :recipient OR st.first_name LIKE :first_name OR st.last_name LIKE :last_name OR st.lrn LIKE :lrn)';
+        $conditions[] = "(CONCAT_WS(' ', st.first_name, NULLIF(st.middle_name, ''), st.last_name) LIKE :full_name OR sr.recipient_name LIKE :recipient OR st.first_name LIKE :first_name OR st.last_name LIKE :last_name OR st.lrn LIKE :lrn)";
         $term = '%' . $search . '%';
+        $params['full_name'] = $term;
         $params['recipient'] = $term;
         $params['first_name'] = $term;
         $params['last_name'] = $term;
@@ -103,7 +104,7 @@ require_once __DIR__ . '/../includes/header.php';
 .stipend-stat{padding:20px;border:1px solid #e1e5ec;border-top:4px solid #6b1c38;border-radius:12px}.stipend-stat:nth-child(2){border-top-color:#16845b}.stipend-stat:nth-child(3){border-top-color:#c18420}.stipend-stat:nth-child(4){border-top-color:#64748b}
 .stipend-stat span{display:block;color:#667085;font-size:.9rem}.stipend-stat strong{display:block;margin-top:8px;color:#56172f;font-size:1.55rem}
 .stipend-panel{padding:22px;margin:22px 0;border:1px solid #e1e5ec;border-radius:14px;background:#fafbfc}.stipend-panel h2{margin:0 0 16px;color:#56172f;font-size:1.25rem}
-.stipend-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.stipend-form-grid label,.stipend-filter-grid label{display:flex;flex-direction:column;gap:7px;font-weight:600;color:#344054}.stipend-page input,.stipend-page select,.stipend-page textarea{width:100%;min-height:42px;padding:9px 11px;border:1px solid #cfd5df;border-radius:8px;background:#fff;font:inherit}.stipend-page textarea{min-height:74px;resize:vertical}.stipend-wide{grid-column:span 2}.stipend-actions{display:flex;justify-content:flex-end;align-items:end}.stipend-page button{padding:11px 20px;border:0;border-radius:9px;background:#681b39;color:#fff;font-weight:700;cursor:pointer}.stipend-filter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:end}.stipend-filter-actions{display:flex;gap:10px}.stipend-reset{display:inline-flex;align-items:center;justify-content:center;padding:10px 17px;border:1px solid #681b39;border-radius:9px;color:#681b39;text-decoration:none;font-weight:700;background:#fff}
+.stipend-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.stipend-form-grid label,.stipend-filter-grid label{display:flex;flex-direction:column;gap:7px;font-weight:600;color:#344054}.stipend-page input,.stipend-page select,.stipend-page textarea{width:100%;min-height:42px;padding:9px 11px;border:1px solid #cfd5df;border-radius:8px;background:#fff;font:inherit}.stipend-page textarea{min-height:74px}.stipend-wide{grid-column:span 2}.stipend-actions{display:flex;justify-content:flex-end;align-items:end}.stipend-page button{padding:11px 20px;border:0;border-radius:9px;background:#681b39;color:#fff;font-weight:700;cursor:pointer}.stipend-filter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:end}.stipend-filter-actions{display:flex;gap:10px}.stipend-reset{display:inline-flex;align-items:center;justify-content:center;padding:10px 17px;border:1px solid #681b39;border-radius:9px;color:#681b39;text-decoration:none;font-weight:700;background:#fff}
 .stipend-table-wrap{width:100%;overflow-x:auto;border:1px solid #e1e5ec;border-radius:12px}.stipend-page table{width:100%;min-width:920px;border-collapse:collapse}.stipend-page th{padding:14px;text-align:left;background:#f7edf1;color:#56172f;white-space:nowrap}.stipend-page td{padding:13px 14px;border-top:1px solid #edf0f4;vertical-align:top}.stipend-page tbody tr:hover{background:#fcf8fa}.stipend-muted{display:block;color:#667085;font-size:.86rem;margin-top:3px}.stipend-status{display:inline-block;padding:5px 10px;border-radius:20px;background:#f1f3f5;color:#475467;font-size:.82rem;font-weight:700;white-space:nowrap}.stipend-status.claimed{background:#e8f5ee;color:#167348}.stipend-status.pending{background:#fff4df;color:#946200}.stipend-status.unclaimed{background:#fcebea;color:#a3332b}.stipend-empty{padding:30px!important;text-align:center;color:#667085}
 .stipend-alert{padding:12px 15px;margin:14px 0;border-radius:9px}.stipend-alert.success{background:#eaf6ef;color:#176b42}.stipend-alert.error{background:#fff0ef;color:#a12e28}.stipend-note{margin:0 0 18px;color:#667085;font-size:.92rem}
 @media(max-width:900px){.stipend-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stipend-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stipend-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -152,16 +153,34 @@ require_once __DIR__ . '/../includes/header.php';
 
     <section>
         <h2 style="color:#56172f;margin-bottom:14px">Stipend History</h2>
-        <form method="get" class="stipend-panel stipend-filter-grid">
-            <label>Special Program
-                <select name="program"><option value="">All Programs</option><?php foreach ($programs as $program): ?><option value="<?= (int) $program['program_id'] ?>" <?= $programFilter === (int) $program['program_id'] ? 'selected' : '' ?>><?= e($program['program_name']) ?></option><?php endforeach; ?></select>
-            </label>
-            <label>Claiming Status
-                <select name="status"><option value="">All Statuses</option><?php foreach ($validStatuses as $status): ?><option value="<?= e($status) ?>" <?= $statusFilter === $status ? 'selected' : '' ?>><?= e($status) ?></option><?php endforeach; ?></select>
-            </label>
-            <label>Search Recipient / Student<input type="search" name="search" value="<?= e($search) ?>" placeholder="Name or LRN"></label>
-            <div class="stipend-filter-actions"><button type="submit">Apply Filters</button><a class="stipend-reset" href="stipend_records.php">Reset</a></div>
-        </form>
+        <form method="get" class="table-search-form">
+        <div class="table-search-toolbar">
+            <div class="table-search-field">
+                <label>Search Recipient / Student<input type="search" data-student-suggestions="stipends" data-suggestion-url="<?= BASE_URL ?>/includes/student_suggestions.php" name="search" value="<?= e($search) ?>" placeholder="Name or LRN"></label>
+            </div>
+            <button type="submit" class="button button-primary">Search</button>
+            <details class="table-search-disclosure">
+                <summary class="button button-outline">
+                    Filters<?= ($programFilter || $statusFilter !== '') ? ' (active)' : '' ?>
+                </summary>
+                <div class="table-search-panel">
+                    <h3 class="table-search-panel-title">Filter results</h3>
+                    <div class="table-search-fields">
+                        <label>Special Program
+                            <select name="program"><option value="">All Programs</option><?php foreach ($programs as $program): ?><option value="<?= (int) $program['program_id'] ?>" <?= $programFilter === (int) $program['program_id'] ? 'selected' : '' ?>><?= e($program['program_name']) ?></option><?php endforeach; ?></select>
+                        </label>
+                        <label>Claiming Status
+                            <select name="status"><option value="">All Statuses</option><?php foreach ($validStatuses as $status): ?><option value="<?= e($status) ?>" <?= $statusFilter === $status ? 'selected' : '' ?>><?= e($status) ?></option><?php endforeach; ?></select>
+                        </label>
+                    </div>
+                    <div class="table-search-actions">
+                        <button type="submit" class="button button-primary">Apply filters</button>
+                        <a class="button button-outline" href="<?= BASE_URL ?>/scholarship_coordinator/stipend_records.php">Clear filters</a>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </form>
 
         <div class="stipend-table-wrap">
             <table>
@@ -187,4 +206,5 @@ require_once __DIR__ . '/../includes/header.php';
     </section>
 </main>
 
+<script src="<?= BASE_URL ?>/assets/js/student_suggestions.js" defer></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -119,6 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$selectedGrade) {
         $errors[] = 'Select a valid grade level.';
+    } elseif ($values['enrollment_type'] === 'Incoming Grade 7' && (int) $selectedGrade['grade_level'] !== 7) {
+        $errors[] = 'Incoming Grade 7 applications must request Grade 7.';
     }
 
     /* Validate scholarship selection */
@@ -284,14 +286,15 @@ require_once __DIR__ . '/../includes/header.php';
 
 
 
+<div class="portal-back-row">
+    <a href="<?= BASE_URL ?>/student/dashboard.php"
+    class="portal-back-link">
+    Back to Dashboard
+    </a>
+</div>
 <section class="form-card form-card-wide">
 
-    <a href="<?= BASE_URL ?>/student/dashboard.php"
-       class="button button-outline applications-back-button">
-        &larr; Back to Dashboard
-    </a>
 
-    <p class="eyebrow">Student Services</p>
     <h1>New Enrollment</h1>
 
     <p class="muted">
@@ -387,7 +390,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <option value="">Select grade level</option>
 
                 <?php foreach ($gradeLevels as $grade): ?>
-                    <option value="<?= (int) $grade['grade_level_id'] ?>"
+                    <option data-grade-level="<?= e($grade['grade_level']) ?>" value="<?= (int) $grade['grade_level_id'] ?>"
                         <?= $values['requested_grade_level_id'] === (string) $grade['grade_level_id'] ? 'selected' : '' ?>>
                         Grade <?= e($grade['grade_level']) ?>
                     </option>
@@ -520,4 +523,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
+<?php require __DIR__ . '/../includes/enrollment_grade_selection.php'; ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

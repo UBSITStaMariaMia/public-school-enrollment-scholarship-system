@@ -567,7 +567,6 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="form-card">
-    <p class="eyebrow">Staff workspace</p>
     <h1>Student Records Management</h1>
 
     <p>

@@ -11,10 +11,6 @@ $user = current_user();
 
 $isAdmin = true;
 
-$success = $_SESSION['records_success'] ?? '';
-
-unset($_SESSION['records_success']);
-
 $error = '';
 
 $gradingPeriods = [
@@ -41,15 +37,20 @@ $activeSchoolYear = $pdo->query(
 
 )->fetch();
 
-$selectedStudentId = filter_input(
-
-    INPUT_GET,
-
-    'student_id',
-
-    FILTER_VALIDATE_INT
-
+$selectedStudentId = filter_var(
+    $_GET['student_id'] ?? null,
+    FILTER_VALIDATE_INT,
+    ['options' => ['min_range' => 1]]
 );
+
+$showStudentRecord = $selectedStudentId !== false;
+$isAttendanceHistory = $showStudentRecord && ($_GET['view'] ?? '') === 'attendance';
+$recordExport = $_GET['record_export'] ?? '';
+$attendancePage = filter_var($_GET['attendance_page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
+$attendancePageSize = 30;
+if ($showStudentRecord) {
+    $pageTitle = $isAttendanceHistory ? 'Attendance History' : 'Student Record';
+}
 
 $getAccessibleStudent = function (int $studentId) use (
 
@@ -181,410 +182,98 @@ $getAccessibleStudent = function (int $studentId) use (
 
 };
 
+$gradeLevels = [7, 8, 9, 10];
+$gradeFilter = is_string($_GET['grade'] ?? null) ? $_GET['grade'] : '';
+if (!in_array($gradeFilter, ['7', '8', '9', '10', 'unassigned'], true)) {
+    $gradeFilter = '';
+}
+$sectionFilter = filter_var($_GET['section'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: '';
+$search = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 150) : '';
+$page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
+$perPage = 10;
+$totalPages = 1;
+$filteredCount = 0;
+$sections = [];
 $students = [];
 
 if ($activeSchoolYear) {
-
-    if ($isAdmin) {
-
-        $studentQuery = $pdo->prepare(
-
-            "SELECT
-
-                s.student_id,
-
-                s.lrn,
-
-                s.first_name,
-
-                s.middle_name,
-
-                s.last_name,
-
-                g.grade_level,
-
-                sec.section_name
-
-             FROM students s
-
-             LEFT JOIN grade_levels g
-
-                ON g.grade_level_id = s.current_grade_level_id
-
-             LEFT JOIN sections sec
-
-                ON sec.section_id = s.current_section_id
-
-             ORDER BY s.last_name, s.first_name"
-
-        );
-
-        $studentQuery->execute();
-
-    } else {
-
-        $studentQuery = $pdo->prepare(
-
-            "SELECT
-
-                s.student_id,
-
-                s.lrn,
-
-                s.first_name,
-
-                s.middle_name,
-
-                s.last_name,
-
-                g.grade_level,
-
-                sec.section_name
-
-             FROM students s
-
-             INNER JOIN sections sec
-
-                ON sec.section_id = s.current_section_id
-
-             INNER JOIN teacher_section_assignments tsa
-
-                ON tsa.section_id = sec.section_id
-
-             INNER JOIN grade_levels g
-
-                ON g.grade_level_id = s.current_grade_level_id
-
-             WHERE tsa.teacher_user_id = :teacher_user_id
-
-             AND tsa.school_year_id = :school_year_id
-
-             AND sec.school_year_id = :section_year_id
-
-             ORDER BY s.last_name, s.first_name"
-
-        );
-
-        $studentQuery->execute([
-
-            'teacher_user_id' => $user['user_id'],
-
-            'school_year_id' => $activeSchoolYear['school_year_id'],
-
-            'section_year_id' => $activeSchoolYear['school_year_id']
-
-        ]);
-
+    $yearId = (int) $activeSchoolYear['school_year_id'];
+    $sectionQuery = $pdo->prepare(
+        'SELECT sec.section_id, sec.section_name, g.grade_level
+         FROM sections sec
+         JOIN grade_levels g ON g.grade_level_id = sec.grade_level_id
+         WHERE sec.school_year_id = :school_year_id
+         ORDER BY g.grade_level_id, sec.section_name'
+    );
+    $sectionQuery->execute(['school_year_id' => $yearId]);
+    $sections = $sectionQuery->fetchAll();
+    $sectionsById = array_column($sections, null, 'section_id');
+    if ($sectionFilter !== '' && (
+        !isset($sectionsById[$sectionFilter])
+        || ($gradeFilter !== '' && $gradeFilter !== (string) $sectionsById[$sectionFilter]['grade_level'])
+    )) {
+        $sectionFilter = '';
     }
 
-    $students = $studentQuery->fetchAll();
-
-}
-
-$studentsJson = json_encode(
-
-    $students,
-
-    JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT
-
-);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $action = $_POST['action'] ?? '';
-
-    $postedStudentId = filter_var(
-
-        $_POST['student_id'] ?? null,
-
-        FILTER_VALIDATE_INT
-
-    );
-
-    if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
-
-        $error = 'Invalid request. Please refresh the page.';
-
-    } elseif (!$activeSchoolYear) {
-
-        $error = 'There is no active school year.';
-
-    } elseif (!$postedStudentId) {
-
-        $error = 'Please select a valid student.';
-
-    } else {
-
-        $selectedStudentId = $postedStudentId;
-
-        $studentForAction = $getAccessibleStudent($postedStudentId);
-
-        if (!$studentForAction) {
-
-            $error = 'You do not have permission to manage records for this student.';
-
-        } else {
-
-            try {
-
-                $subjectId = filter_var(
-
-                    $_POST['subject_id'] ?? null,
-
-                    FILTER_VALIDATE_INT
-
-                );
-
-                if (!$subjectId) {
-
-                    throw new RuntimeException('Please select a valid subject.');
-
-                }
-
-                $subjectCheck = $pdo->prepare(
-
-                    "SELECT sub.subject_id
-
-                     FROM student_subject_enrollments sse
-
-                     INNER JOIN subjects sub
-
-                        ON sub.subject_id = sse.subject_id
-
-                     WHERE sse.student_id = :student_id
-
-                     AND sse.subject_id = :subject_id
-
-                     AND sse.school_year_id = :school_year_id
-
-                     AND sse.enrollment_status = 'Enrolled'
-
-                     AND sub.grade_level_id = (
-
-                         SELECT current_grade_level_id
-
-                         FROM students
-
-                         WHERE student_id = :grade_student_id
-
-                     )
-
-                     LIMIT 1"
-
-                );
-
-                $subjectCheck->execute([
-
-                    'student_id' => $postedStudentId,
-
-                    'subject_id' => $subjectId,
-
-                    'school_year_id' => $activeSchoolYear['school_year_id'],
-
-                    'grade_student_id' => $postedStudentId
-
-                ]);
-
-                if (!$subjectCheck->fetch()) {
-
-                    throw new RuntimeException(
-
-                        'This subject is not currently assigned to the selected student.'
-
-                    );
-
-                }
-
-                if ($action === 'save_grade') {
-
-                    $gradingPeriod = $_POST['grading_period'] ?? '';
-
-                    $gradeInput = trim($_POST['grade'] ?? '');
-
-                    $remarks = trim($_POST['remarks'] ?? '');
-
-                    if (!in_array($gradingPeriod, $gradingPeriods, true)) {
-
-                        throw new RuntimeException('Please select a valid grading period.');
-
-                    }
-
-                    if (
-
-                        $gradeInput === '' ||
-
-                        !is_numeric($gradeInput) ||
-
-                        (float) $gradeInput < 0 ||
-
-                        (float) $gradeInput > 100
-
-                    ) {
-
-                        throw new RuntimeException(
-
-                            'Grade must be a number between 0 and 100.'
-
-                        );
-
-                    }
-
-                    $grade = round((float) $gradeInput, 2);
-
-                    $existingGradeQuery = $pdo->prepare(
-
-                        "SELECT record_id
-
-                         FROM academic_records
-
-                         WHERE student_id = :student_id
-
-                         AND subject_id = :subject_id
-
-                         AND school_year_id = :school_year_id
-
-                         AND grading_period = :grading_period
-
-                         ORDER BY record_id DESC
-
-                         LIMIT 1"
-
-                    );
-
-                    $existingGradeQuery->execute([
-
-                        'student_id' => $postedStudentId,
-
-                        'subject_id' => $subjectId,
-
-                        'school_year_id' => $activeSchoolYear['school_year_id'],
-
-                        'grading_period' => $gradingPeriod
-
-                    ]);
-
-                    $existingGrade = $existingGradeQuery->fetch();
-
-                    if ($existingGrade) {
-
-                        $saveGrade = $pdo->prepare(
-
-                            "UPDATE academic_records
-
-                             SET grade = :grade,
-
-                                 remarks = :remarks,
-
-                                 recorded_by = :recorded_by
-
-                             WHERE record_id = :record_id"
-
-                        );
-
-                        $saveGrade->execute([
-
-                            'grade' => $grade,
-
-                            'remarks' => $remarks !== '' ? $remarks : null,
-
-                            'recorded_by' => $user['user_id'],
-
-                            'record_id' => $existingGrade['record_id']
-
-                        ]);
-
-                    } else {
-
-                        $saveGrade = $pdo->prepare(
-
-                            "INSERT INTO academic_records
-
-                                (
-
-                                    student_id,
-
-                                    subject_id,
-
-                                    school_year_id,
-
-                                    grading_period,
-
-                                    grade,
-
-                                    remarks,
-
-                                    recorded_by
-
-                                )
-
-                             VALUES
-
-                                (
-
-                                    :student_id,
-
-                                    :subject_id,
-
-                                    :school_year_id,
-
-                                    :grading_period,
-
-                                    :grade,
-
-                                    :remarks,
-
-                                    :recorded_by
-
-                                )"
-
-                        );
-
-                        $saveGrade->execute([
-
-                            'student_id' => $postedStudentId,
-
-                            'subject_id' => $subjectId,
-
-                            'school_year_id' => $activeSchoolYear['school_year_id'],
-
-                            'grading_period' => $gradingPeriod,
-
-                            'grade' => $grade,
-
-                            'remarks' => $remarks !== '' ? $remarks : null,
-
-                            'recorded_by' => $user['user_id']
-
-                        ]);
-
-                    }
-
-                    $_SESSION['records_success'] = 'Grade saved successfully.';
-
-                    redirect('/registrar/student_records.php?student_id=' . $postedStudentId);
-
-                } else {
-
-                    throw new RuntimeException('Invalid action.');
-
-                }
-
-            } catch (RuntimeException $exception) {
-
-                $error = $exception->getMessage();
-
-            } catch (PDOException $exception) {
-
-                error_log('Registrar records error: ' . $exception->getMessage());
-
-                $error = 'Unable to save the record. Please try again.';
-
-            }
-
+    if (!$showStudentRecord) {
+        $where = [];
+        $params = ['section_year' => $yearId];
+        if ($gradeFilter === 'unassigned') {
+            $where[] = 's.current_grade_level_id IS NULL';
+        } elseif ($gradeFilter !== '') {
+            $where[] = 'g.grade_level = :grade';
+            $params['grade'] = $gradeFilter;
+        }
+        if ($sectionFilter !== '') {
+            $where[] = 'sec.section_id = :section';
+            $params['section'] = $sectionFilter;
+        }
+        if (preg_match('/^[0-9]{12}$/', $search)) {
+            $where[] = 's.lrn = :lrn';
+            $params['lrn'] = $search;
+        } elseif ($search !== '') {
+            $searchTerm = '%' . strtr($search, ['!' => '!!', '%' => '!%', '_' => '!_']) . '%';
+            $where[] = "(
+                CONCAT_WS(' ', s.first_name, NULLIF(s.middle_name, ''), s.last_name) LIKE :full_name ESCAPE '!'
+                OR CONCAT_WS(' ', s.first_name, s.last_name) LIKE :short_name ESCAPE '!'
+                OR CONCAT_WS(' ', s.last_name, s.first_name) LIKE :surname_first ESCAPE '!'
+                OR s.lrn LIKE :lrn ESCAPE '!'
+            )";
+            $params += ['full_name' => $searchTerm, 'short_name' => $searchTerm,
+                        'surname_first' => str_replace(', ', ' ', $searchTerm), 'lrn' => $searchTerm];
         }
 
-    }
+        $from = 'FROM students s
+                 LEFT JOIN grade_levels g ON g.grade_level_id = s.current_grade_level_id
+                 LEFT JOIN sections sec ON sec.section_id = s.current_section_id AND sec.school_year_id = :section_year';
+        $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
+        $countQuery = $pdo->prepare('SELECT COUNT(*) ' . $from . $whereSql);
+        $countQuery->execute($params);
+        $filteredCount = (int) $countQuery->fetchColumn();
+        $totalPages = max(1, (int) ceil($filteredCount / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
 
+        $studentQuery = $pdo->prepare(
+            "SELECT s.student_id, s.lrn, s.first_name, s.middle_name, s.last_name, g.grade_level, sec.section_name
+             $from $whereSql
+             ORDER BY s.last_name, s.first_name, s.student_id
+             LIMIT $perPage OFFSET $offset"
+        );
+        $studentQuery->execute($params);
+        $students = $studentQuery->fetchAll();
+    }
+}
+
+$queryParameters = ['q' => $search, 'grade' => $gradeFilter, 'section' => $sectionFilter];
+$paginationUrl = static function (int $targetPage) use ($queryParameters): string {
+    return '?' . http_build_query($queryParameters + ['page' => $targetPage]) . '#student-results';
+};
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    http_response_code(405);
+    header('Allow: GET, HEAD');
+    exit('Student records are read-only in the Registrar portal.');
 }
 
 $selectedStudent = null;
@@ -791,64 +480,95 @@ if ($selectedStudentId && $activeSchoolYear) {
 
         $attendanceSummary = $attendanceSummaryQuery->fetch() ?: $attendanceSummary;
 
-        $attendanceQuery = $pdo->prepare(
+        if ($isAttendanceHistory || in_array($recordExport, ['print', 'download'], true)) {
+            $attendancePages = max(1, (int) ceil((int) $attendanceSummary['total_records'] / $attendancePageSize));
+            $attendancePage = $isAttendanceHistory ? min($attendancePage, $attendancePages) : 1;
+            $attendanceOffset = ($attendancePage - 1) * $attendancePageSize;
+            $attendanceQuery = $pdo->prepare(
 
-            "SELECT
+                "SELECT
 
-                ar.attendance_id,
+                    ar.attendance_id,
 
-                ar.attendance_date,
+                    ar.attendance_date,
 
-                ar.attendance_status,
+                    ar.attendance_status,
 
-                ar.remarks,
+                    ar.remarks,
 
-                sub.subject_code,
+                    sub.subject_code,
 
-                sub.subject_name,
+                    sub.subject_name,
 
-                u.username AS recorded_by_name
+                    u.username AS recorded_by_name
 
-             FROM attendance_records ar
+                 FROM attendance_records ar
 
-             INNER JOIN subjects sub
+                 INNER JOIN subjects sub
 
-                ON sub.subject_id = ar.subject_id
+                    ON sub.subject_id = ar.subject_id
 
-             LEFT JOIN users u
+                 LEFT JOIN users u
 
-                ON u.user_id = ar.recorded_by
+                    ON u.user_id = ar.recorded_by
 
-             INNER JOIN student_subject_enrollments sse
+                 INNER JOIN student_subject_enrollments sse
 
-                ON sse.student_id = ar.student_id
+                    ON sse.student_id = ar.student_id
 
-                AND sse.subject_id = ar.subject_id
+                    AND sse.subject_id = ar.subject_id
 
-                AND sse.school_year_id = :school_year_id
+                    AND sse.school_year_id = :school_year_id
 
-             WHERE ar.student_id = :student_id
+                 WHERE ar.student_id = :student_id
 
-             AND sse.enrollment_status = 'Enrolled'
+                 AND sse.enrollment_status = 'Enrolled'
 
-             ORDER BY ar.attendance_date DESC, sub.subject_name
+                 ORDER BY ar.attendance_date DESC, sub.subject_name, ar.attendance_id DESC
 
-             LIMIT 30"
+                 LIMIT $attendancePageSize OFFSET $attendanceOffset"
 
-        );
+            );
 
-        $attendanceQuery->execute([
+            $attendanceQuery->execute([
 
-            'student_id' => $selectedStudentId,
+                'student_id' => $selectedStudentId,
 
-            'school_year_id' => $activeSchoolYear['school_year_id']
+                'school_year_id' => $activeSchoolYear['school_year_id']
 
-        ]);
+            ]);
 
-        $attendanceRecords = $attendanceQuery->fetchAll();
+            $attendanceRecords = $attendanceQuery->fetchAll();
+        }
 
     }
 
+}
+
+if ($selectedStudent) {
+    $recordStudentName = trim($selectedStudent['first_name'] . ' ' .
+        ($selectedStudent['middle_name'] ? $selectedStudent['middle_name'] . ' ' : '') . $selectedStudent['last_name']);
+    $studentRecordQuery = $queryParameters + ['page' => $page, 'student_id' => $selectedStudentId];
+    $studentRecordPath = BASE_URL . '/registrar/student_records.php';
+    $studentDetailUrl = $studentRecordPath . '?' . http_build_query($studentRecordQuery);
+    $attendanceUrl = static function (int $targetPage) use ($studentRecordPath, $studentRecordQuery): string {
+        return $studentRecordPath . '?' . http_build_query(
+            $studentRecordQuery + ['view' => 'attendance', 'attendance_page' => $targetPage]
+        );
+    };
+
+    if (in_array($recordExport, ['print', 'download'], true)) {
+        $formalTitle = 'Student Record Summary';
+        $formalOffice = "Registrar's Office";
+        $formalAutoPrint = $recordExport === 'print';
+        $formalBackLabel = 'Back to student record';
+        $formalBackUrl = $studentDetailUrl;
+        if ($recordExport === 'download') {
+            $formalFilename = 'student-record-' . (int) $selectedStudentId . '.doc';
+        }
+        require __DIR__ . '/../includes/student_record_document.php';
+        exit;
+    }
 }
 
 require_once __DIR__ . '/../includes/header.php';
@@ -871,70 +591,35 @@ require_once __DIR__ . '/../includes/header.php';
 
     }
 
-    .records-student-filters .form-group,
-
-    .records-student-picker {
-
+    .records-student-filters .form-group {
         min-width: 0;
-
         margin-bottom: 0;
-
     }
 
-    .records-student-filters small {
-
-        display: block;
-
-        margin-top: 6px;
-
-        font-size: 12px;
-
+    #student-results {
+        margin-top: 24px;
+        scroll-margin-top: 110px;
     }
 
-    .records-picker-heading {
+    .records-results-list {
+        list-style: none;
+        margin: 12px 0;
+        padding: 0;
+        border-top: 1px solid var(--line);
+    }
 
+    .records-results-list > li {
         display: flex;
-
         align-items: center;
-
         justify-content: space-between;
-
-        gap: 12px;
-
-        margin-bottom: 6px;
-
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
     }
 
-    .records-picker-heading label {
-
-        margin: 0;
-
-    }
-
-    .records-result-count {
-
-        color: #64748b;
-
-        font-size: 12px;
-
-    }
-
-    .records-empty-message {
-
-        display: block;
-
-        margin-top: 8px;
-
-        color: #b42318;
-
-        font-size: 12px;
-
-    }
-
-    .records-empty-message[hidden] {
-
-        display: none;
-
+    #student-record {
+        scroll-margin-top: 110px;
     }
 
     .records-picker-actions {
@@ -1095,7 +780,7 @@ require_once __DIR__ . '/../includes/header.php';
 
         display: grid;
 
-        grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr);
+        grid-template-columns: minmax(0, 1fr);
 
         gap: 20px;
 
@@ -1105,7 +790,9 @@ require_once __DIR__ . '/../includes/header.php';
 
     .records-management-card {
 
-        margin: 0;
+        width: 100%;
+        max-width: none;
+        margin: 0 0 18px;
 
     }
 
@@ -1115,11 +802,6 @@ require_once __DIR__ . '/../includes/header.php';
 
     }
 
-    .records-grade-form-grid {
-
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-
-    }
 
     .attendance-summary-grid {
 
@@ -1265,7 +947,7 @@ require_once __DIR__ . '/../includes/header.php';
 
         .records-workspace-grid {
 
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
 
         }
 
@@ -1281,11 +963,6 @@ require_once __DIR__ . '/../includes/header.php';
 
         .records-student-grid,
 
-        .records-grade-form-grid {
-
-            grid-template-columns: 1fr;
-
-        }
 
         .records-section-heading {
 
@@ -1313,47 +990,28 @@ require_once __DIR__ . '/../includes/header.php';
         flex-wrap: wrap;
     }
 
-    .records-export-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+    .records-export-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
     }
 
-    .records-icon-button {
-        width: 42px;
-        height: 42px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid #651b35;
-        border-radius: 10px;
-        background: #fff;
-        color: #651b35;
-        cursor: pointer;
-        transition: .2s ease;
-    }
-
-    .records-icon-button:hover {
-        background: #f8edf1;
-    }
-
-    .records-icon-button.records-download-button {
-        background: #651b35;
-        color: #fff;
-    }
-
-    .records-icon-button.records-download-button:hover {
-        background: #4f1429;
-    }
-
-    .records-icon-button svg {
+    .records-export-icon svg {
         width: 20px;
         height: 20px;
         fill: none;
         stroke: currentColor;
-        stroke-width: 1.8;
+        stroke-width: 1.7;
         stroke-linecap: round;
         stroke-linejoin: round;
+    }
+
+    .records-export-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     @media (max-width: 600px) {
@@ -1367,9 +1025,9 @@ require_once __DIR__ . '/../includes/header.php';
 
 </style>
 
+<?php if (!$showStudentRecord): ?>
 <section class="form-card">
 
-    <p class="eyebrow">Registrar workspace</p>
 
     <h1>Student Records Management</h1>
 
@@ -1399,395 +1057,172 @@ require_once __DIR__ . '/../includes/header.php';
 
     <?php endif; ?>
 
-    <?php if ($success): ?>
-
-        <p class="alert alert-success"><?= e($success) ?></p>
-
-    <?php endif; ?>
-
     <?php if ($error): ?>
 
         <p class="alert alert-error"><?= e($error) ?></p>
 
     <?php endif; ?>
 
-    <?php if (!$isAdmin): ?>
+    <?php if ($activeSchoolYear): ?>
+        <nav class="application-status-links" aria-label="Filter student records by grade">
+            <?php foreach (array_merge([''], $gradeLevels, ['unassigned']) as $gradeOption): ?>
+                <?php
+                $tabGrade = (string) $gradeOption;
+                $tabQuery = ['q' => $search, 'grade' => $tabGrade];
+                if ($tabGrade === $gradeFilter && $sectionFilter !== '') {
+                    $tabQuery['section'] = $sectionFilter;
+                }
+                $tabLabel = match ($tabGrade) {
+                    '' => 'All grades',
+                    'unassigned' => 'Grade not assigned',
+                    default => 'Grade ' . $tabGrade
+                };
+                ?>
+                <a class="button <?= $gradeFilter === $tabGrade ? 'button-primary' : 'button-outline' ?>"
+                   href="?<?= e(http_build_query($tabQuery)) ?>"
+                   <?= $gradeFilter === $tabGrade ? 'aria-current="true"' : '' ?>>
+                    <?= e($tabLabel) ?>
+                </a>
+            <?php endforeach; ?>
+        </nav>
 
-        <p class="muted">
+        <form method="get" class="table-search-form" action="<?= BASE_URL ?>/registrar/student_records.php#student-results">
+            <input type="hidden" name="grade" value="<?= e($gradeFilter) ?>">
+            <div class="table-search-toolbar">
+                <div class="table-search-field">
+                    <label for="student_search">Student name or LRN</label>
+                    <input type="search" id="student_search" name="q" maxlength="150"
+                           value="<?= e($search) ?>" autocomplete="off"
+                           data-student-suggestions="registrar_records"
+                           data-suggestion-url="<?= BASE_URL ?>/includes/student_suggestions.php">
+                </div>
+                <button type="submit" class="button button-primary">Search</button>
+                <details class="table-search-disclosure">
+                    <summary class="button button-outline">Filters<?= $sectionFilter !== '' ? ' (active)' : '' ?></summary>
+                    <div class="table-search-panel">
+                        <h3 class="table-search-panel-title">Filter results</h3>
+                        <div class="table-search-fields">
+                            <div class="form-group">
+                                <label for="section_filter">Section</label>
+                                <?php
+                                $availableSections = array_filter($sections, static function (array $section) use ($gradeFilter): bool {
+                                    return $gradeFilter === '' || (string) $section['grade_level'] === $gradeFilter;
+                                });
+                                ?>
+                                <select id="section_filter" name="section">
+                                    <option value=""><?= $availableSections ? 'All sections' : 'No sections for this grade' ?></option>
+                                    <?php foreach ($availableSections as $section): ?>
+                                        <option value="<?= (int) $section['section_id'] ?>"
+                                                <?= $sectionFilter === (int) $section['section_id'] ? 'selected' : '' ?>>
+                                            <?= e($section['section_name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-search-actions">
+                            <button type="submit" class="button button-primary">Apply filters</button>
+                            <a class="button button-outline" href="?<?= e(http_build_query(['q' => $search, 'grade' => $gradeFilter])) ?>">Clear filters</a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </form>
 
-            You can only manage students in your assigned sections.
-
-        </p>
-
-    <?php else: ?>
-
-        <p class="muted">
-
-            Registrar access: all student sections.
-
-        </p>
-
+        <div id="student-results">
+            <h2>Student results</h2>
+            <p class="muted">
+                <?php if ($filteredCount): ?>
+                    Showing <?= number_format($offset + 1) ?>–<?= number_format(min($offset + $perPage, $filteredCount)) ?>
+                    of <?= number_format($filteredCount) ?> students
+                <?php else: ?>
+                    No students match these filters. Try a different grade, section, or search term.
+                <?php endif; ?>
+            </p>
+            <?php if ($students): ?>
+                <ul class="records-results-list">
+                    <?php foreach ($students as $resultStudent): ?>
+                        <?php
+                        $studentName = $resultStudent['last_name'] . ', ' . trim(
+                            $resultStudent['first_name'] . ' ' . ($resultStudent['middle_name'] ?? '')
+                        );
+                        $recordUrl = '?' . http_build_query(
+                            $queryParameters + ['page' => $page, 'student_id' => $resultStudent['student_id']]
+                        ) . '#student-record';
+                        ?>
+                        <li>
+                            <div>
+                                <strong><?= e($studentName) ?></strong>
+                                <div class="muted">
+                                    <?= e($resultStudent['grade_level'] ? 'Grade ' . $resultStudent['grade_level'] : 'Grade not assigned') ?>
+                                    · <?= e($resultStudent['section_name'] ?: 'No section') ?>
+                                    <?php if ($resultStudent['lrn']): ?>
+                                        · LRN <?= e($resultStudent['lrn']) ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <a class="button button-outline" href="<?= e($recordUrl) ?>"
+                               aria-label="<?= e('View record for ' . $studentName) ?>">View record</a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <?php if ($totalPages > 1): ?>
+                    <?php
+                    $paginationLabel = 'Student results pages';
+                    $showPageJump = false;
+                    require __DIR__ . '/../includes/registrar_list_pagination.php';
+                    ?>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
     <?php endif; ?>
-
-    <form method="GET" id="studentSearchForm">
-
-        <div class="records-student-filters">
-
-            <div class="form-group records-search-field">
-
-                <label for="student_search">Search Student</label>
-
-                <input
-
-                    type="search"
-
-                    id="student_search"
-
-                    placeholder="Search by student name or LRN..."
-
-                    autocomplete="off"
-
-                >
-
-                <small class="muted">Type a student's first name, last name, or LRN.</small>
-
-            </div>
-
-            <div class="form-group">
-
-                <label for="grade_filter">Grade Level</label>
-
-                <select id="grade_filter">
-
-                    <option value="">All Grade Levels</option>
-
-                </select>
-
-            </div>
-
-            <div class="form-group">
-
-                <label for="section_filter">Section</label>
-
-                <select id="section_filter">
-
-                    <option value="">All Sections</option>
-
-                </select>
-
-            </div>
-
-        </div>
-
-        <div class="form-group records-student-picker">
-
-            <div class="records-picker-heading">
-
-                <label for="student_id">Select Student</label>
-
-                <span id="student_result_count" class="records-result-count"></span>
-
-            </div>
-
-            <select name="student_id" id="student_id" required>
-
-                <option value="">-- Select a Student --</option>
-
-            </select>
-
-            <small id="student_empty_message" class="records-empty-message" hidden>
-
-                No students match your search or selected filters.
-
-            </small>
-
-        </div>
-
-        <div class="form-actions records-picker-actions">
-
-            <button type="submit" class="button button-primary">
-
-                View Student Records
-
-            </button>
-
-            <button type="button" class="button button-secondary" id="clear_student_filters">
-
-                Clear Filters
-
-            </button>
-
-        </div>
-
-    </form>
-
 </section>
 
-<script>
 
-document.addEventListener('DOMContentLoaded', function () {
 
-    const students = <?= $studentsJson ?: '[]' ?>;
-
-    const selectedStudentId = <?= json_encode((string) ($selectedStudentId ?? '')) ?>;
-
-    const searchInput = document.getElementById('student_search');
-
-    const gradeFilter = document.getElementById('grade_filter');
-
-    const sectionFilter = document.getElementById('section_filter');
-
-    const studentSelect = document.getElementById('student_id');
-
-    const resultCount = document.getElementById('student_result_count');
-
-    const emptyMessage = document.getElementById('student_empty_message');
-
-    const clearButton = document.getElementById('clear_student_filters');
-
-    const normalize = value => String(value ?? '').toLocaleLowerCase().trim();
-
-    const gradeName = student => student.grade_level || 'Grade Not Assigned';
-
-    const sectionName = student => student.section_name || 'No Section';
-
-    const fullName = student => [
-
-        student.last_name,
-
-        student.first_name,
-
-        student.middle_name
-
-    ].filter(Boolean).join(', ');
-
-    const compareText = (a, b) => String(a).localeCompare(String(b), undefined, {
-
-        numeric: true,
-
-        sensitivity: 'base'
-
-    });
-
-    function populateGradeFilter() {
-
-        const grades = [...new Set(students.map(gradeName))].sort(compareText);
-
-        grades.forEach(grade => {
-
-            const option = document.createElement('option');
-
-            option.value = grade;
-
-            option.textContent = grade;
-
-            gradeFilter.appendChild(option);
-
-        });
-
-    }
-
-    function populateSectionFilter() {
-
-        const selectedGrade = gradeFilter.value;
-
-        const sections = [...new Set(
-
-            students
-
-                .filter(student => !selectedGrade || gradeName(student) === selectedGrade)
-
-                .map(sectionName)
-
-        )].sort(compareText);
-
-        const currentSection = sectionFilter.value;
-
-        sectionFilter.innerHTML = '<option value="">All Sections</option>';
-
-        sections.forEach(section => {
-
-            const option = document.createElement('option');
-
-            option.value = section;
-
-            option.textContent = section;
-
-            sectionFilter.appendChild(option);
-
-        });
-
-        if (sections.includes(currentSection)) {
-
-            sectionFilter.value = currentSection;
-
-        }
-
-    }
-
-    function renderStudentOptions() {
-
-        const query = normalize(searchInput.value);
-
-        const selectedGrade = gradeFilter.value;
-
-        const selectedSection = sectionFilter.value;
-
-        let filtered = students.filter(student => {
-
-            const searchable = normalize([
-
-                student.first_name,
-
-                student.middle_name,
-
-                student.last_name,
-
-                student.lrn
-
-            ].join(' '));
-
-            return (!query || searchable.includes(query))
-
-                && (!selectedGrade || gradeName(student) === selectedGrade)
-
-                && (!selectedSection || sectionName(student) === selectedSection);
-
-        });
-
-        filtered.sort((a, b) => {
-
-            const gradeCompare = compareText(gradeName(a), gradeName(b));
-
-            if (gradeCompare !== 0) return gradeCompare;
-
-            const sectionCompare = compareText(sectionName(a), sectionName(b));
-
-            if (sectionCompare !== 0) return sectionCompare;
-
-            return compareText(a.last_name, b.last_name)
-
-                || compareText(a.first_name, b.first_name);
-
-        });
-
-        studentSelect.innerHTML = '';
-
-        const placeholder = document.createElement('option');
-
-        placeholder.value = '';
-
-        placeholder.textContent = '-- Select a Student --';
-
-        studentSelect.appendChild(placeholder);
-
-        const groups = new Map();
-
-        filtered.forEach(student => {
-
-            const groupLabel = gradeName(student) + ' — ' + sectionName(student);
-
-            if (!groups.has(groupLabel)) {
-
-                const group = document.createElement('optgroup');
-
-                group.label = groupLabel;
-
-                groups.set(groupLabel, group);
-
-                studentSelect.appendChild(group);
-
-            }
-
-            const option = document.createElement('option');
-
-            option.value = student.student_id;
-
-            option.textContent = fullName(student)
-
-                + (student.lrn ? ' | LRN: ' + student.lrn : '');
-
-            groups.get(groupLabel).appendChild(option);
-
-        });
-
-        const selectedStillVisible = filtered.some(
-
-            student => String(student.student_id) === String(selectedStudentId)
-
-        );
-
-        if (selectedStillVisible && !query && !selectedGrade && !selectedSection) {
-
-            studentSelect.value = selectedStudentId;
-
-        } else if (studentSelect.querySelector('option[value="' + CSS.escape(selectedStudentId) + '"]')) {
-
-            studentSelect.value = selectedStudentId;
-
-        }
-
-        resultCount.textContent = 'Showing ' + filtered.length + ' of ' + students.length + ' students';
-
-        emptyMessage.hidden = filtered.length !== 0;
-
-    }
-
-    populateGradeFilter();
-
-    populateSectionFilter();
-
-    renderStudentOptions();
-
-    searchInput.addEventListener('input', renderStudentOptions);
-
-    gradeFilter.addEventListener('change', function () {
-
-        populateSectionFilter();
-
-        renderStudentOptions();
-
-    });
-
-    sectionFilter.addEventListener('change', renderStudentOptions);
-
-    clearButton.addEventListener('click', function (event) {
-
-        event.preventDefault();
-
-        window.location.href = window.location.pathname;
-
-    });
-
-});
-
-</script>
-
-</section>
-
-<?php if ($selectedStudent): ?>
-
-    <section class="form-card records-student-card">
+<?php else: ?>
+    <div class="portal-back-row">
+        <?php if ($selectedStudent && $isAttendanceHistory): ?>
+            <a class="portal-back-link" href="<?= e($studentDetailUrl) ?>">Back to student record</a>
+        <?php else: ?>
+        <a class="portal-back-link"
+           href="<?= BASE_URL ?>/registrar/student_records.php<?= e($paginationUrl($page)) ?>">
+            Back to student results
+        </a>
+        <?php endif; ?>
+    </div>
+    <?php if (!$selectedStudent): ?>
+        <section class="form-card">
+            <h1>Student record unavailable</h1>
+            <p><?= e($error ?: 'No active school year is currently configured.') ?></p>
+        </section>
+    <?php endif; ?>
+<?php endif; ?>
+
+<?php if ($selectedStudent && !$isAttendanceHistory): ?>
+
+    <section class="form-card records-student-card" id="student-record">
 
         <div class="records-section-heading">
 
             <div>
 
-                <p class="eyebrow">Student Profile</p>
 
-                <h2>Student Information</h2>
+                <h1>Student Record</h1>
 
             </div>
 
             <div class="records-profile-actions">
                 <span class="records-student-status">Active School Year: <?= e($activeSchoolYear['school_year']) ?></span>
                 <div class="records-export-actions">
-                    <button type="button" class="records-icon-button records-print-button" id="print_student_record" aria-label="Print student record" title="Print student record">
+                    <a class="button button-outline records-export-icon" href="<?= e($studentDetailUrl . '&record_export=print') ?>"
+                       target="_blank" rel="noopener" aria-label="Print student record" title="Print student record">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v7H7z"/><path d="M17 11h.01"/></svg>
-                    </button>
-                    <button type="button" class="records-icon-button records-download-button" id="download_student_record" aria-label="Download student record" title="Download student record">
+                    </a>
+                    <a class="button button-primary records-export-icon" href="<?= e($studentDetailUrl . '&record_export=download') ?>"
+                       aria-label="Download student record" title="Download student record">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 17v4h16v-4"/></svg>
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -1877,102 +1312,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <section class="form-card records-management-card">
 
-            <?php if ($assignedSubjects): ?>
-
-                <h2>Grade Management</h2>
-
-                <p class="muted">Enter or update a grade for the selected student's enrolled subject.</p>
-
-                <form method="POST">
-
-                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-
-                    <input type="hidden" name="action" value="save_grade">
-
-                    <input type="hidden" name="student_id" value="<?= (int) $selectedStudent['student_id'] ?>">
-
-                    <div class="form-group">
-
-                        <label for="grade_subject">Subject</label>
-
-                        <select name="subject_id" id="grade_subject" required>
-
-                            <option value="">Select Subject</option>
-
-                            <?php foreach ($assignedSubjects as $subject): ?>
-
-                                <option value="<?= (int) $subject['subject_id'] ?>">
-
-                                    <?= e($subject['subject_code'] . ' - ' . $subject['subject_name']) ?>
-
-                                </option>
-
-                            <?php endforeach; ?>
-
-                        </select>
-
-                    </div>
-
-                    <div class="form-grid records-grade-form-grid">
-
-                        <div class="form-group">
-
-                            <label for="grading_period">Grading Period</label>
-
-                            <select name="grading_period" id="grading_period" required>
-
-                                <option value="">Select Quarter</option>
-
-                                <?php foreach ($gradingPeriods as $period): ?>
-
-                                    <option value="<?= e($period) ?>"><?= e($period) ?></option>
-
-                                <?php endforeach; ?>
-
-                            </select>
-
-                        </div>
-
-                        <div class="form-group">
-
-                            <label for="grade">Grade</label>
-
-                            <input type="number" name="grade" id="grade" min="0" max="100"
-
-                                   step="0.01" placeholder="Enter grade" required>
-
-                        </div>
-
-                    </div>
-
-                    <div class="form-group">
-
-                        <label for="grade_remarks">Remarks</label>
-
-                        <input type="text" name="remarks" id="grade_remarks" placeholder="Optional remarks">
-
-                    </div>
-
-                    <div class="form-actions">
-
-                        <button type="submit" class="btn btn-primary">Save Grade</button>
-
-                    </div>
-
-                </form>
-
-            <?php else: ?>
-
-                <h2>No Assigned Subjects</h2>
-
-                <p>This student does not have any enrolled subjects for the active school year. Assign subjects first through Subject Management.</p>
-
-            <?php endif; ?>
-
-        </section>
-
-        <section class="form-card records-management-card">
-
             <h2>Attendance Summary</h2>
 
             <p class="muted">Attendance is displayed for reference. Daily attendance entry is handled by teachers or advisers.</p>
@@ -2018,6 +1357,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 Total attendance entries: <strong><?= number_format((int) ($attendanceSummary['total_records'] ?? 0)) ?></strong>
 
             </p>
+            <a class="button button-outline" href="<?= e($attendanceUrl(1)) ?>">View attendance history</a>
 
         </section>
 
@@ -2029,7 +1369,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             <div>
 
-                <p class="eyebrow">Academic Performance</p>
 
                 <h2>Grade Records</h2>
 
@@ -2113,19 +1452,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
     </section>
 
+<?php endif; ?>
+
+<?php if ($selectedStudent && $isAttendanceHistory): ?>
     <section class="form-card records-table-card">
 
         <div class="records-section-heading">
 
             <div>
 
-                <p class="eyebrow">Attendance History</p>
 
-                <h2>Recent Attendance Records</h2>
+                <h1>Attendance History</h1>
+                <p class="muted"><?= e($recordStudentName) ?> · School year <?= e($activeSchoolYear['school_year']) ?></p>
 
             </div>
 
-            <span class="records-table-note">Latest 30 entries</span>
+            <span class="records-table-note"><?= number_format((int) $attendanceSummary['total_records']) ?> entries</span>
 
         </div>
 
@@ -2183,6 +1525,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
             </div>
 
+            <?php if ($attendancePages > 1): ?>
+                <nav class="registrar-list-pagination" aria-label="Attendance history pages">
+                    <span>Page <?= $attendancePage ?> of <?= $attendancePages ?></span>
+                    <?php if ($attendancePage > 1): ?>
+                        <a class="button button-outline" href="<?= e($attendanceUrl($attendancePage - 1)) ?>">Previous page</a>
+                    <?php endif; ?>
+                    <?php if ($attendancePage < $attendancePages): ?>
+                        <a class="button button-outline" href="<?= e($attendanceUrl($attendancePage + 1)) ?>">Next page</a>
+                    <?php endif; ?>
+                </nav>
+            <?php endif; ?>
         <?php else: ?>
 
             <p>No attendance records found for this student.</p>
@@ -2193,140 +1546,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <?php endif; ?>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const printButton = document.getElementById('print_student_record');
-    const downloadButton = document.getElementById('download_student_record');
-
-    if (!printButton || !downloadButton) {
-        return;
-    }
-
-    const schoolName = <?= json_encode($schoolName, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
-    const studentName = <?= json_encode(trim($selectedStudent['first_name'] . ' ' . ($selectedStudent['middle_name'] ?? '') . ' ' . $selectedStudent['last_name']), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
-    const schoolYear = <?= json_encode($activeSchoolYear['school_year'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
-
-    function escapeHtml(value) {
-        return String(value ?? '').replace(/[&<>"']/g, function (character) {
-            return {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            }[character];
-        });
-    }
-
-    function createRecordDocument() {
-        const profile = document.querySelector('.records-student-card');
-        const workspace = document.querySelector('.records-workspace-grid');
-        const tableCards = document.querySelectorAll('.records-table-card');
-
-        if (!profile || !workspace) {
-            return null;
-        }
-
-        const profileCopy = profile.cloneNode(true);
-        const profileActions = profileCopy.querySelector('.records-profile-actions');
-
-        if (profileActions) {
-            profileActions.remove();
-        }
-
-        const managementCards = workspace.querySelectorAll('.records-management-card');
-        const attendanceSummary = managementCards[1];
-
-        const sections = [
-            profileCopy.outerHTML,
-            attendanceSummary ? attendanceSummary.outerHTML : '',
-            tableCards[0] ? tableCards[0].outerHTML : '',
-            tableCards[1] ? tableCards[1].outerHTML : ''
-        ];
-
-        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Student Record - ' + escapeHtml(studentName) + '</title>' +
-            '<style>' +
-            'body{font-family:Arial,sans-serif;color:#172033;margin:32px;font-size:12px;}' +
-            '.document-header{text-align:center;border-bottom:3px solid #651b35;padding-bottom:14px;margin-bottom:22px;}' +
-            '.document-header h1{color:#651b35;font-size:22px;margin:0 0 6px;}' +
-            '.document-header h2{font-size:17px;margin:5px 0;}' +
-            '.document-header p{margin:4px 0;color:#475569;}' +
-            '.form-card{border:1px solid #cbd5e1;border-radius:8px;padding:16px;margin:0 0 16px;break-inside:avoid;}' +
-            '.records-section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;}' +
-            '.records-section-heading h2{font-size:16px;margin:0;color:#651b35;}' +
-            '.eyebrow{font-size:10px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:#187344;margin:0 0 5px;}' +
-            '.records-student-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:none;}' +
-            '.records-student-grid .form-group,.attendance-summary-item{border:1px solid #dbe2ea;border-radius:6px;padding:10px;margin:0;background:#f8fafc;}' +
-            '.records-student-grid label,.attendance-summary-item span{display:block;color:#64748b;font-size:10px;margin-bottom:5px;}' +
-            '.records-student-grid strong,.attendance-summary-item strong{font-size:12px;}' +
-            '.attendance-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}' +
-            '.attendance-summary-item strong{display:block;font-size:18px;color:#651b35;}' +
-            '.attendance-total{margin:10px 0 0;}' +
-            '.records-table-container{width:100%;overflow:visible;}' +
-            'table{width:100%;border-collapse:collapse;font-size:10px;}' +
-            'th,td{border:1px solid #cbd5e1;padding:7px;text-align:left;}' +
-            'th{background:#f3e9ed;color:#651b35;}' +
-            '.records-subject-name{display:block;color:#64748b;font-size:9px;margin-top:3px;}' +
-            '.records-grade-cell{text-align:center;font-weight:bold;}' +
-            '.records-no-grade{color:#94a3b8;}' +
-            '.records-table-note{color:#64748b;font-size:10px;}' +
-            '@media print{body{margin:15mm;} .form-card{break-inside:avoid;}}' +
-            '</style></head><body>' +
-            '<header class="document-header"><h1>' + escapeHtml(schoolName) + '</h1>' +
-            '<h2>STUDENT RECORD</h2><p>Academic Year: ' + escapeHtml(schoolYear) + '</p>' +
-            '<p>' + escapeHtml(studentName) + '</p></header>' +
-            sections.join('') +
-            '<p style="margin-top:24px;font-size:10px;color:#64748b;text-align:center;">Generated from Student Records Management</p>' +
-            '</body></html>';
-    }
-
-    printButton.addEventListener('click', function () {
-        const documentContent = createRecordDocument();
-
-        if (!documentContent) {
-            alert('Unable to prepare this student record.');
-            return;
-        }
-
-        const printWindow = window.open('', '_blank', 'width=1000,height=750');
-
-        if (!printWindow) {
-            alert('Please allow pop-ups to print the student record.');
-            return;
-        }
-
-        printWindow.document.open();
-        printWindow.document.write(documentContent);
-        printWindow.document.close();
-        printWindow.onload = function () {
-            printWindow.focus();
-            printWindow.print();
-        };
-    });
-
-    downloadButton.addEventListener('click', function () {
-        const documentContent = createRecordDocument();
-
-        if (!documentContent) {
-            alert('Unable to prepare this student record.');
-            return;
-        }
-
-        const blob = new Blob(['\ufeff', documentContent], {
-            type: 'application/msword'
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        const safeName = studentName.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
-
-        link.href = url;
-        link.download = 'student_record_' + safeName + '_' + schoolYear.replace(/[^a-z0-9]+/gi, '_') + '.doc';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    });
-});
-</script>
-
+<script src="<?= BASE_URL ?>/assets/js/student_suggestions.js" defer></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -92,16 +92,16 @@ require_once __DIR__ . '/../includes/header.php';
         <p class="error-message"><?= e($error) ?></p>
     <?php endif; ?>
 
-    <div class="scholarship-program-page-actions">
+    <div class="portal-list-toolbar">
+        <h2>Existing Programs</h2>
         <a
             href="<?= BASE_URL ?>/scholarship_coordinator/add_scholarship_program.php"
-            class="button button-primary"
+            class="button button-primary portal-add-action"
         >
-            Add Program
+            <span class="portal-add-icon" aria-hidden="true">+</span> Add Program
         </a>
     </div>
 
-    <h2>Existing Programs</h2>
 
     <div class="table-responsive scholarship-program-table-wrap">
         <table class="scholarship-program-table">

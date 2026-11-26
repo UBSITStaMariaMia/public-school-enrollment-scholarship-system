@@ -17,7 +17,7 @@ $isRegistrar = $user && $roleName === 'School Registrar';
 $isTeacher = $user && $roleName === 'Teacher';
 
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
-$isRegistrationPage = $currentPage === 'register.php';
+$showPortalNavigation = $user || !in_array($currentPage, ['index.php', 'register.php', 'login.php'], true);
 $isAccountPage = $isStudent && in_array(
     $currentPage,
     ['profile.php', 'change_password.php'],
@@ -38,11 +38,11 @@ function header_link_active(string $page, array $pages): string
 
     <title><?= e($pageTitle) ?> | Baguio City National High School Portal</title>
 
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/responsive.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=3">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/responsive.css?v=2">
 </head>
 
-<body class="<?= $isStudent ? 'student-portal' : '' ?> <?= $isAdmin ? 'admin-portal' : '' ?> <?= $isRegistrar ? 'registrar-portal' : '' ?> <?= $isTeacher ? 'teacher-portal' : '' ?> <?= $user ? 'has-role-sidebar' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?> <?= $isRegistrationPage ? 'registration-page' : '' ?> <?= (!$user && in_array($currentPage, ['index.php', 'register.php', 'login.php'], true)) ? 'public-auth-page' : '' ?>">
+<body class="<?= $showPortalNavigation ? 'portal-navigation' : '' ?> <?= $isStudent ? 'student-portal' : '' ?> <?= $isAdmin ? 'admin-portal' : '' ?> <?= $isRegistrar ? 'registrar-portal' : '' ?> <?= $isTeacher ? 'teacher-portal' : '' ?> <?= $user ? 'has-role-sidebar' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?> <?= (!$user && in_array($currentPage, ['index.php', 'register.php', 'login.php'], true)) ? 'public-auth-page' : '' ?>">
 <header class="site-header">
 
     <!-- SCHOOL BRAND -->
@@ -60,16 +60,7 @@ function header_link_active(string $page, array $pages): string
         <span>Baguio City National High School Portal</span>
     </a>
 
-    <?php if ($isRegistrationPage): ?>
-    <a
-        href="<?= BASE_URL ?>/index.php"
-        class="button button-outline registration-back-button"
-    >
-        &larr; Back to Log In
-    </a>
-<?php endif; ?>
-
-
+<?php if ($showPortalNavigation): ?>
     <!-- PUBLIC DESKTOP NAVIGATION. Authenticated users use the shared sidebar. -->
     <nav class="main-nav <?= $isStudent ? 'student-main-nav' : '' ?>"
          aria-label="Main navigation">
@@ -77,7 +68,7 @@ function header_link_active(string $page, array $pages): string
             <a href="<?= BASE_URL ?>/index.php" class="<?= header_link_active($currentPage, ['index.php']) ?>">Home</a>
             <a href="<?= BASE_URL ?>/announcements.php" class="<?= header_link_active($currentPage, ['announcements.php']) ?>">Announcements</a>
             <a href="<?= BASE_URL ?>/login.php" class="<?= header_link_active($currentPage, ['login.php']) ?>">Log In</a>
-            <a href="<?= BASE_URL ?>/register.php" class="nav-register <?= header_link_active($currentPage, ['register.php']) ?>">Student Registration</a>
+            <a href="<?= BASE_URL ?>/register.php" class="nav-register <?= header_link_active($currentPage, ['register.php']) ?>">How to Register?</a>
         <?php endif; ?>
     </nav>
 
@@ -100,10 +91,12 @@ function header_link_active(string $page, array $pages): string
         </button>
 
     </div>
+<?php endif; ?>
 
 </header>
 
 
+<?php if ($showPortalNavigation): ?>
 <!-- MAIN NAVIGATION OVERLAY -->
 <div
     class="main-sidebar-overlay"
@@ -114,6 +107,7 @@ function header_link_active(string $page, array $pages): string
 
 <!-- SHARED ROLE-BASED SIDEBAR -->
 <?php require __DIR__ . '/sidebar.php'; ?>
+<?php endif; ?>
 
 
 <!-- LOGOUT CONFIRMATION MODAL -->
@@ -194,29 +188,73 @@ document.addEventListener('DOMContentLoaded', function () {
     const mainSidebarClose = document.getElementById('mainSidebarClose');
     const mainSidebarOverlay = document.getElementById('mainSidebarOverlay');
 
-    function openMainSidebar() {
-        if (!mainSidebar || !mainSidebarOverlay) return;
+    const desktopNavigation = window.matchMedia('(min-width: 700px)');
+    const compactToggle = document.getElementById('sidebarCompactToggle');
 
+    function syncNavigation() {
+        closeMainSidebar();
+        mainSidebar.inert = !desktopNavigation.matches;
+        mainSidebar.setAttribute('aria-hidden', String(!desktopNavigation.matches));
+    }
+
+    if (mainSidebar) {
+        desktopNavigation.addEventListener('change', syncNavigation);
+        syncNavigation();
+    }
+
+    if (compactToggle) {
+        function setCompact(compact) {
+            const label = compact ? 'Expand navigation' : 'Collapse navigation';
+            document.body.classList.toggle('sidebar-compact', compact);
+            compactToggle.setAttribute('aria-label', label);
+            compactToggle.setAttribute('title', label);
+            compactToggle.setAttribute('aria-expanded', String(!compact));
+        }
+
+        try {
+            setCompact(localStorage.getItem('bcnchs-sidebar-compact') === 'true');
+        } catch (error) {
+            setCompact(false);
+        }
+
+        compactToggle.addEventListener('click', function () {
+            const compact = !document.body.classList.contains('sidebar-compact');
+            setCompact(compact);
+            try {
+                localStorage.setItem('bcnchs-sidebar-compact', String(compact));
+            } catch (error) {
+                // The menu still works when browser storage is unavailable.
+            }
+        });
+    }
+
+    function openMainSidebar() {
+        if (!mainSidebar || !mainSidebarOverlay || desktopNavigation.matches) return;
+
+        mainSidebar.inert = false;
         mainSidebar.classList.add('active');
         mainSidebarOverlay.classList.add('active');
 
         mainSidebar.setAttribute('aria-hidden', 'false');
-        mainSidebarOverlay.setAttribute('aria-hidden', 'false');
 
         if (menuToggle) {
             menuToggle.setAttribute('aria-expanded', 'true');
         }
 
         document.body.classList.add('main-sidebar-open');
+        if (mainSidebarClose) mainSidebarClose.focus();
     }
 
     function closeMainSidebar() {
         if (!mainSidebar || !mainSidebarOverlay) return;
 
+        const restoreFocus = !desktopNavigation.matches && mainSidebar.contains(document.activeElement);
+        if (restoreFocus && menuToggle) menuToggle.focus();
+        mainSidebar.inert = !desktopNavigation.matches;
         mainSidebar.classList.remove('active');
         mainSidebarOverlay.classList.remove('active');
 
-        mainSidebar.setAttribute('aria-hidden', 'true');
+        mainSidebar.setAttribute('aria-hidden', String(!desktopNavigation.matches));
         mainSidebarOverlay.setAttribute('aria-hidden', 'true');
 
         if (menuToggle) {
