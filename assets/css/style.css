@@ -4914,18 +4914,6 @@ body.sidebar-open {
     white-space: nowrap;
 }
 
-/* Delete Button */
-.student-actions .delete-button {
-    background: #b42318;
-    color: #ffffff;
-    border: 1px solid #b42318;
-}
-
-.student-actions .delete-button:hover {
-    background: #941b13;
-    border-color: #941b13;
-}
-
 /* Table Container */
 .table-responsive {
     width: 100%;
@@ -5221,26 +5209,27 @@ body.sidebar-open {
 }
 
 .announcement-status {
-    display: inline-block;
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: .8rem;
-    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: .55em;
+    color: #344054;
+    font-weight: 500;
 }
 
-.status-published {
-    color: #17633a;
-    background: #e8f7ed;
+.announcement-status::before {
+    content: "";
+    flex: 0 0 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--status-dot, #667085);
 }
 
-.status-draft {
-    color: #8a5a00;
-    background: #fff5df;
+.announcement-status.status-published {
+    --status-dot: #35664d;
 }
 
-.status-archived {
-    color: #475467;
-    background: #edf0f4;
+.announcement-status.status-expired {
+    --status-dot: #866024;
 }
 
 .announcement-actions {
@@ -5787,33 +5776,6 @@ body.sidebar-open {
     display: inline-flex;
     margin: 0;
     padding: 0;
-}
-
-.scholarship-edit-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 105px;
-    height: 46px;
-    min-width: 105px;
-    box-sizing: border-box;
-    padding: 0 10px;
-    border: none;
-    border-radius: 10px;
-    background-color: #701b35;
-    color: white;
-    font-size: 14px;
-    font-weight: 600;
-    text-align: center;
-    text-decoration: none;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.scholarship-edit-link:hover {
-    background-color: #501326;
-    color: white;
-    text-decoration: none;
 }
 
 .scholarship-toggle-button {
@@ -6747,4 +6709,62 @@ body.sidebar-open {
     flex: none;
     font-size: 1.2em;
     line-height: 1;
+}
+
+.button.portal-record-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: .9rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+}
+
+.button.button-danger-outline {
+    color: #b42318;
+    border: 1px solid currentColor;
+    background: transparent;
+}
+
+.button.button-danger-outline:hover {
+    color: #941b13;
+    background: #fff0ee;
+}
+
+.button.portal-record-action:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.button.button-danger.portal-record-action:focus-visible {
+    outline-color: #b42318;
+}
+
+body.portal-layout {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+.portal-layout > .page-container {
+    min-height: 0;
+}
+
+.portal-layout > .site-footer {
+    margin-block-start: auto;
+    padding: 16px clamp(14px, 3vw, 36px);
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    text-align: center;
+    font-size: .875rem;
+}
+
+.site-footer p {
+    margin: 0;
 }

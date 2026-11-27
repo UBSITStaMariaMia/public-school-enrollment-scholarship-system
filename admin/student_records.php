@@ -346,7 +346,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                                         <button
                                             type="submit"
-                                            class="button delete-button"
+                                            class="button portal-record-action button-danger-outline"
                                         >
                                             Delete
                                         </button>

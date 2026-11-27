@@ -9,6 +9,10 @@ $pageTitle = 'Announcement Management';
 
 $errors = [];
 $success = '';
+$scheduleZone = new DateTimeZone('Asia/Manila');
+$scheduleNow = new DateTimeImmutable('now', $scheduleZone);
+$today = $scheduleNow->format('Y-m-d');
+$savedSchedule = [];
 
 $announcementTypes = [
     'Enrollment' => 'Enrollment Announcements',
@@ -32,7 +36,7 @@ $values = [
     'title' => '',
     'content' => '',
     'announcement_type' => 'School',
-    'publish_date' => date('Y-m-d\TH:i'),
+    'publish_date' => $scheduleNow->format('Y-m-d\TH:i'),
     'expiry_date' => '',
     'status' => 'Draft'
 ];
@@ -52,8 +56,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $values['title'] = trim($_POST['title'] ?? '');
         $values['content'] = trim($_POST['content'] ?? '');
         $values['announcement_type'] = trim($_POST['announcement_type'] ?? '');
-        $values['publish_date'] = trim($_POST['publish_date'] ?? '');
-        $values['expiry_date'] = trim($_POST['expiry_date'] ?? '');
+        if (!$errors && $values['announcement_id'] !== '') {
+            $scheduleQuery = $pdo->prepare(
+                'SELECT publish_date, expiry_date FROM announcements WHERE announcement_id = :id'
+            );
+            $scheduleQuery->execute(['id' => $values['announcement_id']]);
+            $savedSchedule = $scheduleQuery->fetch() ?: [];
+        }
+        foreach (['publish_date', 'expiry_date'] as $field) {
+            $day = trim($_POST[$field] ?? '');
+            $time = trim($_POST[$field . '_time'] ?? '');
+            $saved = $savedSchedule[$field] ?? '';
+            $keepPast = $saved && substr($saved, 0, 10) < $today;
+            $removePastExpiry = $field === 'expiry_date' && isset($_POST['remove_past_expiry']);
+            if ($day === '' && $time === '') {
+                $values[$field] = $keepPast && !$removePastExpiry
+                    ? str_replace(' ', 'T', substr($saved, 0, 16))
+                    : '';
+            } else {
+                $values[$field] = $day . 'T' . $time;
+                if ($day < $today) {
+                    $errors[] = ($field === 'publish_date' ? 'Publication' : 'Expiry')
+                        . ' date must be today or later.';
+                }
+            }
+        }
         $values['status'] = trim($_POST['status'] ?? '');
 
         /* Validate title */
@@ -81,7 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* Validate publication date */
         $publishDate = DateTime::createFromFormat(
             '!Y-m-d\TH:i',
-            $values['publish_date']
+            $values['publish_date'],
+            $scheduleZone
         );
 
         if (
@@ -98,7 +126,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $expiryDate = DateTime::createFromFormat(
                 '!Y-m-d\TH:i',
-                $values['expiry_date']
+                $values['expiry_date'],
+                $scheduleZone
             );
 
             if (
@@ -188,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $savedTab = $values['status'];
-                if ($savedTab === 'Published' && $expiryDate !== null && $expiryDate < new DateTime()) {
+                if ($savedTab === 'Published' && $expiryDate !== null && $expiryDate < $scheduleNow) {
                     $savedTab = 'Expired';
                 }
                 redirect('/registrar/announcements.php?' . http_build_query(['view' => $savedTab, 'saved' => 1]));
@@ -310,7 +339,7 @@ $announcementQuery = $pdo->query(
         a.publish_date,
         a.expiry_date,
         a.status,
-        CASE WHEN a.status = 'Published' AND a.expiry_date < NOW() THEN 'Expired'
+        CASE WHEN a.status = 'Published' AND a.expiry_date < (UTC_TIMESTAMP() + INTERVAL 8 HOUR) THEN 'Expired'
              ELSE a.status END AS list_status,
         u.username AS creator_name
      FROM announcements a
@@ -423,26 +452,40 @@ require_once __DIR__ . '/../includes/header.php';
                 ><?= e($values['content']) ?></textarea>
             </label>
 
-            <label>
-                Publication Date
-
-                <input
-                    type="datetime-local"
-                    name="publish_date"
-                    value="<?= e($values['publish_date']) ?>"
-                    required
-                >
-            </label>
-
-            <label>
-                Expiry Date (Optional)
-
-                <input
-                    type="datetime-local"
-                    name="expiry_date"
-                    value="<?= e($values['expiry_date']) ?>"
-                >
-            </label>
+            <?php foreach (['publish_date' => 'Publication', 'expiry_date' => 'Expiry'] as $field => $label): ?>
+                <?php
+                [$selectedDay, $selectedTime] = array_pad(explode('T', $values[$field], 2), 2, '');
+                $savedDay = substr($savedSchedule[$field] ?? '', 0, 10);
+                $hasPastDate = $savedDay !== '' && $savedDay < $today;
+                $keepPastDate = $hasPastDate && $savedDay === $selectedDay;
+                $required = $field === 'publish_date' && !$hasPastDate;
+                ?>
+                <?php if ($hasPastDate): ?>
+                    <p class="muted">
+                        Previous <?= e(strtolower($label)) ?>: <?= e(substr($savedSchedule[$field], 0, 16)) ?>.
+                        Enter a new date and time to replace it.
+                    </p>
+                <?php endif; ?>
+                <div class="form-grid two-columns">
+                    <label>
+                        <?= e($label) ?> Date<?= $field === 'expiry_date' ? ' (optional)' : '' ?>
+                        <input type="date" name="<?= e($field) ?>" min="<?= e($today) ?>"
+                            value="<?= e($keepPastDate ? '' : $selectedDay) ?>" <?= $required ? 'required' : '' ?>>
+                    </label>
+                    <label>
+                        <?= e($label) ?> Time<?= $field === 'expiry_date' ? ' (optional)' : '' ?>
+                        <input type="time" name="<?= e($field) ?>_time"
+                            value="<?= e($keepPastDate ? '' : $selectedTime) ?>" <?= $required ? 'required' : '' ?>>
+                    </label>
+                </div>
+                <?php if ($field === 'expiry_date' && $hasPastDate): ?>
+                    <label style="display: block">
+                        <input type="checkbox" name="remove_past_expiry" value="1"
+                            <?= isset($_POST['remove_past_expiry']) ? 'checked' : '' ?>>
+                        Remove the previous expiry date
+                    </label>
+                <?php endif; ?>
+            <?php endforeach; ?>
 
             <label>
                 Announcement Status
@@ -549,7 +592,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                                         <a
                                             href="<?= e($announcementListUrl . '&edit=' . (int) $announcement['announcement_id']) ?>"
-                                            class="button button-outline"
+                                            class="button button-outline portal-record-action"
                                         >
                                             Edit
                                         </a>
@@ -579,7 +622,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                                             <button
                                                 type="submit"
-                                                class="button button-danger"
+                                                class="button portal-record-action button-danger-outline"
                                             >
                                                 Delete
                                             </button>

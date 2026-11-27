@@ -20,7 +20,8 @@ try {
             publish_date
          FROM announcements
          WHERE status = 'Published'
-           AND (expiry_date IS NULL OR expiry_date >= NOW())
+           AND publish_date <= (UTC_TIMESTAMP() + INTERVAL 8 HOUR)
+           AND (expiry_date IS NULL OR expiry_date >= (UTC_TIMESTAMP() + INTERVAL 8 HOUR))
          ORDER BY publish_date DESC, announcement_id DESC"
     );
 
@@ -169,17 +170,6 @@ require_once __DIR__ . '/includes/header.php';
         margin: 0 0 8px;
         color: #681b35;
         font-size: 19px;
-    }
-
-    /*
-     * Keep the footer at the bottom without forcing it to overlap content.
-     * The footer itself remains in the normal document flow.
-     */
-    body > footer,
-    body > .site-footer,
-    body > .page-footer {
-        flex-shrink: 0;
-        margin-top: auto;
     }
 
     @media (max-width: 600px) {

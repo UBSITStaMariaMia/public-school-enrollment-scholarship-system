@@ -144,7 +144,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <td>
                                 <div class="scholarship-program-actions">
                                     <a
-                                        class="scholarship-edit-link"
+                                        class="button button-outline portal-record-action"
                                         href="<?= BASE_URL ?>/scholarship_coordinator/edit_scholarship_program.php?id=<?= (int) $program['program_id'] ?>"
                                     >
                                         Edit

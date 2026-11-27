@@ -363,7 +363,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <td>
                             <div class="section-row-actions">
                                 <a
-                                    class="button button-outline"
+                                    class="button button-outline portal-record-action"
                                     href="<?= e($listPath . '?' . http_build_query($sectionFilters + ['edit' => (int) $row['section_id']])) ?>"
                                 >
                                     Edit
@@ -376,13 +376,17 @@ require_once __DIR__ . '/../includes/header.php';
                                 if ($row['has_teachers']) $usedBy[] = 'teacher assignments';
                                 ?>
                                 <?php if ($usedBy): ?>
-                                    <span class="muted section-in-use">In use by <?= e(implode(', ', $usedBy)) ?></span>
+                                    <button type="button" class="button portal-record-action section-delete-unavailable"
+                                        aria-haspopup="dialog"
+                                        data-section-in-use="<?= e($row['section_name'] . ' is still in use by ' . implode(', ', $usedBy) . '.') ?>">
+                                        Delete
+                                    </button>
                                 <?php else: ?>
                                     <form method="post" action="<?= e($deleteUrl) ?>"
                                           data-confirm-delete="Delete <?= e($row['section_name']) ?> (Grade <?= e($row['grade_level']) ?>, <?= e($row['school_year']) ?>)? This action cannot be undone.">
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                         <input type="hidden" name="section_id" value="<?= (int) $row['section_id'] ?>">
-                                        <button class="button button-outline" type="submit">Delete</button>
+                                        <button class="button portal-record-action button-danger-outline" type="submit">Delete</button>
                                     </form>
                                 <?php endif; ?>
                             </div>
@@ -401,7 +405,35 @@ require_once __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 </section>
 
+<?php if (!$showSectionForm): ?>
+    <dialog class="portal-delete-dialog" id="sectionInUseDialog"
+        aria-labelledby="sectionInUseTitle" aria-describedby="sectionInUseMessage">
+        <h2 id="sectionInUseTitle">Section can't be deleted</h2>
+        <p id="sectionInUseMessage"></p>
+        <form method="dialog" class="portal-delete-actions">
+            <button class="button button-outline" autofocus>Close</button>
+        </form>
+    </dialog>
+
+    <script>
+        const sectionInUseDialog = document.getElementById('sectionInUseDialog');
+        const sectionInUseMessage = document.getElementById('sectionInUseMessage');
+        document.querySelectorAll('[data-section-in-use]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                sectionInUseMessage.textContent = button.dataset.sectionInUse;
+                sectionInUseDialog.showModal();
+            });
+        });
+    </script>
+<?php endif; ?>
+
 <style>
+.button.section-delete-unavailable {
+    background: #f1f2f4;
+    border: 1px solid #cbd1d8;
+    color: #515b68;
+}
+
 .section-editor {
     display: grid;
     gap: 14px;

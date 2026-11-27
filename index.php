@@ -100,7 +100,8 @@ try {
         "SELECT title, content, announcement_type, publish_date
          FROM announcements
          WHERE status = 'Published'
-           AND (expiry_date IS NULL OR expiry_date >= NOW())
+           AND publish_date <= (UTC_TIMESTAMP() + INTERVAL 8 HOUR)
+           AND (expiry_date IS NULL OR expiry_date >= (UTC_TIMESTAMP() + INTERVAL 8 HOUR))
          ORDER BY publish_date DESC
          LIMIT 5"
     );

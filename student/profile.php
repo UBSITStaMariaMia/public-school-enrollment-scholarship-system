@@ -671,7 +671,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                 <a
                     href="profile.php?edit=1"
-                    class="button button-primary"
+                    class="button button-outline portal-record-action"
                 >
                     Edit Profile
                 </a>

@@ -746,7 +746,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                                     <a
                                         href="<?= BASE_URL ?>/admin/user_management.php?edit=<?= (int) $staff['user_id'] ?>"
-                                        class="button button-outline"
+                                        class="button button-outline portal-record-action"
                                     >
                                         Edit
                                     </a>
@@ -805,7 +805,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                                         <button
                                             type="submit"
-                                            class="button button-danger"
+                                            class="button portal-record-action button-danger-outline"
                                         >
                                             Delete
                                         </button>

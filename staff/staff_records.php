@@ -991,7 +991,7 @@ require_once __DIR__ . '/../includes/header.php';
                                             <input type="hidden" name="user_id" value="<?= (int) $selectedStaff['user_id'] ?>">
                                             <input type="hidden" name="assignment_id" value="<?= (int) $assignment['assignment_id'] ?>">
 
-                                            <button type="submit" class="btn btn-secondary">
+                                            <button type="submit" class="button portal-record-action button-danger-outline">
                                                 Remove
                                             </button>
                                         </form>

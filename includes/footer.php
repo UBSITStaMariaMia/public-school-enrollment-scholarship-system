@@ -16,7 +16,7 @@
         <p id="portalDeleteMessage"></p>
         <form method="dialog" class="portal-delete-actions">
             <button class="button button-outline" value="cancel" autofocus>Cancel</button>
-            <button class="button button-primary" id="portalDeleteConfirm" value="confirm">Delete</button>
+            <button class="button button-danger portal-record-action" id="portalDeleteConfirm" value="confirm">Delete</button>
         </form>
     </dialog>
     <script src="<?= BASE_URL ?>/assets/js/delete_confirmation.js" defer></script>

@@ -38,11 +38,11 @@ function header_link_active(string $page, array $pages): string
 
     <title><?= e($pageTitle) ?> | Baguio City National High School Portal</title>
 
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=3">
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/responsive.css?v=2">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=6">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/responsive.css?v=3">
 </head>
 
-<body class="<?= $showPortalNavigation ? 'portal-navigation' : '' ?> <?= $isStudent ? 'student-portal' : '' ?> <?= $isAdmin ? 'admin-portal' : '' ?> <?= $isRegistrar ? 'registrar-portal' : '' ?> <?= $isTeacher ? 'teacher-portal' : '' ?> <?= $user ? 'has-role-sidebar' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?> <?= (!$user && in_array($currentPage, ['index.php', 'register.php', 'login.php'], true)) ? 'public-auth-page' : '' ?>">
+<body class="portal-layout <?= $showPortalNavigation ? 'portal-navigation' : '' ?> <?= $isStudent ? 'student-portal' : '' ?> <?= $isAdmin ? 'admin-portal' : '' ?> <?= $isRegistrar ? 'registrar-portal' : '' ?> <?= $isTeacher ? 'teacher-portal' : '' ?> <?= $user ? 'has-role-sidebar' : '' ?> <?= $isAccountPage ? 'account-page' : '' ?> <?= (!$user && in_array($currentPage, ['index.php', 'register.php', 'login.php'], true)) ? 'public-auth-page' : '' ?>">
 <header class="site-header">
 
     <!-- SCHOOL BRAND -->
