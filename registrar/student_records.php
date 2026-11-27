@@ -1031,12 +1031,6 @@ require_once __DIR__ . '/../includes/header.php';
 
     <h1>Student Records Management</h1>
 
-    <p>
-
-        Review student information, academic performance, and attendance for the active school year.
-
-    </p>
-
     <?php if ($activeSchoolYear): ?>
 
         <p>
@@ -1216,7 +1210,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <span class="records-student-status">Active School Year: <?= e($activeSchoolYear['school_year']) ?></span>
                 <div class="records-export-actions">
                     <a class="button button-outline records-export-icon" href="<?= e($studentDetailUrl . '&record_export=print') ?>"
-                       target="_blank" rel="noopener" aria-label="Print student record" title="Print student record">
+                       data-print-report target="_blank" rel="noopener" aria-label="Print student record" title="Print student record">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v7H7z"/><path d="M17 11h.01"/></svg>
                     </a>
                     <a class="button button-primary records-export-icon" href="<?= e($studentDetailUrl . '&record_export=download') ?>"

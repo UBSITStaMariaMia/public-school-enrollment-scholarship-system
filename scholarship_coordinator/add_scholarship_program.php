@@ -87,7 +87,6 @@ require_once __DIR__ . '/../includes/header.php';
 <section class="form-card form-card-wide scholarship-program-card">
 
     <h1>Add Scholarship Program</h1>
-    <p class="muted">Enter the details of the new special program.</p>
 
     <?php if ($error): ?>
         <p class="error-message"><?= e($error) ?></p>

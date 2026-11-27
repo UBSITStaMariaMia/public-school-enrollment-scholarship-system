@@ -449,7 +449,7 @@ require_once __DIR__ . '/../includes/header.php';
             <h1>Enrollment Reports</h1>
             <div class="report-export-icons">
                 <a class="button button-outline report-export-icon"
-                   href="?<?= e(http_build_query($reportScope + ['print' => '1'])) ?>" target="_blank" rel="noopener"
+                   href="?<?= e(http_build_query($reportScope + ['print' => '1'])) ?>" data-print-report target="_blank" rel="noopener"
                    title="Print report" aria-label="Print report">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v7H7z"/><path d="M17 11h.01"/></svg>
                 </a>
@@ -460,9 +460,6 @@ require_once __DIR__ . '/../includes/header.php';
                 </a>
             </div>
         </div>
-        <p class="muted">
-            Enrollment statistics and enrollment-status summaries for the selected school year.
-        </p>
     </div>
 
     <form method="get" class="report-year-form">

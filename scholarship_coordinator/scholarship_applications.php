@@ -356,7 +356,7 @@ if ($printReport || $downloadReport) {
 
             <script>
                 window.onload = function () {
-                    window.print();
+                    if (window.parent === window) window.print();
                 };
             </script>
 
@@ -377,11 +377,6 @@ require_once __DIR__ . '/../includes/header.php';
 
         <div>
             <h1>Scholarship Applications</h1>
-
-            <p class="muted">
-                Review applicants, shortlist students for screening,
-                assign their screening schedule, and record their review.
-            </p>
         </div>
 
         <?php if ($applications): ?>
@@ -391,7 +386,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <a
                     href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_applications.php?<?= e(http_build_query(['print' => 1, 'status' => $statusFilter])) ?>"
                     class="button button-outline scholarship-icon-button"
-                    target="_blank"
+                    data-print-report target="_blank"
                     rel="noopener"
                     title="Print Applications"
                     aria-label="Print Applications"

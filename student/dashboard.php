@@ -62,17 +62,10 @@ if ($student) {
 
 $pageTitle = 'Student Dashboard';
 
-$dashboardLinks = [
-    ['New Enrollment', '/student/new_enrollment.php', 'new-enrollment', 'Submit an enrollment application for the active school year.'],
-    ['Scholarship Application', '/student/scholarship_application.php', 'award', 'Check the available programs and apply for a scholarship.'],
-    ['My Records', '/student/records.php', 'student-record', 'View your academic and attendance records.'],
-    ['My Applications', '/student/my_applications.php', 'applications', 'Check the status of your applications.'],
-    ['Announcements', '/announcements.php', 'announcement', 'Read school updates and notices.'],
-    ['My Profile', '/student/profile.php', 'profile', 'View and update your student information.'],
-    ['Change Password', '/student/change_password.php', 'password', 'Update the password for your portal account.'],
-];
 $dashboardHeading = 'Welcome, ' . $studentName;
 
 require_once __DIR__ . '/../includes/header.php';
+$dashboardLinks = $studentDashboardLinks;
+$dashboardIntro = 'Submit applications, check their status, and view your school records.';
 require __DIR__ . '/../includes/dashboard_shortcuts.php';
 require_once __DIR__ . '/../includes/footer.php';

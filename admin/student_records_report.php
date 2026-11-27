@@ -209,7 +209,7 @@ if ($download) {
     <?php if ($print): ?>
         <script>
             window.onload = function () {
-                window.print();
+                if (window.parent === window) window.print();
             };
         </script>
     <?php endif; ?>

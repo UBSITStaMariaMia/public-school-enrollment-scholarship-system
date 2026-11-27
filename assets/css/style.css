@@ -8,7 +8,6 @@
     --surface: #ffffff;
     --page: #f4f5f7;
     --line: #e3e6eb;
-    --shadow: 0 16px 40px rgba(28, 35, 45, .08);
 }
 
 * {
@@ -154,7 +153,6 @@ a:hover {
     padding: clamp(30px, 6vw, 76px);
     border-radius: 24px;
     background: linear-gradient(130deg, #fff 0%, #fff 55%, #f5eaf0 100%);
-    box-shadow: var(--shadow);
 }
 
 .hero h1 {
@@ -256,7 +254,6 @@ a:hover {
     border: 1px solid var(--line);
     border-radius: 18px;
     background: var(--surface);
-    box-shadow: var(--shadow);
 }
 
 .form-card-narrow {
@@ -414,13 +411,11 @@ input[type="radio"] {
     border: 1px solid var(--line);
     border-radius: 15px;
     background: #fff;
-    box-shadow: 0 8px 22px rgba(28, 35, 45, .04);
     color: var(--ink);
     cursor: pointer;
     text-decoration: none;
     transition:
         transform .2s ease,
-        box-shadow .2s ease,
         border-color .2s ease,
         background-color .2s ease;
 }
@@ -429,7 +424,6 @@ input[type="radio"] {
     transform: translateY(-5px);
     border-color: var(--maroon);
     background-color: #fffafb;
-    box-shadow: 0 12px 28px rgba(100, 27, 50, .16);
     text-decoration: none;
 }
 
@@ -620,7 +614,6 @@ input[type="radio"] {
     padding: 30px;
     border-radius: 18px;
     background: #fff;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, .2);
 
     transform: translateY(12px);
     transition: transform .2s ease;
@@ -772,7 +765,6 @@ body.student-portal {
     overflow-y: auto;
     background: #ffffff;
     border-left: 1px solid var(--line);
-    box-shadow: -8px 0 24px rgba(28, 35, 45, .04);
 }
 
 .student-sidebar-heading {
@@ -1002,7 +994,6 @@ body.student-portal {
     padding: 28px 22px;
 
     background: #ffffff;
-    box-shadow: -8px 0 28px rgba(0, 0, 0, .12);
 
     transform: translateX(100%);
     visibility: hidden;
@@ -1410,7 +1401,6 @@ body.sidebar-open {
     padding: 24px 20px;
     overflow-y: auto;
     background: #fff;
-    box-shadow: -12px 0 32px rgba(0, 0, 0, .14);
     transform: translateX(105%);
     visibility: hidden;
     transition: transform .28s ease, visibility .28s ease;
@@ -1707,7 +1697,6 @@ body.main-menu-open {
     height: 100vh;
     padding: 24px;
     background: #fff;
-    box-shadow: -10px 0 35px rgba(0, 0, 0, .12);
     transform: translateX(110%);
     visibility: hidden;
     transition: transform .3s ease, visibility .3s ease;
@@ -1921,7 +1910,6 @@ body.main-menu-open {
     width: min(360px, 85vw);
     padding: 26px 22px;
     background: #fff;
-    box-shadow: -8px 0 28px rgba(0, 0, 0, .12);
     transform: translateX(100%);
     visibility: hidden;
     transition: transform .3s ease, visibility .3s ease;
@@ -2331,7 +2319,6 @@ body.sidebar-open {
     border: 1px solid var(--line);
     border-radius: 22px;
     background: linear-gradient(130deg, #fff 0%, #fff 58%, #f5eaf0 100%);
-    box-shadow: var(--shadow);
 }
 
 .login-landing-intro h1 {
@@ -2377,7 +2364,6 @@ body.sidebar-open {
     border: 1px solid var(--line);
     border-radius: 17px;
     background: #fff;
-    box-shadow: 0 12px 30px rgba(28, 35, 45, .08);
 }
 
 .login-panel-heading h2 {
@@ -2411,7 +2397,6 @@ body.sidebar-open {
     border: 1px solid var(--line);
     border-radius: 18px;
     background: #fff;
-    box-shadow: var(--shadow);
 }
 
 .landing-announcements-heading {
@@ -2901,7 +2886,6 @@ body.sidebar-open {
     border-radius: 24px;
     overflow: hidden;
     background: #f1e9e2;
-    box-shadow: 0 22px 55px rgba(47, 24, 34, .18);
 }
 
 .login-landing .login-panel,
@@ -3109,7 +3093,6 @@ body.sidebar-open {
     border: 1px solid #d8d0d0;
     border-radius: 20px;
     background: #efebea;
-    box-shadow: 0 18px 42px rgba(44, 35, 38, .13);
 }
 
 .login-landing .login-panel,
@@ -3351,7 +3334,6 @@ body.sidebar-open {
     border-top: 2px solid #76213e;
     border-radius: 15px;
     background: #ffffff;
-    box-shadow: 0 14px 36px rgba(45, 29, 36, .12);
 }
 
 .login-landing.login-announcements-layout .login-panel,
@@ -3793,7 +3775,6 @@ body.sidebar-open {
     width: min(310px, 88vw);
     padding: 16px 12px;
     border-right: 1px solid var(--line);
-    box-shadow: 8px 0 28px rgba(45, 20, 31, .12);
     transform: translateX(-100%);
 }
 
@@ -3943,10 +3924,6 @@ body.sidebar-open {
         flex-direction: column;
     }
 
-    .sidebar-compact .sidebar-compact-toggle span {
-        transform: rotate(180deg);
-    }
-
     .sidebar-compact .sidebar-role-identity,
     .sidebar-compact .sidebar-nav-text {
         display: none;
@@ -4002,7 +3979,6 @@ body.sidebar-open {
     background: #ffffff;
     border: 1px solid #eadfe4;
     border-radius: 18px;
-    box-shadow: 0 5px 20px rgba(40, 20, 30, 0.07);
 }
 
 .scholarship-dashboard .scholarship-eyebrow {
@@ -4075,7 +4051,6 @@ body.sidebar-open {
     background: #ffffff;
     border: 1px solid #eadfe4;
     border-radius: 16px;
-    box-shadow: 0 5px 18px rgba(40, 20, 30, 0.06);
 }
 
 .scholarship-dashboard .scholarship-summary-primary {
@@ -4128,14 +4103,12 @@ body.sidebar-open {
     background: #ffffff;
     border: 1px solid #eadfe4;
     border-radius: 17px;
-    box-shadow: 0 5px 18px rgba(40, 20, 30, 0.06);
 
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease;
 }
 
 .scholarship-dashboard .scholarship-service-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 9px 25px rgba(40, 20, 30, 0.10);
 }
 
 .scholarship-dashboard .scholarship-service-icon {
@@ -4323,7 +4296,6 @@ body.sidebar-open {
     border: 1px solid #eadfe4;
     border-radius: 18px;
 
-    box-shadow: 0 5px 20px rgba(40, 20, 30, 0.07);
 }
 
 .admin-welcome-card .eyebrow {
@@ -4399,7 +4371,6 @@ body.sidebar-open {
     border: 1px solid #eadfe4;
     border-radius: 16px;
 
-    box-shadow: 0 5px 18px rgba(40, 20, 30, 0.06);
 }
 
 .admin-summary-card:first-child {
@@ -4453,16 +4424,12 @@ body.sidebar-open {
     border: 1px solid #eadfe4;
     border-radius: 17px;
 
-    box-shadow: 0 5px 18px rgba(40, 20, 30, 0.06);
 
-    transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
+    transition: transform 0.2s ease;
 }
 
 .admin-service-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 9px 25px rgba(40, 20, 30, 0.10);
 }
 
 /* Service Icons */
@@ -4990,15 +4957,24 @@ body.sidebar-open {
     min-width: 0;
 }
 
+.registration-form-grid .registration-field-column {
+    display: grid;
+    align-self: start;
+    gap: 12px;
+    min-width: 0;
+}
+
 .registration-form-grid .registration-field-group label {
     align-self: stretch;
 }
 
 .registration-form-grid input:not([type="checkbox"]),
 .registration-form-grid select {
-    min-height: 40px;
+    min-height: 42px;
+    height: 42px;
     padding: 7px 10px;
     margin-top: 0;
+    font-weight: 600;
 }
 
 .registration-form-grid .address-section {
@@ -5336,7 +5312,6 @@ body.sidebar-open {
     border-radius: 14px;
     padding: 24px;
     margin-top: 22px;
-    box-shadow: 0 8px 22px rgba(28, 35, 45, .04);
 }
 
 .application-card h2 {
@@ -5566,7 +5541,6 @@ body.sidebar-open {
     border-radius: 12px;
     padding: 22px;
     margin-bottom: 25px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
 }
 
 .records-card h2 {
@@ -5987,7 +5961,6 @@ body.sidebar-open {
     border: 1px solid var(--line);
     border-radius: 12px;
     background: #ffffff;
-    box-shadow: 0 3px 12px rgba(30, 20, 25, 0.04);
 }
 
 .scholarship-applicant-header {
@@ -6388,7 +6361,6 @@ body.sidebar-open {
     position: absolute;
     inset-inline: 0;
     z-index: 10;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, .12);
 }
 
 .table-search-fields {
@@ -6631,7 +6603,6 @@ body.sidebar-open {
     border-radius: 15px;
     background: #fff;
     color: var(--ink);
-    box-shadow: 0 18px 65px #0004;
 }
 
 .portal-delete-dialog::backdrop {
@@ -6767,4 +6738,148 @@ body.portal-layout {
 
 .site-footer p {
     margin: 0;
+}
+
+.student-portal .student-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .55em;
+    background: transparent;
+    color: #344054;
+    font-weight: 500;
+}
+
+.student-portal .student-status::before {
+    content: "";
+    flex: 0 0 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--student-status-dot, #667085);
+}
+
+.student-status:is(.status-approved, .status-success) {
+    --student-status-dot: #35664d;
+}
+
+.student-status:is(.status-rejected, .status-danger) {
+    --student-status-dot: #a12622;
+}
+
+.student-status:is(.status-pending, .status-incomplete, .status-warning) {
+    --student-status-dot: #866024;
+}
+
+.student-required {
+    color: #b91c1c;
+    font-weight: 700;
+}
+
+.student-portal .sidebar-identity-text h2 {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.student-portal .portal-dashboard-heading {
+    min-height: clamp(156px, 14vw, 184px);
+}
+
+.student-portal .student-profile-actions {
+    margin-block-start: 16px;
+}
+
+.student-account-shell {
+    width: min(100%, 900px);
+}
+
+.student-account-shell-narrow {
+    width: min(100%, 520px);
+}
+
+.student-settings-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-block: 1px solid var(--line);
+}
+
+.student-settings-list li + li {
+    border-top: 1px solid var(--line);
+}
+
+.student-settings-list a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 52px;
+    padding: 12px 14px;
+    color: var(--maroon);
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.student-settings-list a::after {
+    content: "";
+    flex: 0 0 8px;
+    height: 8px;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    transform: rotate(45deg);
+}
+
+.student-settings-list a:hover {
+    background: #f7edf1;
+    text-decoration: underline;
+}
+
+.student-settings-list a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+}
+
+.student-application-summary {
+    max-width: 720px;
+}
+
+.student-application-summary h2 {
+    margin-block: 0 12px;
+}
+
+.student-application-summary dl {
+    margin: 0;
+    border-block-start: 1px solid var(--line);
+}
+
+.student-application-summary dl > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 4px 16px;
+    padding-block: 12px;
+    border-block-end: 1px solid var(--line);
+}
+
+.student-application-summary dt {
+    font-weight: 650;
+}
+
+.student-application-summary dd {
+    margin: 0;
+}
+
+.student-summary-next {
+    margin-block-start: 22px;
+}
+
+.student-summary-next :is(h3, p) {
+    margin-block: 0 8px;
+}
+
+.student-summary-next .button {
+    margin-block-start: 6px;
+}
+
+@media (max-width: 480px) {
+    .student-application-summary dl > div {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }

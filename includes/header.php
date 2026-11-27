@@ -20,7 +20,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 $showPortalNavigation = $user || !in_array($currentPage, ['index.php', 'register.php', 'login.php'], true);
 $isAccountPage = $isStudent && in_array(
     $currentPage,
-    ['profile.php', 'change_password.php'],
+    ['settings.php', 'profile.php', 'change_password.php'],
     true
 );
 
@@ -38,7 +38,7 @@ function header_link_active(string $page, array $pages): string
 
     <title><?= e($pageTitle) ?> | Baguio City National High School Portal</title>
 
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=6">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=16">
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/responsive.css?v=3">
 </head>
 

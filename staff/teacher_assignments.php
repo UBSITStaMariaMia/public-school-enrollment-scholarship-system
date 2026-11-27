@@ -38,7 +38,7 @@ $years=$pdo->query('SELECT school_year_id,school_year FROM school_years ORDER BY
 $assignments=$pdo->query("SELECT tsa.assignment_id,u.username,sp.first_name,sp.last_name,s.section_name,g.grade_level,y.school_year FROM teacher_section_assignments tsa JOIN users u ON u.user_id=tsa.teacher_user_id LEFT JOIN staff_profiles sp ON sp.user_id=u.user_id JOIN sections s ON s.section_id=tsa.section_id JOIN grade_levels g ON g.grade_level_id=s.grade_level_id JOIN school_years y ON y.school_year_id=tsa.school_year_id ORDER BY y.school_year_id DESC,sp.last_name")->fetchAll();
 require_once __DIR__ . '/../includes/header.php';
 ?>
-<section class="form-card form-card-wide"><h1>Teacher Section Assignments</h1><p class="muted">Assign active teacher accounts to class sections for a school year.</p>
+<section class="form-card form-card-wide"><h1>Teacher Section Assignments</h1>
 <?php if($success):?><p class="success-message"><?=e($success)?></p><?php endif;?><?php if($error):?><p class="error-message"><?=e($error)?></p><?php endif;?>
 <h2>Assign Teacher</h2><form method="post"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="action" value="assign">
 <label>Teacher<select name="teacher_user_id" required><option value="">Select teacher</option><?php foreach($teachers as $t):?><option value="<?=(int)$t['user_id']?>"><?=e(trim(($t['first_name']??'').' '.($t['last_name']??'')) ?: $t['username'])?> (<?=e($t['username'])?>)</option><?php endforeach;?></select></label>

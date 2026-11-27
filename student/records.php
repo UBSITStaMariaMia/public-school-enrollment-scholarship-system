@@ -145,15 +145,11 @@ require_once __DIR__ . '/../includes/header.php';
     Back to Dashboard
     </a>
 </div>
-<main class="records-page">
+<div class="records-page">
 
 
     <div class="records-heading">
         <h1>Student Records</h1>
-        <p>
-            View your assigned subjects, academic grades,
-            and attendance records.
-        </p>
     </div>
 
     <!-- Assigned Subjects -->
@@ -165,10 +161,10 @@ require_once __DIR__ . '/../includes/header.php';
                 <table class="records-table">
                     <thead>
                         <tr>
-                            <th>Subject Code</th>
-                            <th>Subject Name</th>
-                            <th>School Year</th>
-                            <th>Status</th>
+                            <th scope="col">Subject Code</th>
+                            <th scope="col">Subject Name</th>
+                            <th scope="col">School Year</th>
+                            <th scope="col">Status</th>
                         </tr>
                     </thead>
 
@@ -179,7 +175,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 <td><?= e($subject['subject_name']) ?></td>
                                 <td><?= e($subject['school_year']) ?></td>
                                 <td>
-                                    <span class="record-status <?= e(record_status_class($subject['enrollment_status'])) ?>">
+                                    <span class="student-status <?= e(record_status_class($subject['enrollment_status'])) ?>">
                                         <?= e($subject['enrollment_status']) ?>
                                     </span>
                                 </td>
@@ -205,12 +201,12 @@ require_once __DIR__ . '/../includes/header.php';
                 <table class="records-table grades-table">
                     <thead>
                         <tr>
-                            <th>Subject</th>
-                            <th>School Year</th>
-                            <th>1st Quarter</th>
-                            <th>2nd Quarter</th>
-                            <th>3rd Quarter</th>
-                            <th>4th Quarter</th>
+                            <th scope="col">Subject</th>
+                            <th scope="col">School Year</th>
+                            <th scope="col">1st Quarter</th>
+                            <th scope="col">2nd Quarter</th>
+                            <th scope="col">3rd Quarter</th>
+                            <th scope="col">4th Quarter</th>
                         </tr>
                     </thead>
 
@@ -253,10 +249,10 @@ require_once __DIR__ . '/../includes/header.php';
                 <table class="records-table">
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Subject</th>
-                            <th>Attendance Status</th>
-                            <th>Remarks</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Subject</th>
+                            <th scope="col">Attendance Status</th>
+                            <th scope="col">Remarks</th>
                         </tr>
                     </thead>
 
@@ -277,7 +273,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 </td>
 
                                 <td>
-                                    <span class="record-status <?= e(record_status_class($record['attendance_status'])) ?>">
+                                    <span class="student-status <?= e(record_status_class($record['attendance_status'])) ?>">
                                         <?= e($record['attendance_status']) ?>
                                     </span>
                                 </td>
@@ -296,10 +292,7 @@ require_once __DIR__ . '/../includes/header.php';
         <?php endif; ?>
     </section>
 
-    <p class="records-note">
-        Note: Subject assignments, grades, and attendance are managed by authorized school staff.
-    </p>
 
-</main>
+</div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

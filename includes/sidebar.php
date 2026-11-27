@@ -47,14 +47,12 @@ if ($sidebarRole === 'Student' && $sidebarUserId > 0) {
     $profileName = $nameQuery->fetch(PDO::FETCH_ASSOC);
 
     if ($profileName) {
-        $middleInitial = '';
-
-        if (!empty($profileName['middle_name'])) {
-            $middleName = trim($profileName['middle_name']);
-            $middleInitial = (function_exists('mb_substr') ? mb_substr($middleName, 0, 1, 'UTF-8') : substr($middleName, 0, 1)) . '.';
-        }
-
-        $sidebarDisplayName = trim($profileName['first_name'] . ' ' . ($middleInitial !== '' ? $middleInitial . ' ' : '') . $profileName['last_name']);
+        $nameParts = array_map('trim', [
+            $profileName['first_name'] ?? '',
+            $profileName['middle_name'] ?? '',
+            $profileName['last_name'] ?? '',
+        ]);
+        $sidebarDisplayName = implode(' ', array_filter($nameParts));
     }
 } elseif ($sidebarRole === 'Teacher' && $sidebarUserId > 0) {
     $nameQuery = $pdo->prepare('SELECT first_name, middle_name, last_name FROM staff_profiles WHERE user_id = :user_id LIMIT 1');
@@ -108,11 +106,17 @@ if ($sidebarRole === 'System Administrator') {
 } elseif ($sidebarRole === 'Student') {
     $sidebarHeading = $sidebarDisplayName;
     $sidebarAdd('Dashboard', '/student/dashboard.php', 'dashboard.php', 'dashboard');
-    $sidebarAdd('New Enrollment', '/student/new_enrollment.php', 'new_enrollment.php', 'new-enrollment');
-    $sidebarAdd('My Applications', '/student/my_applications.php', 'my_applications.php', 'applications');
-    $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
-    $sidebarAdd('My Profile', '/student/profile.php', 'profile.php', 'profile');
-    $sidebarAdd('Change Password', '/student/change_password.php', 'change_password.php', 'password');
+    $studentDashboardLinks = [
+        ['Settings', '/student/settings.php', 'profile', 'Manage your profile and password.'],
+        ['New Enrollment', '/student/new_enrollment.php', 'new-enrollment', 'Submit an enrollment application for the active school year.'],
+        ['Scholarship Application', '/student/scholarship_application.php', 'award', 'Check the available programs and apply for a scholarship.'],
+        ['My Records', '/student/records.php', 'student-record', 'View your academic and attendance records.'],
+        ['My Applications', '/student/my_applications.php', 'applications', 'Check the status of your applications.'],
+        ['Announcements', '/announcements.php', 'announcement', 'Read school updates and notices.'],
+    ];
+    foreach ($studentDashboardLinks as [$label, $path, $icon]) {
+        $sidebarAdd($label, $path, basename($path), $icon);
+    }
 
 } elseif ($sidebarRole === 'Enrollment Committee') {
     $sidebarHeading = $sidebarRole;
@@ -142,8 +146,9 @@ if ($sidebarRole === 'System Administrator') {
 }
 
 $sidebarRelatedPages = [
+    'settings.php' => ['profile.php', 'change_password.php'],
     'enrollment_review.php' => ['review_application.php'],
-    'my_applications.php' => ['edit_enrollment.php', 'scholarship_application.php'],
+    'my_applications.php' => ['edit_enrollment.php', 'scholarship_status.php'],
     'scholarship_programs.php' => ['add_scholarship_program.php', 'edit_scholarship_program.php'],
     'student_records.php' => ['student_records_report.php'],
     'staff_records.php' => ['staff_records_report.php'],
@@ -157,7 +162,7 @@ $sidebarRelatedPages = [
                 <span class="sidebar-nav-icon sidebar-role-icon" aria-hidden="true"><?= $sidebarIcons[$sidebarRoleIcon] ?></span>
             <?php endif; ?>
             <div class="sidebar-identity-text">
-                <h2><?= e($sidebarHeading) ?></h2>
+                <h2<?= $sidebarRole === 'Student' ? ' title="' . e($sidebarHeading) . '"' : '' ?>><?= e($sidebarHeading) ?></h2>
                 <?php if ($sidebarUser && $sidebarHeading !== $sidebarRole): ?>
                     <p><?= e($sidebarRole) ?></p>
                 <?php endif; ?>
@@ -166,7 +171,10 @@ $sidebarRelatedPages = [
         <button type="button" class="sidebar-compact-toggle" id="sidebarCompactToggle"
                 aria-label="Collapse navigation" title="Collapse navigation"
                 aria-controls="portalNavigationLinks" aria-expanded="true">
-            <span aria-hidden="true">&lsaquo;</span>
+            <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+                <rect x="3" y="4" width="18" height="16" rx="3"/>
+                <path d="M9 4v16M6 8h.1M6 12h.1M6 16h.1"/>
+            </svg>
         </button>
         <button type="button" class="main-sidebar-close" id="mainSidebarClose" aria-label="Close navigation menu">&times;</button>
     </div>

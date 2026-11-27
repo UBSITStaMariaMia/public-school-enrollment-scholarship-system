@@ -623,11 +623,6 @@ require_once __DIR__ . '/../includes/header.php';
 <section class="form-card">
     <h1>Staff Records Management</h1>
 
-    <p>
-        Manage employee information, employment details,
-        staff account status, and teacher section assignments.
-    </p>
-
     <?php if ($activeSchoolYear): ?>
         <p>
             <strong>Active School Year:</strong>

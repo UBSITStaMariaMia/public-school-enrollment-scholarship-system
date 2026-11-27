@@ -182,7 +182,6 @@ require_once __DIR__ . '/../includes/header.php';
 
 <section class="form-card">
     <h1>User Management</h1>
-    <p>Create staff accounts and manage their account status.</p>
 
     <?php if ($message): ?>
         <p class="success-message"><?= e($message) ?></p>

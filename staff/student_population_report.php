@@ -169,7 +169,6 @@ require_once __DIR__ . '/../includes/header.php';
     <h1>Student Population Report</h1>
 
     <p class="muted">
-        Student population summaries by grade level, section, and school year.
         Enrolled students are counted from applications with an Approved status.
     </p>
 

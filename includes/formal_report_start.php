@@ -16,7 +16,7 @@ if (!empty($formalFilename)) {
     <?php if (!empty($formalAutoPrint) && empty($formalFilename)): ?>
         <script>
         window.addEventListener('load', function () {
-            window.print();
+            if (window.parent === window) window.print();
         }, { once: true });
         </script>
     <?php endif; ?>

@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         u.username,
                         u.email,
                         u.password_hash,
+                        u.must_change_password,
                         u.account_status,
                         r.role_name
                      FROM users u
@@ -55,15 +56,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $account['account_status'] === 'Active' &&
                     password_verify($password, $account['password_hash'])
                 ) {
-                    if (password_needs_rehash($account['password_hash'], PASSWORD_DEFAULT)) {
+                    if (!$account['must_change_password'] && password_needs_rehash($account['password_hash'], PASSWORD_DEFAULT)) {
                         $newHash = password_hash($password, PASSWORD_DEFAULT);
                         $updateStatement = $pdo->prepare(
                             'UPDATE users
                              SET password_hash = :password_hash
-                             WHERE user_id = :user_id'
+                             WHERE user_id = :user_id AND password_hash = :previous_hash'
                         );
                         $updateStatement->execute([
                             'password_hash' => $newHash,
+                            'previous_hash' => $account['password_hash'],
                             'user_id' => $account['user_id']
                         ]);
                     }
@@ -75,9 +77,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'username' => $account['username'],
                         'email' => $account['email'],
                         'role_name' => $account['role_name'],
+                        'must_change_password' => $account['role_name'] === 'Student'
+                            && (bool) $account['must_change_password'],
                     ];
 
-                    redirect(dashboard_path_for_role($account['role_name']));
+                    redirect($_SESSION['user']['must_change_password']
+                        ? '/student/change_password.php'
+                        : dashboard_path_for_role($account['role_name']));
                 }
 
                 $error = 'Invalid username/email or password.';
@@ -171,7 +177,6 @@ require_once __DIR__ . '/includes/header.php';
     <section class="landing-announcements" aria-labelledby="landingAnnouncementsTitle">
         <div class="landing-announcements-heading">
             <h2 id="landingAnnouncementsTitle">Public Announcements</h2>
-            <p>Keep up with the latest published school announcements and important updates.</p>
         </div>
 
         <?php if ($announcements): ?>

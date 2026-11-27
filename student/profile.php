@@ -332,356 +332,360 @@ $pageTitle = 'My Profile';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<section class="form-card form-card-wide <?= $isEditing ? 'profile-editing' : '' ?>">
+<div class="student-account-shell">
+    <div class="portal-back-row">
+        <a class="portal-back-link" href="<?= BASE_URL ?>/student/settings.php">Back to Settings</a>
+    </div>
+    <section class="form-card form-card-wide <?= $isEditing ? 'profile-editing' : '' ?>">
 
 
-    <h1>My Profile</h1>
+        <h1>My Profile</h1>
 
-    <p class="muted">
-        View your personal information and contact details.
-        You can update your email addresses and the contact numbers listed in your profile.
-    </p>
+        <p class="muted">
+            You can update your email addresses and the contact numbers listed in your profile.
+        </p>
 
-    <?php if ($success): ?>
-        <div class="alert alert-success">
-            <?= e($success) ?>
-        </div>
-    <?php endif; ?>
-
-    <?php foreach ($errors as $message): ?>
-        <div class="alert alert-error">
-            <?= e($message) ?>
-        </div>
-    <?php endforeach; ?>
-
-    <form method="post" class="form-grid">
-
-        <?php if ($isEditing): ?>
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="<?= e(csrf_token()) ?>"
-            >
+        <?php if ($success): ?>
+            <div class="alert alert-success">
+                <?= e($success) ?>
+            </div>
         <?php endif; ?>
 
-        <!-- 1. Student Personal Information -->
-        <h2>1. Student Personal Information</h2>
+        <?php foreach ($errors as $message): ?>
+            <div class="alert alert-error">
+                <?= e($message) ?>
+            </div>
+        <?php endforeach; ?>
 
-        <?php foreach ($personalInformation as $label => $value): ?>
+        <form method="post" class="form-grid">
+
+            <?php if ($isEditing): ?>
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= e(csrf_token()) ?>"
+                >
+            <?php endif; ?>
+
+            <!-- 1. Student Personal Information -->
+            <h2>1. Student Personal Information</h2>
+
+            <?php foreach ($personalInformation as $label => $value): ?>
+                <label>
+                    <?= e($label) ?>
+
+                    <input
+                        type="text"
+                        value="<?= e($value !== '' ? $value : 'Not provided') ?>"
+                        disabled
+                    >
+                </label>
+            <?php endforeach; ?>
+
+            <!-- 2. Student Contact Information -->
+            <h2>2. Contact Information</h2>
+
             <label>
-                <?= e($label) ?>
+                Email Address
+
+                <input
+                    type="email"
+                    name="email"
+                    maxlength="150"
+                    pattern="^[^@\s]+@gmail\.com$"
+                    title="Enter a valid Gmail address ending in @gmail.com."
+                    placeholder="example@gmail.com"
+                    value="<?= e($values['email']) ?>"
+                    <?= !$isEditing ? 'disabled' : 'required' ?>
+                >
+            </label>
+
+            <label>
+                Phone Number
+
+                <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
+                    <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
+                    <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
+
+                    <input
+                        type="tel"
+                        style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
+                        name="contact_number"
+                        inputmode="numeric"
+                        pattern="9[0-9]{9}"
+                        minlength="10"
+                        maxlength="10"
+                        placeholder="9123456789"
+                        value="<?= e($values['contact_number']) ?>"
+                        <?= !$isEditing ? 'disabled' : '' ?>
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                    >
+                </div>
+            </label>
+
+            <!-- 3. Mother's Information -->
+            <h2>3. Mother's Information</h2>
+
+            <label>
+                Mother's Full Name
 
                 <input
                     type="text"
-                    value="<?= e($value !== '' ? $value : 'Not provided') ?>"
+                    value="<?= e(($parents['mother_name'] ?? '') ?: 'Not provided') ?>"
                     disabled
                 >
             </label>
-        <?php endforeach; ?>
 
-        <!-- 2. Student Contact Information -->
-        <h2>2. Contact Information</h2>
+            <label>
+                Contact Number
 
-        <label>
-            Email Address
+                <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
+                    <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
+                    <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
 
-            <input
-                type="email"
-                name="email"
-                maxlength="150"
-                pattern="^[^@\s]+@gmail\.com$"
-                title="Enter a valid Gmail address ending in @gmail.com."
-                placeholder="example@gmail.com"
-                value="<?= e($values['email']) ?>"
-                <?= !$isEditing ? 'disabled' : 'required' ?>
-            >
-        </label>
+                    <input
+                        type="tel"
+                        style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
+                        name="mother_contact_number"
+                        inputmode="numeric"
+                        pattern="9[0-9]{9}"
+                        minlength="10"
+                        maxlength="10"
+                        placeholder="9123456789"
+                        value="<?= e($values['mother_contact_number']) ?>"
+                        <?= !$isEditing ? 'disabled' : '' ?>
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                    >
+                </div>
+            </label>
 
-        <label>
-            Phone Number
-
-            <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
-                <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
-                <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
-
-                <input
-                    type="tel"
-                    style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
-                    name="contact_number"
-                    inputmode="numeric"
-                    pattern="9[0-9]{9}"
-                    minlength="10"
-                    maxlength="10"
-                    placeholder="9123456789"
-                    value="<?= e($values['contact_number']) ?>"
-                    <?= !$isEditing ? 'disabled' : '' ?>
-                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
-                >
-            </div>
-        </label>
-
-        <!-- 3. Mother's Information -->
-        <h2>3. Mother's Information</h2>
-
-        <label>
-            Mother's Full Name
-
-            <input
-                type="text"
-                value="<?= e(($parents['mother_name'] ?? '') ?: 'Not provided') ?>"
-                disabled
-            >
-        </label>
-
-        <label>
-            Contact Number
-
-            <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
-                <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
-                <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
+            <label>
+                Occupation
 
                 <input
-                    type="tel"
-                    style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
-                    name="mother_contact_number"
-                    inputmode="numeric"
-                    pattern="9[0-9]{9}"
-                    minlength="10"
-                    maxlength="10"
-                    placeholder="9123456789"
-                    value="<?= e($values['mother_contact_number']) ?>"
-                    <?= !$isEditing ? 'disabled' : '' ?>
-                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                    type="text"
+                    value="<?= e(($parents['mother_occupation'] ?? '') ?: 'Not provided') ?>"
+                    disabled
                 >
-            </div>
-        </label>
+            </label>
 
-        <label>
-            Occupation
-
-            <input
-                type="text"
-                value="<?= e(($parents['mother_occupation'] ?? '') ?: 'Not provided') ?>"
-                disabled
-            >
-        </label>
-
-        <label>
-            Email Address
-
-            <input
-                type="email"
-                name="mother_email"
-                maxlength="150"
-                pattern="^[^@\s]+@gmail\.com$"
-                title="Enter a valid Gmail address ending in @gmail.com."
-                placeholder="example@gmail.com"
-                value="<?= e($values['mother_email']) ?>"
-                <?= !$isEditing ? 'disabled' : '' ?>
-            >
-        </label>
-
-        <label>
-            Address
-
-            <input
-                type="text"
-                value="<?= e(($parents['mother_address'] ?? '') ?: 'Not provided') ?>"
-                disabled
-            >
-        </label>
-
-        <!-- 4. Father's Information -->
-        <h2>4. Father's Information</h2>
-
-        <label>
-            Father's Full Name
-
-            <input
-                type="text"
-                value="<?= e(($parents['father_name'] ?? '') ?: 'Not provided') ?>"
-                disabled
-            >
-        </label>
-
-        <label>
-            Contact Number
-
-            <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
-                <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
-                <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
+            <label>
+                Email Address
 
                 <input
-                    type="tel"
-                    style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
-                    name="father_contact_number"
-                    inputmode="numeric"
-                    pattern="9[0-9]{9}"
-                    minlength="10"
-                    maxlength="10"
-                    placeholder="9123456789"
-                    value="<?= e($values['father_contact_number']) ?>"
+                    type="email"
+                    name="mother_email"
+                    maxlength="150"
+                    pattern="^[^@\s]+@gmail\.com$"
+                    title="Enter a valid Gmail address ending in @gmail.com."
+                    placeholder="example@gmail.com"
+                    value="<?= e($values['mother_email']) ?>"
                     <?= !$isEditing ? 'disabled' : '' ?>
-                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
                 >
-            </div>
-        </label>
+            </label>
 
-        <label>
-            Occupation
-
-            <input
-                type="text"
-                value="<?= e(($parents['father_occupation'] ?? '') ?: 'Not provided') ?>"
-                disabled
-            >
-        </label>
-
-        <label>
-            Email Address
-
-            <input
-                type="email"
-                name="father_email"
-                maxlength="150"
-                pattern="^[^@\s]+@gmail\.com$"
-                title="Enter a valid Gmail address ending in @gmail.com."
-                placeholder="example@gmail.com"
-                value="<?= e($values['father_email']) ?>"
-                <?= !$isEditing ? 'disabled' : '' ?>
-            >
-        </label>
-
-        <label>
-            Address
-
-            <input
-                type="text"
-                value="<?= e(($parents['father_address'] ?? '') ?: 'Not provided') ?>"
-                disabled
-            >
-        </label>
-
-        <!-- 5. Additional Guardian Information -->
-        <h2>5. Additional Guardian Information</h2>
-
-        <p class="muted">
-            This section displays the additional guardian information
-            provided during student enrollment.
-        </p>
-
-        <label>
-            Guardian's Full Name
-
-            <input
-                type="text"
-                value="<?= e(($guardian['full_name'] ?? '') ?: 'Not provided') ?>"
-                disabled
-            >
-        </label>
-
-        <label>
-            Contact Number
-
-            <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
-                <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
-                <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
+            <label>
+                Address
 
                 <input
-                    type="tel"
-                    style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
-                    name="guardian_contact_number"
-                    inputmode="numeric"
-                    pattern="9[0-9]{9}"
-                    minlength="10"
-                    maxlength="10"
-                    placeholder="9123456789"
-                    value="<?= e($values['guardian_contact_number']) ?>"
+                    type="text"
+                    value="<?= e(($parents['mother_address'] ?? '') ?: 'Not provided') ?>"
+                    disabled
+                >
+            </label>
+
+            <!-- 4. Father's Information -->
+            <h2>4. Father's Information</h2>
+
+            <label>
+                Father's Full Name
+
+                <input
+                    type="text"
+                    value="<?= e(($parents['father_name'] ?? '') ?: 'Not provided') ?>"
+                    disabled
+                >
+            </label>
+
+            <label>
+                Contact Number
+
+                <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
+                    <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
+                    <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
+
+                    <input
+                        type="tel"
+                        style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
+                        name="father_contact_number"
+                        inputmode="numeric"
+                        pattern="9[0-9]{9}"
+                        minlength="10"
+                        maxlength="10"
+                        placeholder="9123456789"
+                        value="<?= e($values['father_contact_number']) ?>"
+                        <?= !$isEditing ? 'disabled' : '' ?>
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                    >
+                </div>
+            </label>
+
+            <label>
+                Occupation
+
+                <input
+                    type="text"
+                    value="<?= e(($parents['father_occupation'] ?? '') ?: 'Not provided') ?>"
+                    disabled
+                >
+            </label>
+
+            <label>
+                Email Address
+
+                <input
+                    type="email"
+                    name="father_email"
+                    maxlength="150"
+                    pattern="^[^@\s]+@gmail\.com$"
+                    title="Enter a valid Gmail address ending in @gmail.com."
+                    placeholder="example@gmail.com"
+                    value="<?= e($values['father_email']) ?>"
                     <?= !$isEditing ? 'disabled' : '' ?>
-                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
                 >
+            </label>
+
+            <label>
+                Address
+
+                <input
+                    type="text"
+                    value="<?= e(($parents['father_address'] ?? '') ?: 'Not provided') ?>"
+                    disabled
+                >
+            </label>
+
+            <!-- 5. Additional Guardian Information -->
+            <h2>5. Additional Guardian Information</h2>
+
+            <p class="muted">
+                This section displays the additional guardian information
+                provided during student enrollment.
+            </p>
+
+            <label>
+                Guardian's Full Name
+
+                <input
+                    type="text"
+                    value="<?= e(($guardian['full_name'] ?? '') ?: 'Not provided') ?>"
+                    disabled
+                >
+            </label>
+
+            <label>
+                Contact Number
+
+                <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
+                    <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
+                    <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
+
+                    <input
+                        type="tel"
+                        style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
+                        name="guardian_contact_number"
+                        inputmode="numeric"
+                        pattern="9[0-9]{9}"
+                        minlength="10"
+                        maxlength="10"
+                        placeholder="9123456789"
+                        value="<?= e($values['guardian_contact_number']) ?>"
+                        <?= !$isEditing ? 'disabled' : '' ?>
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"
+                    >
+                </div>
+            </label>
+
+            <label>
+                Relationship to Student
+
+                <input
+                    type="text"
+                    value="<?= e(($guardian['relationship'] ?? '') ?: 'Not provided') ?>"
+                    disabled
+                >
+            </label>
+
+            <label>
+                Email Address
+
+                <input
+                    type="email"
+                    name="guardian_email"
+                    maxlength="150"
+                    pattern="^[^@\s]+@gmail\.com$"
+                    title="Enter a valid Gmail address ending in @gmail.com."
+                    placeholder="example@gmail.com"
+                    value="<?= e($values['guardian_email']) ?>"
+                    <?= !$isEditing ? 'disabled' : '' ?>
+                >
+            </label>
+
+            <label>
+                Occupation
+
+                <input
+                    type="text"
+                    value="<?= e(($guardian['occupation'] ?? '') ?: 'Not provided') ?>"
+                    disabled
+                >
+            </label>
+
+            <label>
+                Address
+
+                <input
+                    type="text"
+                    value="<?= e(($guardian['address'] ?? '') ?: 'Not provided') ?>"
+                    disabled
+                >
+            </label>
+
+            <!-- Profile actions -->
+            <div class="form-actions student-profile-actions">
+
+                <?php if ($isEditing): ?>
+
+                    <button
+                        class="button button-primary"
+                        type="submit"
+                    >
+                        Save Changes
+                    </button>
+
+                    <a
+                        href="profile.php"
+                        class="button button-secondary"
+                    >
+                        Cancel
+                    </a>
+
+                <?php else: ?>
+
+                    <a
+                        href="profile.php?edit=1"
+                        class="button button-outline portal-record-action"
+                    >
+                        Edit Profile
+                    </a>
+
+                <?php endif; ?>
+
             </div>
-        </label>
 
-        <label>
-            Relationship to Student
+        </form>
 
-            <input
-                type="text"
-                value="<?= e(($guardian['relationship'] ?? '') ?: 'Not provided') ?>"
-                disabled
-            >
-        </label>
-
-        <label>
-            Email Address
-
-            <input
-                type="email"
-                name="guardian_email"
-                maxlength="150"
-                pattern="^[^@\s]+@gmail\.com$"
-                title="Enter a valid Gmail address ending in @gmail.com."
-                placeholder="example@gmail.com"
-                value="<?= e($values['guardian_email']) ?>"
-                <?= !$isEditing ? 'disabled' : '' ?>
-            >
-        </label>
-
-        <label>
-            Occupation
-
-            <input
-                type="text"
-                value="<?= e(($guardian['occupation'] ?? '') ?: 'Not provided') ?>"
-                disabled
-            >
-        </label>
-
-        <label>
-            Address
-
-            <input
-                type="text"
-                value="<?= e(($guardian['address'] ?? '') ?: 'Not provided') ?>"
-                disabled
-            >
-        </label>
-
-        <!-- Profile actions -->
-        <div class="form-actions">
-
-            <?php if ($isEditing): ?>
-
-                <button
-                    class="button button-primary"
-                    type="submit"
-                >
-                    Save Changes
-                </button>
-
-                <a
-                    href="profile.php"
-                    class="button button-secondary"
-                >
-                    Cancel
-                </a>
-
-            <?php else: ?>
-
-                <a
-                    href="profile.php?edit=1"
-                    class="button button-outline portal-record-action"
-                >
-                    Edit Profile
-                </a>
-
-            <?php endif; ?>
-
-        </div>
-
-    </form>
-
-</section>
+    </section>
+</div>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -43,9 +43,11 @@ require_once __DIR__ . '/../includes/header.php';
 
 
 
+<div class="portal-back-row">
+    <a href="<?= BASE_URL ?>/student/my_applications.php" class="portal-back-link">Back to My Applications</a>
+</div>
 <section class="form-card form-card-wide">
     <h1>Scholarship Application Status</h1>
-    <p class="muted">Track your application review and view your screening schedule when you are shortlisted.</p>
 
     <?php if (!$applications): ?>
         <div class="empty-state">
@@ -60,7 +62,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <p class="muted"><?= e($application['description'] ?? '') ?></p>
                 <p><strong>School Year:</strong> <?= e($application['school_year']) ?></p>
                 <p><strong>Application Date:</strong> <?= e($application['application_date']) ?></p>
-                <p><strong>Status:</strong> <span class="status-badge <?= $application['application_status'] === 'Approved' ? 'status-approved' : ($application['application_status'] === 'Rejected' ? 'status-rejected' : 'status-pending') ?>"><?= e($application['application_status']) ?></span></p>
+                <p><strong>Status:</strong> <span class="student-status <?= $application['application_status'] === 'Approved' ? 'status-approved' : ($application['application_status'] === 'Rejected' ? 'status-rejected' : 'status-pending') ?>"><?= e($application['application_status']) ?></span></p>
 
                 <?php if ($application['application_status'] === 'For Screening' && $application['screening_date'] && $application['screening_time'] && $application['screening_venue']): ?>
                     <div class="scholarship-year-note scholarship-year-note-spaced">

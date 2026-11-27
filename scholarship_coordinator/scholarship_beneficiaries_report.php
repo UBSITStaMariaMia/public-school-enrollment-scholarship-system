@@ -509,7 +509,7 @@ if ($printReport || $downloadReport) {
         <?php if ($printReport): ?>
             <script>
                 window.onload = function () {
-                    window.print();
+                    if (window.parent === window) window.print();
                 };
             </script>
         <?php endif; ?>
@@ -838,9 +838,6 @@ require_once __DIR__ . '/../includes/header.php';
 
         <div>
             <h1>Scholar Masterlist</h1>
-            <p class="muted">
-                View and monitor all approved and active scholarship recipients.
-            </p>
         </div>
 
     </div>
@@ -1009,7 +1006,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <a
                         href="<?= e(BASE_URL) ?>/scholarship_coordinator/scholarship_beneficiaries_report.php?print=1<?= e($reportQuery) ?>"
                         class="button button-outline masterlist-icon-button"
-                        target="_blank"
+                        data-print-report target="_blank"
                         rel="noopener"
                         title="Print Scholar Masterlist"
                         aria-label="Print Scholar Masterlist"

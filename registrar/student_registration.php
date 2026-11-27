@@ -7,6 +7,7 @@ require_role('School Registrar');
 $errors = [];
 $success = false;
 $generatedUsername = '';
+$duplicateStudentId = 0;
 $hasAdditionalGuardian = false;
 
 $values = [
@@ -87,8 +88,7 @@ $values = [
     'guardian_address' => ''
 ];
 
-$password = '';
-$confirmPassword = '';
+$temporaryPassword = '';
 
 // Philippine Statistics Authority PSGC: https://psa.gov.ph/classification/psgc
 $addressLocations = json_decode(
@@ -155,6 +155,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             continue;
         }
 
+        if (in_array($prefix, ['current', 'permanent'], true)) {
+            foreach (['province', 'city', 'barangay', 'street', 'house', 'zip'] as $part) {
+                if ($values[$prefix . '_' . $part] === '') {
+                    $errors[] = 'Complete all fields for the ' . $addressLabel . '.';
+                    break;
+                }
+            }
+        }
+
         $city = $addressAreas[$areaName][$cityCode] ?? null;
         if ($areaName !== '' && !isset($addressAreas[$areaName])) {
             $errors[] = 'Select a valid province or region for the ' . $addressLabel . '.';
@@ -197,15 +206,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $values[$personPrefix . '_address'] = $values[$personPrefix . '_same_as_current'] === '1'
             ? $values['current_address']
             : $buildAddress($addressValues, $personPrefix);
-    }
-
-    $password = $_POST['password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
-
-    if (!is_string($password) || !is_string($confirmPassword)) {
-        $password = '';
-        $confirmPassword = '';
-        $errors[] = 'Invalid password information submitted.';
     }
 
     // CSRF validation.
@@ -253,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Validate sex.
-    $allowedSex = ['', 'Male', 'Female', 'Prefer not to say'];
+    $allowedSex = [ 'Male', 'Female', 'Prefer not to say'];
 
     if (!in_array($values['sex'], $allowedSex, true)) {
         $errors[] = 'Select a valid sex option.';
@@ -261,7 +261,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate civil status using the categories shown in DepEd learner forms.
     $allowedCivilStatus = [
-        '',
         'Single',
         'Married',
         'Separated',
@@ -276,7 +275,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate nationality dropdown and optional custom entry.
     $allowedNationalities = [
-        '',
         'Filipino',
         'American',
         'Australian',
@@ -363,8 +361,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    if ($values['birthplace'] === '') {
+        $errors[] = 'Place of birth is required.';
+    }
+    if ($values['contact_number'] === '') {
+        $errors[] = 'Student contact number is required.';
+    }
+
     // Validate birth date.
-    if ($values['birth_date'] !== '') {
+    if ($values['birth_date'] === '') {
+        $errors[] = 'Date of birth is required.';
+    } else {
         $date = DateTime::createFromFormat(
             '!Y-m-d',
             $values['birth_date']
@@ -401,15 +408,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ) {
             $errors[] = $person . ' contact number must contain exactly 10 digits after +63.';
         }
-    }
-
-    // Validate password.
-    if (strlen($password) < 8) {
-        $errors[] = 'Password must be at least 8 characters.';
-    }
-
-    if ($password !== $confirmPassword) {
-        $errors[] = 'Passwords do not match.';
     }
 
     if ($hasAdditionalGuardian && $values['guardian_name'] === '') {
@@ -503,9 +501,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Check whether the LRN is already registered.
-    if (!$errors) {
+    if (preg_match('/^[0-9]{12}$/', $values['lrn'])) {
         $lrnCheck = $pdo->prepare(
-            'SELECT 1
+            'SELECT student_id
              FROM students
              WHERE lrn = :lrn
              LIMIT 1'
@@ -515,7 +513,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'lrn' => $values['lrn']
         ]);
 
-        if ($lrnCheck->fetchColumn()) {
+        $duplicateStudentId = (int) $lrnCheck->fetchColumn();
+        if ($duplicateStudentId > 0) {
             $errors[] = 'That LRN is already registered to another student.';
         }
     }
@@ -545,18 +544,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
             }
 
-            // Hash password.
-            $passwordHash = password_hash(
-                $password,
-                PASSWORD_DEFAULT
-            );
+            $temporaryPassword = 'bcnhs1916';
+            $passwordHash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
 
             // Insert user account.
             $userStatement = $pdo->prepare(
                 'INSERT INTO users
-                    (role_id, username, email, password_hash)
+                    (role_id, username, email, password_hash, must_change_password)
                  VALUES
-                    (:role_id, :username, :email, :password_hash)'
+                    (:role_id, :username, :email, :password_hash, 1)'
             );
 
             $userStatement->execute([
@@ -715,15 +711,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Commit all registration records.
             $pdo->commit();
 
+            header('Cache-Control: no-store');
             $success = true;
+            $registeredStudentName = implode(' ', array_filter([
+                $values['first_name'], $values['middle_name'], $values['last_name']
+            ], static fn(string $part): bool => $part !== ''));
 
             // Clear submitted information.
             foreach ($values as $field => $oldValue) {
                 $values[$field] = '';
             }
-
-            $password = '';
-            $confirmPassword = '';
 
         } catch (Throwable $exception) {
 
@@ -752,24 +749,21 @@ require_once __DIR__ . '/../includes/header.php';
     <?php if (!$success): ?>
 
         <h1>Student Registration</h1>
-
-        <p class="muted">
-            Create a portal account for the student.
-        </p>
     <?php endif; ?>
 
     <?php if ($success): ?>
 
-        <div class="alert alert-success">
-            The student account has been created successfully.
-            <br>
-            The student's username is:
-            <strong><?= e($generatedUsername) ?></strong>
-            <br>
-            Give this username to the student for their first login.
-            <br>
-            <a href="<?= BASE_URL ?>/registrar/student_registration.php">Register another student</a>.
-        </div>
+        <h1>Student Account Created</h1>
+        <dl>
+            <dt>Student Name</dt>
+            <dd><?= e($registeredStudentName) ?></dd>
+            <dt>Username</dt>
+            <dd><strong><?= e($generatedUsername) ?></strong></dd>
+            <dt>Temporary Password</dt>
+            <dd><code><?= e($temporaryPassword) ?></code></dd>
+        </dl>
+        <p>Give these login details privately to the student. They must change their password at first login.</p>
+        <a class="button button-primary" href="<?= BASE_URL ?>/registrar/student_registration.php">Register another student</a>
 
     <?php endif; ?>
 
@@ -808,6 +802,11 @@ require_once __DIR__ . '/../includes/header.php';
                     value="<?= e($values['lrn']) ?>"
                     required
                 >
+                <?php if ($duplicateStudentId > 0): ?>
+                    <a href="<?= BASE_URL ?>/registrar/student_records.php?student_id=<?= $duplicateStudentId ?>">
+                        View existing student record
+                    </a>
+                <?php endif; ?>
             </label>
 
             <div class="registration-name-fields">
@@ -863,27 +862,27 @@ require_once __DIR__ . '/../includes/header.php';
             </label>
 
             <label>
-                Date of Birth
+                <span><span class="registration-required" aria-hidden="true">*</span> Date of Birth</span>
                 <input
                     type="date"
-                    name="birth_date"
+                    name="birth_date" required
                     value="<?= e($values['birth_date']) ?>"
                 >
             </label>
 
             <label>
-                Place of Birth
+                <span><span class="registration-required" aria-hidden="true">*</span> Place of Birth</span>
                 <input
                     type="text"
-                    name="birthplace"
+                    name="birthplace" required
                     maxlength="150"
                     value="<?= e($values['birthplace']) ?>"
                 >
             </label>
 
             <label>
-                Sex
-                <select name="sex">
+                <span><span class="registration-required" aria-hidden="true">*</span> Sex</span>
+                <select name="sex" required>
                     <option value="">Select</option>
                     <option value="Male" <?= $values['sex'] === 'Male' ? 'selected' : '' ?>>Male</option>
                     <option value="Female" <?= $values['sex'] === 'Female' ? 'selected' : '' ?>>Female</option>
@@ -891,116 +890,124 @@ require_once __DIR__ . '/../includes/header.php';
                 </select>
             </label>
 
-            <label>
-                Civil Status
-                <select name="civil_status">
-                    <option value="">Select civil status</option>
-                    <option value="Single" <?= $values['civil_status'] === 'Single' ? 'selected' : '' ?>>Single</option>
-                    <option value="Married" <?= $values['civil_status'] === 'Married' ? 'selected' : '' ?>>Married</option>
-                    <option value="Separated" <?= $values['civil_status'] === 'Separated' ? 'selected' : '' ?>>Separated</option>
-                    <option value="Widowed" <?= $values['civil_status'] === 'Widowed' ? 'selected' : '' ?>>Widowed</option>
-                    <option value="Solo Parent" <?= $values['civil_status'] === 'Solo Parent' ? 'selected' : '' ?>>Solo Parent</option>
-                    <option value="Prefer not to say" <?= $values['civil_status'] === 'Prefer not to say' ? 'selected' : '' ?>>Prefer not to say</option>
-                </select>
-            </label>
-
-            <div class="registration-field-group">
-                <label for="nationalityChoice">Nationality</label>
-                <select name="nationality_choice" id="nationalityChoice">
-                    <option value="">Select nationality</option>
-                    <option value="Filipino" <?= $values['nationality_choice'] === 'Filipino' ? 'selected' : '' ?>>Filipino</option>
-                    <option value="American" <?= $values['nationality_choice'] === 'American' ? 'selected' : '' ?>>American</option>
-                    <option value="Australian" <?= $values['nationality_choice'] === 'Australian' ? 'selected' : '' ?>>Australian</option>
-                    <option value="British" <?= $values['nationality_choice'] === 'British' ? 'selected' : '' ?>>British</option>
-                    <option value="Canadian" <?= $values['nationality_choice'] === 'Canadian' ? 'selected' : '' ?>>Canadian</option>
-                    <option value="Chinese" <?= $values['nationality_choice'] === 'Chinese' ? 'selected' : '' ?>>Chinese</option>
-                    <option value="Indian" <?= $values['nationality_choice'] === 'Indian' ? 'selected' : '' ?>>Indian</option>
-                    <option value="Japanese" <?= $values['nationality_choice'] === 'Japanese' ? 'selected' : '' ?>>Japanese</option>
-                    <option value="Korean" <?= $values['nationality_choice'] === 'Korean' ? 'selected' : '' ?>>Korean</option>
-                    <option value="Other" <?= $values['nationality_choice'] === 'Other' ? 'selected' : '' ?>>Other (please specify)</option>
-                </select>
-                <label id="nationalityOtherWrap" for="nationalityOther" <?= $values['nationality_choice'] !== 'Other' ? 'hidden' : '' ?>>
-                    <span><span class="registration-required" aria-hidden="true">*</span> Specify your nationality</span>
-                    <input
-                        type="text"
-                        name="nationality_other"
-                        id="nationalityOther"
-                        maxlength="80"
-                        placeholder="Please specify your nationality"
-                        value="<?= e($values['nationality_other']) ?>"
-                        <?= $values['nationality_choice'] === 'Other' ? 'required' : '' ?>
-                    >
+            <div class="registration-field-column">
+                <label>
+                    <span><span class="registration-required" aria-hidden="true">*</span> Civil Status</span>
+                    <select name="civil_status" required>
+                        <option value="">Select civil status</option>
+                        <option value="Single" <?= $values['civil_status'] === 'Single' ? 'selected' : '' ?>>Single</option>
+                        <option value="Married" <?= $values['civil_status'] === 'Married' ? 'selected' : '' ?>>Married</option>
+                        <option value="Separated" <?= $values['civil_status'] === 'Separated' ? 'selected' : '' ?>>Separated</option>
+                        <option value="Widowed" <?= $values['civil_status'] === 'Widowed' ? 'selected' : '' ?>>Widowed</option>
+                        <option value="Solo Parent" <?= $values['civil_status'] === 'Solo Parent' ? 'selected' : '' ?>>Solo Parent</option>
+                        <option value="Prefer not to say" <?= $values['civil_status'] === 'Prefer not to say' ? 'selected' : '' ?>>Prefer not to say</option>
+                    </select>
                 </label>
+
+                <div class="registration-field-group">
+                    <label>
+                        Are you a member of an Indigenous Peoples (IP) Community?
+                        <select name="indigenous_people_status" id="indigenousPeopleStatus">
+                            <option value="">Select an option</option>
+                            <option value="Yes" <?= $values['indigenous_people_status'] === 'Yes' ? 'selected' : '' ?>>Yes</option>
+                            <option value="No" <?= $values['indigenous_people_status'] === 'No' ? 'selected' : '' ?>>No</option>
+                        </select>
+                    </label>
+                    <label id="indigenousPeopleGroupWrap" hidden>
+                        <span><span class="registration-required" aria-hidden="true">*</span> If yes, please specify your IP community</span>
+                        <input type="text" name="indigenous_people_group" maxlength="150" value="<?= e($values['indigenous_people_group']) ?>">
+                    </label>
+                </div>
+
+                <div class="registration-field-group">
+                    <label>
+                        Are you a person with disability (PWD)?
+                        <select name="is_pwd" id="pwdStatus">
+                            <option value="">Select an option</option>
+                            <option value="Yes" <?= $values['is_pwd'] === 'Yes' ? 'selected' : '' ?>>Yes</option>
+                            <option value="No" <?= $values['is_pwd'] === 'No' ? 'selected' : '' ?>>No</option>
+                        </select>
+                    </label>
+                    <label id="disabilityDetailsWrap" hidden>
+                        <span><span class="registration-required" aria-hidden="true">*</span> If yes, please specify your disability</span>
+                        <input type="text" name="disability_details" maxlength="255" value="<?= e($values['disability_details']) ?>">
+                    </label>
+                </div>
             </div>
 
-            <div class="registration-field-group">
-                <label for="religionChoice"><span class="inline-label"><span>Religion</span><span class="muted">(Optional)</span></span></label>
-                <select name="religion_choice" id="religionChoice">
-                    <option value="">Select religion</option>
-                    <option value="Roman Catholic" <?= $values['religion_choice'] === 'Roman Catholic' ? 'selected' : '' ?>>Roman Catholic</option>
-                    <option value="Islam" <?= $values['religion_choice'] === 'Islam' ? 'selected' : '' ?>>Islam</option>
-                    <option value="Iglesia ni Cristo" <?= $values['religion_choice'] === 'Iglesia ni Cristo' ? 'selected' : '' ?>>Iglesia ni Cristo</option>
-                    <option value="Evangelical / Protestant" <?= $values['religion_choice'] === 'Evangelical / Protestant' ? 'selected' : '' ?>>Evangelical / Protestant</option>
-                    <option value="Aglipayan (Iglesia Filipina Independiente)" <?= $values['religion_choice'] === 'Aglipayan (Iglesia Filipina Independiente)' ? 'selected' : '' ?>>Aglipayan (Iglesia Filipina Independiente)</option>
-                    <option value="Seventh-day Adventist" <?= $values['religion_choice'] === 'Seventh-day Adventist' ? 'selected' : '' ?>>Seventh-day Adventist</option>
-                    <option value="Jehovah's Witnesses" <?= $values['religion_choice'] === "Jehovah's Witnesses" ? 'selected' : '' ?>>Jehovah's Witnesses</option>
-                    <option value="Buddhist" <?= $values['religion_choice'] === 'Buddhist' ? 'selected' : '' ?>>Buddhist</option>
-                    <option value="Hindu" <?= $values['religion_choice'] === 'Hindu' ? 'selected' : '' ?>>Hindu</option>
-                    <option value="Other Christian denomination" <?= $values['religion_choice'] === 'Other Christian denomination' ? 'selected' : '' ?>>Other Christian denomination</option>
-                    <option value="Other" <?= $values['religion_choice'] === 'Other' ? 'selected' : '' ?>>Other (please specify)</option>
-                    <option value="No religion" <?= $values['religion_choice'] === 'No religion' ? 'selected' : '' ?>>No religion</option>
-                    <option value="Prefer not to say" <?= $values['religion_choice'] === 'Prefer not to say' ? 'selected' : '' ?>>Prefer not to say</option>
-                </select>
-                <label id="religionOtherWrap" for="religionOther" <?= $values['religion_choice'] !== 'Other' ? 'hidden' : '' ?>>
-                    <span><span class="registration-required" aria-hidden="true">*</span> Specify your religion</span>
-                    <input
-                        type="text"
-                        name="religion_other"
-                        id="religionOther"
-                        maxlength="100"
-                        placeholder="Please specify your religion"
-                        value="<?= e($values['religion_other']) ?>"
-                        <?= $values['religion_choice'] === 'Other' ? 'required' : '' ?>
-                    >
-                </label>
+            <div class="registration-field-column">
+                <div class="registration-field-group">
+                    <label for="nationalityChoice"><span><span class="registration-required" aria-hidden="true">*</span> Nationality</span></label>
+                    <select name="nationality_choice" required id="nationalityChoice">
+                        <option value="">Select nationality</option>
+                        <option value="Filipino" <?= $values['nationality_choice'] === 'Filipino' ? 'selected' : '' ?>>Filipino</option>
+                        <option value="American" <?= $values['nationality_choice'] === 'American' ? 'selected' : '' ?>>American</option>
+                        <option value="Australian" <?= $values['nationality_choice'] === 'Australian' ? 'selected' : '' ?>>Australian</option>
+                        <option value="British" <?= $values['nationality_choice'] === 'British' ? 'selected' : '' ?>>British</option>
+                        <option value="Canadian" <?= $values['nationality_choice'] === 'Canadian' ? 'selected' : '' ?>>Canadian</option>
+                        <option value="Chinese" <?= $values['nationality_choice'] === 'Chinese' ? 'selected' : '' ?>>Chinese</option>
+                        <option value="Indian" <?= $values['nationality_choice'] === 'Indian' ? 'selected' : '' ?>>Indian</option>
+                        <option value="Japanese" <?= $values['nationality_choice'] === 'Japanese' ? 'selected' : '' ?>>Japanese</option>
+                        <option value="Korean" <?= $values['nationality_choice'] === 'Korean' ? 'selected' : '' ?>>Korean</option>
+                        <option value="Other" <?= $values['nationality_choice'] === 'Other' ? 'selected' : '' ?>>Other (please specify)</option>
+                    </select>
+                    <label id="nationalityOtherWrap" for="nationalityOther" <?= $values['nationality_choice'] !== 'Other' ? 'hidden' : '' ?>>
+                        <span><span class="registration-required" aria-hidden="true">*</span> Specify your nationality</span>
+                        <input
+                            type="text"
+                            name="nationality_other"
+                            id="nationalityOther"
+                            maxlength="80"
+                            placeholder="Please specify your nationality"
+                            value="<?= e($values['nationality_other']) ?>"
+                            <?= $values['nationality_choice'] === 'Other' ? 'required' : '' ?>
+                        >
+                    </label>
+                </div>
+
+                <div class="registration-field-group">
+                    <label for="religionChoice"><span class="inline-label"><span>Religion</span><span class="muted">(Optional)</span></span></label>
+                    <select name="religion_choice" id="religionChoice">
+                        <option value="">Select religion</option>
+                        <option value="Roman Catholic" <?= $values['religion_choice'] === 'Roman Catholic' ? 'selected' : '' ?>>Roman Catholic</option>
+                        <option value="Islam" <?= $values['religion_choice'] === 'Islam' ? 'selected' : '' ?>>Islam</option>
+                        <option value="Iglesia ni Cristo" <?= $values['religion_choice'] === 'Iglesia ni Cristo' ? 'selected' : '' ?>>Iglesia ni Cristo</option>
+                        <option value="Evangelical / Protestant" <?= $values['religion_choice'] === 'Evangelical / Protestant' ? 'selected' : '' ?>>Evangelical / Protestant</option>
+                        <option value="Aglipayan (Iglesia Filipina Independiente)" <?= $values['religion_choice'] === 'Aglipayan (Iglesia Filipina Independiente)' ? 'selected' : '' ?>>Aglipayan (Iglesia Filipina Independiente)</option>
+                        <option value="Seventh-day Adventist" <?= $values['religion_choice'] === 'Seventh-day Adventist' ? 'selected' : '' ?>>Seventh-day Adventist</option>
+                        <option value="Jehovah's Witnesses" <?= $values['religion_choice'] === "Jehovah's Witnesses" ? 'selected' : '' ?>>Jehovah's Witnesses</option>
+                        <option value="Buddhist" <?= $values['religion_choice'] === 'Buddhist' ? 'selected' : '' ?>>Buddhist</option>
+                        <option value="Hindu" <?= $values['religion_choice'] === 'Hindu' ? 'selected' : '' ?>>Hindu</option>
+                        <option value="Other Christian denomination" <?= $values['religion_choice'] === 'Other Christian denomination' ? 'selected' : '' ?>>Other Christian denomination</option>
+                        <option value="Other" <?= $values['religion_choice'] === 'Other' ? 'selected' : '' ?>>Other (please specify)</option>
+                        <option value="No religion" <?= $values['religion_choice'] === 'No religion' ? 'selected' : '' ?>>No religion</option>
+                        <option value="Prefer not to say" <?= $values['religion_choice'] === 'Prefer not to say' ? 'selected' : '' ?>>Prefer not to say</option>
+                    </select>
+                    <label id="religionOtherWrap" for="religionOther" <?= $values['religion_choice'] !== 'Other' ? 'hidden' : '' ?>>
+                        <span><span class="registration-required" aria-hidden="true">*</span> Specify your religion</span>
+                        <input
+                            type="text"
+                            name="religion_other"
+                            id="religionOther"
+                            maxlength="100"
+                            placeholder="Please specify your religion"
+                            value="<?= e($values['religion_other']) ?>"
+                            <?= $values['religion_choice'] === 'Other' ? 'required' : '' ?>
+                        >
+                    </label>
+                </div>
             </div>
-
-            <label>
-                Are you a member of an Indigenous Peoples (IP) Community?
-                <select name="indigenous_people_status" id="indigenousPeopleStatus">
-                    <option value="">Select an option</option>
-                    <option value="Yes" <?= $values['indigenous_people_status'] === 'Yes' ? 'selected' : '' ?>>Yes</option>
-                    <option value="No" <?= $values['indigenous_people_status'] === 'No' ? 'selected' : '' ?>>No</option>
-                </select>
-            </label>
-            <label id="indigenousPeopleGroupWrap" hidden>
-                <span><span class="registration-required" aria-hidden="true">*</span> If yes, please specify your IP community</span>
-                <input type="text" name="indigenous_people_group" maxlength="150" value="<?= e($values['indigenous_people_group']) ?>">
-            </label>
-
-            <label>
-                Are you a person with disability (PWD)?
-                <select name="is_pwd" id="pwdStatus">
-                    <option value="">Select an option</option>
-                    <option value="Yes" <?= $values['is_pwd'] === 'Yes' ? 'selected' : '' ?>>Yes</option>
-                    <option value="No" <?= $values['is_pwd'] === 'No' ? 'selected' : '' ?>>No</option>
-                </select>
-            </label>
-            <label id="disabilityDetailsWrap" hidden>
-                <span><span class="registration-required" aria-hidden="true">*</span> If yes, please specify your disability</span>
-                <input type="text" name="disability_details" maxlength="255" value="<?= e($values['disability_details']) ?>">
-            </label>
             <h2>2. Contact Information</h2>
 
 
             <label>
-                Contact Number
+                <span><span class="registration-required" aria-hidden="true">*</span> Contact Number</span>
                 <div class="phone-input-wrapper">
                     <span class="phone-prefix">+63</span>
                     <span class="phone-divider" aria-hidden="true"></span>
                     <input
                         type="tel"
-                        name="contact_number"
+                        name="contact_number" required
                         inputmode="numeric"
                         pattern="9[0-9]{9}"
                         minlength="10"
@@ -1221,30 +1228,6 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php require __DIR__ . '/../includes/registration_address_fields.php'; ?>
                 </div>
             </fieldset>
-
-            <h2>Account Security</h2>
-
-            <label>
-                <span><span class="registration-required" aria-hidden="true">*</span> Password</span>
-                <input
-                    type="password"
-                    name="password"
-                    minlength="8"
-                    autocomplete="new-password"
-                    required
-                >
-            </label>
-
-            <label>
-                <span><span class="registration-required" aria-hidden="true">*</span> Confirm Password</span>
-                <input
-                    type="password"
-                    name="confirm_password"
-                    minlength="8"
-                    autocomplete="new-password"
-                    required
-                >
-            </label>
 
             <div class="form-actions">
                 <button

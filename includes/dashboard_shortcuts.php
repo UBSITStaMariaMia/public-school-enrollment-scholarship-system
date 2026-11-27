@@ -1,20 +1,12 @@
-<?php
-$dashboardIntro = match ($sidebarRole) {
-    'School Registrar' => 'Register students, review enrollment applications, and manage class sections for the school year.',
-    'Student' => 'Apply for enrollment or a scholarship, check application updates, and view your school records.',
-    'Teacher' => 'Manage subjects and review the academic records of students in your assigned sections.',
-    'System Administrator' => 'Manage portal accounts and look up records for students and school personnel.',
-    'Scholarship Coordinator' => 'Review scholarship applications, monitor scholars, and track stipend releases.',
-    default => 'Check the latest announcements and access your staff tools.'
-};
-?>
 <div class="portal-dashboard">
     <header class="portal-dashboard-heading">
         <div>
             <h1><?= e($dashboardHeading) ?></h1>
-            <p><?= e($dashboardIntro) ?></p>
+            <?php if (!empty($dashboardIntro)): ?>
+                <p><?= e($dashboardIntro) ?></p>
+            <?php endif; ?>
         </div>
-        <?php if ($sidebarRoleIcon && $sidebarRole !== 'School Registrar'): ?>
+        <?php if ($sidebarRoleIcon && !in_array($sidebarRole, ['School Registrar', 'Student'], true)): ?>
             <span class="sidebar-nav-icon portal-dashboard-role-mark" aria-hidden="true"><?= $sidebarIcons[$sidebarRoleIcon] ?></span>
         <?php endif; ?>
     </header>

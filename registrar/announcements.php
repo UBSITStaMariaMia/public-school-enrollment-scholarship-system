@@ -21,8 +21,13 @@ $announcementTypes = [
     'General' => 'General School Notices'
 ];
 
-$allowedStatuses = ['Draft', 'Published', 'Archived'];
-$announcementTabs = ['Published', 'Draft', 'Expired', 'Archived'];
+$publicationOptions = [
+    'draft' => 'Save draft',
+    'now' => 'Publish now',
+    'schedule' => 'Schedule',
+];
+$publicationMode = 'draft';
+$announcementTabs = ['Published', 'Scheduled', 'Draft', 'Expired', 'Archived'];
 $activeTab = $_GET['view'] ?? 'Published';
 if (!in_array($activeTab, $announcementTabs, true)) {
     $activeTab = 'Published';
@@ -58,16 +63,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $values['announcement_type'] = trim($_POST['announcement_type'] ?? '');
         if (!$errors && $values['announcement_id'] !== '') {
             $scheduleQuery = $pdo->prepare(
-                'SELECT publish_date, expiry_date FROM announcements WHERE announcement_id = :id'
+                'SELECT publish_date, expiry_date, status FROM announcements WHERE announcement_id = :id'
             );
             $scheduleQuery->execute(['id' => $values['announcement_id']]);
             $savedSchedule = $scheduleQuery->fetch() ?: [];
         }
+        $publicationMode = is_string($_POST['publication_mode'] ?? null) ? $_POST['publication_mode'] : '';
+        if ($savedSchedule) {
+            $publicationOptions['archive'] = 'Archive';
+            if ($savedSchedule['status'] === 'Published') {
+                $publicationOptions['keep'] = 'Keep current publication date';
+            }
+        }
+        if (!isset($publicationOptions[$publicationMode])) {
+            $errors[] = 'Select a valid publication action.';
+        }
         foreach (['publish_date', 'expiry_date'] as $field) {
+            if ($field === 'publish_date' && $publicationMode !== 'schedule') {
+                $values[$field] = $publicationMode !== 'now' && !empty($savedSchedule[$field])
+                    ? str_replace(' ', 'T', substr($savedSchedule[$field], 0, 16))
+                    : $scheduleNow->format('Y-m-d\TH:i');
+                continue;
+            }
             $day = trim($_POST[$field] ?? '');
             $time = trim($_POST[$field . '_time'] ?? '');
             $saved = $savedSchedule[$field] ?? '';
-            $keepPast = $saved && substr($saved, 0, 10) < $today;
+            $keepPast = $field === 'expiry_date' && $saved && substr($saved, 0, 10) < $today;
             $removePastExpiry = $field === 'expiry_date' && isset($_POST['remove_past_expiry']);
             if ($day === '' && $time === '') {
                 $values[$field] = $keepPast && !$removePastExpiry
@@ -81,7 +102,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-        $values['status'] = trim($_POST['status'] ?? '');
+        $values['status'] = match ($publicationMode) {
+            'now', 'schedule', 'keep' => 'Published',
+            'archive' => 'Archived',
+            default => 'Draft'
+        };
 
         /* Validate title */
         if ($values['title'] === '') {
@@ -100,11 +125,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Select a valid announcement category.';
         }
 
-        /* Validate status */
-        if (!in_array($values['status'], $allowedStatuses, true)) {
-            $errors[] = 'Select a valid announcement status.';
-        }
-
         /* Validate publication date */
         $publishDate = DateTime::createFromFormat(
             '!Y-m-d\TH:i',
@@ -116,7 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             !$publishDate ||
             $publishDate->format('Y-m-d\TH:i') !== $values['publish_date']
         ) {
-            $errors[] = 'Enter a valid publication date.';
+            $errors[] = 'Enter a valid publication date and time.';
+        } elseif ($publicationMode === 'schedule' && $publishDate <= $scheduleNow) {
+            $errors[] = 'Choose a future publication date and time.';
         }
 
         /* Validate optional expiry date */
@@ -219,6 +241,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $savedTab = $values['status'];
                 if ($savedTab === 'Published' && $expiryDate !== null && $expiryDate < $scheduleNow) {
                     $savedTab = 'Expired';
+                } elseif ($savedTab === 'Published' && $publishDate > $scheduleNow) {
+                    $savedTab = 'Scheduled';
                 }
                 redirect('/registrar/announcements.php?' . http_build_query(['view' => $savedTab, 'saved' => 1]));
 
@@ -340,6 +364,7 @@ $announcementQuery = $pdo->query(
         a.expiry_date,
         a.status,
         CASE WHEN a.status = 'Published' AND a.expiry_date < (UTC_TIMESTAMP() + INTERVAL 8 HOUR) THEN 'Expired'
+             WHEN a.status = 'Published' AND a.publish_date > (UTC_TIMESTAMP() + INTERVAL 8 HOUR) THEN 'Scheduled'
              ELSE a.status END AS list_status,
         u.username AS creator_name
      FROM announcements a
@@ -452,21 +477,33 @@ require_once __DIR__ . '/../includes/header.php';
                 ><?= e($values['content']) ?></textarea>
             </label>
 
+            <label>
+                Publication
+                <select name="publication_mode" id="announcementPublicationMode" required>
+                    <?php foreach ($publicationOptions as $choice => $caption): ?>
+                        <option value="<?= e($choice) ?>" <?= $publicationMode === $choice ? 'selected' : '' ?>>
+                            <?= e($caption) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+
             <?php foreach (['publish_date' => 'Publication', 'expiry_date' => 'Expiry'] as $field => $label): ?>
                 <?php
                 [$selectedDay, $selectedTime] = array_pad(explode('T', $values[$field], 2), 2, '');
                 $savedDay = substr($savedSchedule[$field] ?? '', 0, 10);
                 $hasPastDate = $savedDay !== '' && $savedDay < $today;
                 $keepPastDate = $hasPastDate && $savedDay === $selectedDay;
-                $required = $field === 'publish_date' && !$hasPastDate;
+                $isPublication = $field === 'publish_date';
+                $required = $isPublication && $publicationMode === 'schedule';
                 ?>
-                <?php if ($hasPastDate): ?>
+                <?php if (!$isPublication && $hasPastDate): ?>
                     <p class="muted">
                         Previous <?= e(strtolower($label)) ?>: <?= e(substr($savedSchedule[$field], 0, 16)) ?>.
                         Enter a new date and time to replace it.
                     </p>
                 <?php endif; ?>
-                <div class="form-grid two-columns">
+                <div class="form-grid two-columns" <?= $isPublication ? 'id="announcementScheduleFields"' : '' ?>>
                     <label>
                         <?= e($label) ?> Date<?= $field === 'expiry_date' ? ' (optional)' : '' ?>
                         <input type="date" name="<?= e($field) ?>" min="<?= e($today) ?>"
@@ -487,23 +524,6 @@ require_once __DIR__ . '/../includes/header.php';
                 <?php endif; ?>
             <?php endforeach; ?>
 
-            <label>
-                Announcement Status
-
-                <select name="status" required>
-
-                    <?php foreach ($allowedStatuses as $status): ?>
-                        <option
-                            value="<?= e($status) ?>"
-                            <?= $values['status'] === $status ? 'selected' : '' ?>
-                        >
-                            <?= e($status) ?>
-                        </option>
-                    <?php endforeach; ?>
-
-                </select>
-            </label>
-
             <div class="announcement-form-actions">
 
                 <button
@@ -520,6 +540,21 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
 
         </form>
+        <script>
+            const publicationMode = document.getElementById('announcementPublicationMode');
+            const scheduleFields = document.getElementById('announcementScheduleFields');
+            function updateScheduleFields() {
+                const scheduled = publicationMode.value === 'schedule';
+                scheduleFields.hidden = !scheduled;
+                scheduleFields.style.display = scheduled ? '' : 'none';
+                scheduleFields.querySelectorAll('input').forEach(function (input) {
+                    input.disabled = !scheduled;
+                    input.required = scheduled;
+                });
+            }
+            publicationMode.addEventListener('change', updateScheduleFields);
+            updateScheduleFields();
+        </script>
 
     </div>
 

@@ -492,7 +492,6 @@ require_once __DIR__ . '/../includes/header.php';
 
 <section class="form-card">
     <h1>User Management</h1>
-    <p>Create, update, activate, deactivate, and delete staff accounts.</p>
 
     <?php if ($message): ?>
         <div class="alert alert-success">

@@ -290,7 +290,7 @@ if ($download) {
         <script>
 
             window.onload = function () {
-                window.print();
+                if (window.parent === window) window.print();
             };
 
         </script>

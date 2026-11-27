@@ -7,7 +7,13 @@ $isReviewDetail = defined('ENROLLMENT_REVIEW_DETAIL');
 $reviewId = filter_var($_GET['application_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 $pageTitle = $isReviewDetail ? 'Review Application and Documents' : 'Enrollment Review';
 $error = '';
-$success = '';
+$success = $_SESSION['enrollment_review_feedback'] ?? '';
+unset($_SESSION['enrollment_review_feedback']);
+$savedReview = $_SESSION['enrollment_review_summary'] ?? [];
+$showSavedReview = $isReviewDetail && ($savedReview['id'] ?? null) === $reviewId;
+if ($showSavedReview) {
+    unset($_SESSION['enrollment_review_summary']);
+}
 
 $allowedStatuses = [
     'Pending Review',
@@ -204,6 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         $pdo->commit();
+        $continueReview = ($_POST['after_save'] ?? '') === 'next';
         $success = 'Application review and document verification saved.';
     } catch (PDOException $ex) {
         if ($pdo->inTransaction()) {
@@ -308,6 +315,48 @@ $gradeLevels = $pdo->query(
     'SELECT grade_level_id, grade_level FROM grade_levels ORDER BY grade_level_id'
 )->fetchAll();
 
+$applicationJoins = "
+    FROM enrollment_applications ea
+    JOIN students st ON st.student_id = ea.student_id
+    JOIN users u ON u.user_id = st.user_id
+    JOIN grade_levels g ON g.grade_level_id = CASE
+        WHEN ea.enrollment_type = 'Incoming Grade 7' THEN (SELECT grade_level_id FROM grade_levels WHERE grade_level = 7 LIMIT 1)
+        ELSE ea.requested_grade_level_id END
+    JOIN school_years y ON y.school_year_id = ea.school_year_id
+";
+
+if (isset($continueReview)) {
+    $nextId = null;
+    if ($continueReview) {
+        $operator = $sort === 'oldest' ? '>' : '<';
+        $nextWhere = $where;
+        $nextWhere[] = "(ea.submitted_at, ea.application_id) $operator (
+            SELECT submitted_at, application_id FROM enrollment_applications WHERE application_id = :current_id
+        )";
+        $nextQuery = $pdo->prepare(
+            "SELECT ea.application_id $applicationJoins WHERE " . implode(' AND ', $nextWhere)
+            . " ORDER BY {$allowedSorts[$sort]} LIMIT 1"
+        );
+        $nextQuery->execute($params + ['current_id' => $reviewId]);
+        $nextId = $nextQuery->fetchColumn();
+    }
+    $returnFilters = [
+        'q' => $search,
+        'status' => $statusFilter,
+        'document_status' => $documentFilter,
+        'school_year' => $schoolYearFilter,
+        'grade' => $gradeFilter,
+        'sort' => $sort,
+        'page' => $page,
+    ];
+    if ($nextId) {
+        $_SESSION['enrollment_review_feedback'] = 'Previous review saved. Now reviewing the next applicant.';
+        redirect('/registrar/review_application.php?' . http_build_query($returnFilters + ['application_id' => $nextId]));
+    }
+    $_SESSION['enrollment_review_summary'] = ['id' => $reviewId, 'queue_complete' => $continueReview];
+    redirect('/registrar/review_application.php?' . http_build_query($returnFilters + ['application_id' => $reviewId]));
+}
+
 if ($isReviewDetail) {
     $where = ['ea.application_id = :review_id'];
     $params = ['review_id' => $reviewId ?: 0];
@@ -329,13 +378,7 @@ if (!$isReviewDetail) {
  */
 $countSql = "
     SELECT COUNT(*)
-    FROM enrollment_applications ea
-    JOIN students st ON st.student_id = ea.student_id
-    JOIN users u ON u.user_id = st.user_id
-    JOIN grade_levels g ON g.grade_level_id = CASE
-        WHEN ea.enrollment_type = 'Incoming Grade 7' THEN (SELECT grade_level_id FROM grade_levels WHERE grade_level = 7 LIMIT 1)
-        ELSE ea.requested_grade_level_id END
-    JOIN school_years y ON y.school_year_id = ea.school_year_id
+    $applicationJoins
     $whereSql
 ";
 
@@ -365,13 +408,7 @@ $applicationsSql = "
         g.grade_level_id AS review_grade_id,
         ea.school_year_id,
         y.school_year
-    FROM enrollment_applications ea
-    JOIN students st ON st.student_id = ea.student_id
-    JOIN users u ON u.user_id = st.user_id
-    JOIN grade_levels g ON g.grade_level_id = CASE
-        WHEN ea.enrollment_type = 'Incoming Grade 7' THEN (SELECT grade_level_id FROM grade_levels WHERE grade_level = 7 LIMIT 1)
-        ELSE ea.requested_grade_level_id END
-    JOIN school_years y ON y.school_year_id = ea.school_year_id
+    $applicationJoins
     $whereSql
     ORDER BY {$allowedSorts[$sort]}
     LIMIT {$perPage} OFFSET {$offset}
@@ -408,7 +445,7 @@ $applicationIds = array_map(
 
 $documentsByApplication = [];
 
-if ($isReviewDetail && $applicationIds) {
+if ($applicationIds) {
     $placeholders = implode(',', array_fill(0, count($applicationIds), '?'));
 
     $documentsQuery = $pdo->prepare(
@@ -457,6 +494,10 @@ $paginationUrl = static function (int $targetPage) use ($queryParameters): strin
 
 $reviewListUrl = BASE_URL . '/registrar/enrollment_review.php';
 $reviewDetailUrl = BASE_URL . '/registrar/review_application.php';
+$formatApplicantName = static function (array $applicant): string {
+    $givenNames = trim($applicant['first_name'] . ' ' . ($applicant['middle_name'] ?? ''));
+    return $applicant['last_name'] . ', ' . $givenNames;
+};
 $backToApplications = $reviewListUrl . '?' . http_build_query($queryParameters + ['page' => $returnPage]) . '#enrollment-applications';
 if (!$isReviewDetail) {
     $pageTitle .= ' (Page ' . $page . ' of ' . $totalPages . ')';
@@ -568,6 +609,13 @@ require_once __DIR__ . '/../includes/header.php';
         margin: 8px 0;
     }
 
+    .review-applicant-name {
+        margin: 0;
+        color: var(--maroon-dark);
+        font-size: clamp(1.65rem, 3vw, 2.25rem);
+        line-height: 1.2;
+    }
+
     .application-current-status {
         margin: 12px 0 15px;
         font-size: 14px;
@@ -596,6 +644,11 @@ require_once __DIR__ . '/../includes/header.php';
         width: 100%;
         box-sizing: border-box;
         margin-top: 5px;
+    }
+
+    .application-review-form .enrollment-review-document :is(select, textarea) {
+        height: 45px;
+        min-height: 45px;
     }
 
     .application-review-form .remarks-field {
@@ -691,12 +744,53 @@ require_once __DIR__ . '/../includes/header.php';
         <a class="portal-back-link" href="<?= e($backToApplications) ?>">Back to enrollment applications</a>
     </div>
 <?php endif; ?>
+<?php if ($showSavedReview && $applications): ?>
+    <?php
+    $reviewedApplication = $applications[0];
+    $reviewedDocuments = $documentsByApplication[$reviewId] ?? [];
+    ?>
+    <section class="form-card form-card-wide">
+        <h1>Review Completed</h1>
+        <h2 class="review-applicant-name"><?= e($formatApplicantName($reviewedApplication)) ?></h2>
+        <p>Application #<?= (int) $reviewId ?></p>
+        <p><strong>Application status:</strong> <?= e($reviewedApplication['application_status']) ?></p>
+        <h2>Document verification summary</h2>
+        <ul>
+            <?php foreach ($requiredDocuments as $documentName): ?>
+                <?php
+                $documentStatus = $reviewedDocuments[$documentName]['verification_status'] ?? 'Not Available';
+                if (in_array($documentStatus, ['For Verification', 'Submitted', 'Not Submitted'], true)) {
+                    $documentStatus = 'Awaiting Submission';
+                }
+                ?>
+                <li><?= e($documentName) ?> · <?= e($documentStatus) ?></li>
+            <?php endforeach; ?>
+        </ul>
+        <?php if ($reviewedApplication['remarks']): ?>
+            <p><strong>Review remarks:</strong> <?= e($reviewedApplication['remarks']) ?></p>
+        <?php endif; ?>
+        <a class="button button-primary" href="<?= e($backToApplications) ?>">Return to applications</a>
+    </section>
+
+    <?php if ($savedReview['queue_complete']): ?>
+        <dialog class="portal-delete-dialog" id="reviewQueueComplete" aria-labelledby="reviewQueueTitle">
+            <h2 id="reviewQueueTitle">Review queue complete</h2>
+            <p>Your review was saved. There are no more applications in this filtered list.</p>
+            <form method="dialog" class="portal-delete-actions">
+                <button class="button button-primary" autofocus>OK</button>
+            </form>
+        </dialog>
+        <script>
+            document.getElementById('reviewQueueComplete').showModal();
+        </script>
+    <?php endif; ?>
+    <?php require __DIR__ . '/../includes/footer.php'; ?>
+    <?php return; ?>
+<?php endif; ?>
+
 <section class="form-card form-card-wide">
 
         <h1><?= e($isReviewDetail ? 'Review Application and Documents' : 'Enrollment Review') ?></h1>
-    <p class="muted">
-        Review enrollment applications and verify supporting documents in one place.
-    </p>
 
     <?php if ($success): ?>
         <p class="success-message"><?= e($success) ?></p>
@@ -830,11 +924,35 @@ require_once __DIR__ . '/../includes/header.php';
         <?php foreach ($applications as $application): ?>
             <article class="application-card">
                 <div class="enrollment-application-row">
-                    <span class="registrar-result-person">
-                        <strong><?= e(trim($application['first_name'] . ' ' .
-                            ($application['middle_name'] ? $application['middle_name'] . ' ' : '') . $application['last_name'])) ?></strong>
+                    <div class="registrar-result-person">
+                        <?php if ($isReviewDetail): ?>
+                            <h2 class="review-applicant-name"><?= e($formatApplicantName($application)) ?></h2>
+                        <?php else: ?>
+                            <strong><?= e($formatApplicantName($application)) ?></strong>
+                        <?php endif; ?>
                         <span>Application #<?= (int) $application['application_id'] ?> · <?= e($application['school_year']) ?></span>
-                    </span>
+                        <?php if (!$isReviewDetail): ?>
+                            <?php
+                            $documentCounts = ['Accepted' => 0, 'Awaiting submission' => 0, 'Rejected' => 0];
+                            $applicationDocuments = $documentsByApplication[(int) $application['application_id']] ?? [];
+                            foreach ($requiredDocuments as $documentName) {
+                                $verificationStatus = $applicationDocuments[$documentName]['verification_status'] ?? '';
+                                $displayStatus = in_array($verificationStatus, ['Accepted', 'Rejected'], true)
+                                    ? $verificationStatus : 'Awaiting submission';
+                                $documentCounts[$displayStatus]++;
+                            }
+                            ?>
+                            <span>
+                                <?= $documentCounts['Accepted'] ?> of <?= count($requiredDocuments) ?> documents accepted
+                                <?php if ($documentCounts['Awaiting submission']): ?>
+                                    · <?= $documentCounts['Awaiting submission'] ?> awaiting submission
+                                <?php endif; ?>
+                                <?php if ($documentCounts['Rejected']): ?>
+                                    · <?= $documentCounts['Rejected'] ?> rejected
+                                <?php endif; ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
                     <span class="registrar-result-status"><?= e($application['application_status']) ?></span>
                     <?php if (!$isReviewDetail): ?>
                         <a class="button button-outline" href="<?= e($reviewDetailUrl . '?' . http_build_query(
@@ -903,7 +1021,7 @@ require_once __DIR__ . '/../includes/header.php';
                                         </label>
                                         <label>
                                             Document remarks (required if rejected)
-                                            <textarea name="documents[<?= $documentId ?>][remarks]" rows="2"><?= e($documentRemarks) ?></textarea>
+                                            <textarea name="documents[<?= $documentId ?>][remarks]" rows="1"><?= e($documentRemarks) ?></textarea>
                                         </label>
                                     <?php else: ?>
                                         <p class="muted">Not marked as available by the student.</p>
@@ -965,6 +1083,9 @@ require_once __DIR__ . '/../includes/header.php';
                         <button type="submit" class="button button-primary">
                             Save Review and Verification
                         </button>
+                        <button type="submit" name="after_save" value="next" class="button button-outline">
+                            Save and Review Next
+                        </button>
                     </form>
                 </div>
                 <?php endif; ?>
@@ -996,5 +1117,31 @@ require_once __DIR__ . '/../includes/header.php';
 
 </section>
 
+<?php if ($isReviewDetail && $applications): ?>
+<script>
+    const reviewForm = document.querySelector('.application-review-form');
+    if (reviewForm) {
+        const reviewValues = () => JSON.stringify(Array.from(new FormData(reviewForm)));
+        const originalReviewValues = reviewValues();
+        const warnAboutUnsavedReview = function (event) {
+            event.preventDefault();
+            event.returnValue = '';
+        };
+        const updateReviewWarning = function () {
+            if (reviewValues() !== originalReviewValues) {
+                window.addEventListener('beforeunload', warnAboutUnsavedReview);
+            } else {
+                window.removeEventListener('beforeunload', warnAboutUnsavedReview);
+            }
+        };
+        reviewForm.addEventListener('input', updateReviewWarning);
+        reviewForm.addEventListener('change', updateReviewWarning);
+        reviewForm.addEventListener('submit', function () {
+            window.removeEventListener('beforeunload', warnAboutUnsavedReview);
+        });
+        window.addEventListener('pageshow', updateReviewWarning);
+    }
+</script>
+<?php endif; ?>
 <script src="<?= BASE_URL ?>/assets/js/student_suggestions.js" defer></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

@@ -98,7 +98,7 @@ try {
 require_once __DIR__ . '/../includes/header.php';
 ?>
 <style>
-.stipend-page{max-width:1240px;margin:32px auto;padding:32px;background:#fff;border:1px solid #e1e5ec;border-radius:18px;box-shadow:0 12px 35px rgba(25,35,55,.07)}
+.stipend-page{max-width:1240px;margin:32px auto;padding:32px;background:#fff;border:1px solid #e1e5ec;border-radius:18px}
 .stipend-page h1{margin:0;color:#56172f;font-size:2rem}.stipend-subtitle{margin:8px 0 26px;color:#667085}
 .stipend-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:26px}
 .stipend-stat{padding:20px;border:1px solid #e1e5ec;border-top:4px solid #6b1c38;border-radius:12px}.stipend-stat:nth-child(2){border-top-color:#16845b}.stipend-stat:nth-child(3){border-top-color:#c18420}.stipend-stat:nth-child(4){border-top-color:#64748b}
@@ -113,7 +113,6 @@ require_once __DIR__ . '/../includes/header.php';
 
 <main class="stipend-page">
     <h1>Stipend Records</h1>
-    <p class="stipend-subtitle">Record stipend releases and monitor which scholarship recipients have claimed their allowance.</p>
 
     <?php if ($success): ?><div class="stipend-alert success"><?= e($success) ?></div><?php endif; ?>
     <?php if ($error): ?><div class="stipend-alert error"><?= e($error) ?></div><?php endif; ?>

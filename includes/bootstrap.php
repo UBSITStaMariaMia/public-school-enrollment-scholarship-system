@@ -13,3 +13,14 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/functions.php';
+
+if (!empty($_SESSION['user']['must_change_password'])) {
+    $requestScript = realpath($_SERVER['SCRIPT_FILENAME'] ?? '');
+    $projectRoot = dirname(__DIR__);
+    if (!in_array($requestScript, [
+        realpath($projectRoot . '/student/change_password.php'),
+        realpath($projectRoot . '/logout.php'),
+    ], true)) {
+        redirect('/student/change_password.php');
+    }
+}

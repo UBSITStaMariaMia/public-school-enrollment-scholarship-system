@@ -73,7 +73,6 @@ require_once __DIR__ . '/includes/header.php';
         border: 1px solid #e1e5eb;
         border-radius: 14px;
         padding: 28px;
-        box-shadow: 0 12px 30px rgba(20, 30, 50, 0.08);
     }
 
     .public-announcements-back {
@@ -199,10 +198,6 @@ require_once __DIR__ . '/includes/header.php';
         <h1 class="public-announcements-title" id="publicAnnouncementsTitle">
             Public Announcements
         </h1>
-        <p class="public-announcements-intro">
-            Stay updated with the latest published announcements from
-            Baguio City National High School.
-        </p>
 
         <?php if (!empty($announcements)): ?>
             <div class="public-announcements-list">

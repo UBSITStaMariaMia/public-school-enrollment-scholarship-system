@@ -569,10 +569,6 @@ require_once __DIR__ . '/../includes/header.php';
 <section class="form-card">
     <h1>Student Records Management</h1>
 
-    <p>
-        Manage student grades and attendance for the active school year.
-    </p>
-
     <?php if ($activeSchoolYear): ?>
         <p>
             <strong>Active School Year:</strong>

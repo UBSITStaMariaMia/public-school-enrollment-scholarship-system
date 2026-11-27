@@ -40,6 +40,16 @@ if (!$schoolYear) {
     exit('There is currently no active school year. Please contact the school administrator.');
 }
 
+$findYearScholarship = $pdo->prepare(
+    'SELECT scholarship_application_id FROM scholarship_applications
+     WHERE student_id = :student_id AND school_year_id = :school_year_id
+     LIMIT 1'
+);
+$scholarshipScope = ['student_id' => $studentId, 'school_year_id' => $schoolYear['school_year_id']];
+$findYearScholarship->execute($scholarshipScope);
+$alreadyAppliedForScholarship = (bool) $findYearScholarship->fetchColumn();
+$findYearScholarship->closeCursor();
+
 /* Get available grade levels */
 $gradeQuery = $pdo->query(
     'SELECT grade_level_id, grade_level
@@ -175,6 +185,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo->beginTransaction();
 
+            if ($values['scholarship'] === 'Yes') {
+                // Use the same student row lock as the standalone scholarship form.
+                $studentLock = $pdo->prepare('SELECT student_id FROM students WHERE student_id = :id FOR UPDATE');
+                $studentLock->execute(['id' => $studentId]);
+                $studentLock->closeCursor();
+                $findYearScholarship->execute($scholarshipScope);
+                $alreadyAppliedForScholarship = (bool) $findYearScholarship->fetchColumn();
+                $findYearScholarship->closeCursor();
+                if ($alreadyAppliedForScholarship) {
+                    $values['scholarship'] = 'No';
+                    $values['program_id'] = '';
+                }
+            }
+
             /* Create enrollment application */
             $applicationInsert = $pdo->prepare(
                 'INSERT INTO enrollment_applications (
@@ -264,7 +288,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $success = 'Your enrollment application has been submitted successfully.';
 
-            if ($values['scholarship'] === 'Yes') {
+            if ($alreadyAppliedForScholarship) {
+                $success .= ' Your existing scholarship application remains in My Applications.';
+            } elseif ($values['scholarship'] === 'Yes') {
                 $success .= ' Your special program scholarship application has also been submitted.';
             }
 
@@ -297,18 +323,19 @@ require_once __DIR__ . '/../includes/header.php';
 
     <h1>New Enrollment</h1>
 
-    <p class="muted">
-        Complete the enrollment form and check the supporting documents you currently have.
-    </p>
-
     <?php if ($success): ?>
-        <div class="alert alert-success">
-            <?= e($success) ?>
-            <br>
-            <a href="<?= BASE_URL ?>/student/my_applications.php">
-                View My Applications
-            </a>
-        </div>
+        <section class="student-application-summary" aria-labelledby="enrollment-submitted">
+            <h2 id="enrollment-submitted">Application Submitted</h2>
+            <dl>
+                <div><dt>Application Number</dt><dd>#<?= (int) $applicationId ?></dd></div>
+                <div><dt>Status</dt><dd><span class="student-status status-pending">Pending Review</span></dd></div>
+            </dl>
+            <div class="student-summary-next">
+                <h3>What happens next</h3>
+                <p>The registrar will review your application and supporting documents. Check My Applications for updates.</p>
+                <a class="button button-primary" href="<?= BASE_URL ?>/student/my_applications.php">View My Applications</a>
+            </div>
+        </section>
     <?php endif; ?>
 
     <?php foreach ($errors as $message): ?>
@@ -319,7 +346,9 @@ require_once __DIR__ . '/../includes/header.php';
 
     <?php if (!$success): ?>
 
+    <p class="muted">Check the supporting documents you currently have.</p>
     <form method="post" class="form-grid">
+        <p class="muted"><span class="student-required" aria-hidden="true">*</span> Required fields</p>
 
         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
@@ -337,7 +366,7 @@ require_once __DIR__ . '/../includes/header.php';
         </label>
 
         <label>
-            Learner Reference Number (LRN)
+            <span><span class="student-required" aria-hidden="true">*</span> Learner Reference Number (LRN)</span>
             <input type="text" name="lrn" maxlength="20"
                 value="<?= e($values['lrn']) ?>" required>
         </label>
@@ -371,7 +400,7 @@ require_once __DIR__ . '/../includes/header.php';
         </label>
 
         <label>
-            Enrollment Type
+            <span><span class="student-required" aria-hidden="true">*</span> Enrollment Type</span>
             <select name="enrollment_type" required>
                 <option value="">Select enrollment type</option>
 
@@ -385,7 +414,7 @@ require_once __DIR__ . '/../includes/header.php';
         </label>
 
         <label>
-            Requested Grade Level
+            <span><span class="student-required" aria-hidden="true">*</span> Requested Grade Level</span>
             <select name="requested_grade_level_id" required>
                 <option value="">Select grade level</option>
 
@@ -399,6 +428,11 @@ require_once __DIR__ . '/../includes/header.php';
         </label>
 
         <h2>3. Special Program Scholarship</h2>
+        <?php if ($alreadyAppliedForScholarship): ?>
+            <p>You already submitted a scholarship application for this school year.
+                <a href="<?= BASE_URL ?>/student/my_applications.php">View My Applications</a>
+            </p>
+        <?php else: ?>
 
         <p>
             Are you applying for a special program scholarship?
@@ -449,6 +483,7 @@ require_once __DIR__ . '/../includes/header.php';
             </p>
 
         </div>
+        <?php endif; ?>
 
         <h2>4. Required Supporting Documents</h2>
 
@@ -495,6 +530,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const scholarshipFields = document.getElementById(
         'scholarship-fields'
     );
+
+    if (!scholarshipFields) return;
 
     const programSelect = document.getElementById('program_id');
 

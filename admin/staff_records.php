@@ -93,8 +93,6 @@ require_once __DIR__ . '/../includes/header.php';
 
     <h1>Teacher and Staff Records</h1>
 
-    <p>View school personnel accounts, assigned roles, and available staff profile information.</p>
-
     <form method="get" class="table-search-form student-search-form">
         <div class="table-search-toolbar">
             <div class="table-search-field">
@@ -187,7 +185,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <a
                     href="<?= BASE_URL ?>/admin/staff_records_report.php?<?= e($reportParameters) ?>&print=1"
                     class="button button-outline"
-                    target="_blank"
+                    data-print-report target="_blank"
                     rel="noopener"
                 >
                     Print Records

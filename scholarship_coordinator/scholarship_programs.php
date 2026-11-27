@@ -80,10 +80,6 @@ require_once __DIR__ . '/../includes/header.php';
 <section class="form-card form-card-wide scholarship-program-card">
     <h1>Scholarship Programs</h1>
 
-    <p class="muted">
-        Create and maintain the special programs available to students.
-    </p>
-
     <?php if ($success): ?>
         <p class="success-message"><?= e($success) ?></p>
     <?php endif; ?>

@@ -22,5 +22,6 @@
     <script src="<?= BASE_URL ?>/assets/js/delete_confirmation.js" defer></script>
 <?php endif; ?>
 <script src="<?= BASE_URL ?>/assets/js/responsive_tables.js" defer></script>
+<script src="<?= BASE_URL ?>/assets/js/print_report.js" defer></script>
 </body>
 </html>

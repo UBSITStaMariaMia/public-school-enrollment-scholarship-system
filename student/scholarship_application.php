@@ -198,9 +198,6 @@ require_once __DIR__ . '/../includes/header.php';
 .scholarship-program-option h3 { display: inline; color: var(--maroon); margin: 0; }
 .scholarship-program-option p { margin: 13px 0; color: var(--muted); }
 .program-availability { display: block; font-size: .88rem; font-weight: 600; color: var(--ink); }
-.program-unavailable { opacity: .65; cursor: not-allowed; }
-.scholarship-existing-application { padding: 14px 16px; margin: 18px 0; background: #f8f8fa; border-left: 4px solid var(--maroon); border-radius: 8px; }
-.scholarship-existing-application p { margin: 5px 0 0; }
 .scholarship-form-actions { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 12px; }
 @media (max-width: 700px) { .scholarship-program-list, .scholarship-profile-summary { grid-template-columns: 1fr; } }
 </style>
@@ -209,14 +206,33 @@ require_once __DIR__ . '/../includes/header.php';
     <a href="<?= BASE_URL ?>/student/dashboard.php" class="portal-back-link">Back to Dashboard</a>
 </div>
 <section class="form-card form-card-wide">
-    <h1>Special Program Scholarship Application</h1>
-    <p class="muted scholarship-intro">
-        Apply for one of the BCNHS special program scholarships. Your existing student information is retrieved from your student record, so you do not need to enter it again.
-    </p>
+    <h1>Scholarship Application</h1>
 
-    <?php if ($success): ?><p class="success-message"><?= e($success) ?></p><?php endif; ?>
     <?php if ($error): ?><p class="error-message"><?= e($error) ?></p><?php endif; ?>
 
+    <?php if ($existingApplication): ?>
+        <?php
+        $status = $existingApplication['application_status'];
+        $statusStyle = match ($status) {
+            'Approved' => 'status-approved',
+            'Rejected' => 'status-rejected',
+            default => 'status-pending'
+        };
+        ?>
+        <section class="student-application-summary" aria-labelledby="scholarship-submitted">
+            <h2 id="scholarship-submitted">Application Submitted</h2>
+            <dl>
+                <div><dt>School Year</dt><dd><?= e($activeSchoolYear['school_year']) ?></dd></div>
+                <div><dt>Program</dt><dd><?= e($existingApplication['program_name']) ?></dd></div>
+                <div><dt>Status</dt><dd><span class="student-status <?= e($statusStyle) ?>"><?= e($status) ?></span></dd></div>
+            </dl>
+            <div class="student-summary-next">
+                <h3>What happens next</h3>
+                <p>Check My Applications for updates and any screening schedule.</p>
+                <a class="button button-primary" href="<?= BASE_URL ?>/student/my_applications.php">View My Applications</a>
+            </div>
+        </section>
+    <?php else: ?>
     <h2>Your Student Information</h2>
     <p class="muted">These details come from your registered student record. Contact the school if any information needs correction.</p>
     <div class="scholarship-profile-summary">
@@ -236,34 +252,24 @@ require_once __DIR__ . '/../includes/header.php';
         <?php if (empty($programs)): ?>
             <div class="empty-state"><h3>No Programs Currently Available</h3><p class="muted">There are no active scholarship programs available for application at this time.</p></div>
         <?php else: ?>
-            <?php if ($existingApplication): ?>
-                <div class="scholarship-existing-application">
-                    <strong>You have already submitted an application for this school year.</strong>
-                    <p>Selected program: <?= e($existingApplication['program_name']) ?></p>
-                    <p>Application status: <?= e($existingApplication['application_status']) ?></p>
-                    <p>You may apply for only one scholarship program per school year. You can check your application progress under My Applications.</p>
-                </div>
-            <?php endif; ?>
-
             <form method="post">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <h2>Choose a Scholarship Program</h2>
                 <div class="scholarship-program-list">
                     <?php foreach ($programs as $program): ?>
-                        <label class="scholarship-program-option <?= $existingApplication ? 'program-unavailable' : '' ?>">
-                            <input type="radio" name="program_id" value="<?= (int) $program['program_id'] ?>" required <?= $existingApplication ? 'disabled' : '' ?>>
+                        <label class="scholarship-program-option">
+                            <input type="radio" name="program_id" value="<?= (int) $program['program_id'] ?>" required>
                             <h3><?= e($program['program_name']) ?></h3>
                             <p><?= e($program['description'] ?: 'No program description is available.') ?></p>
                             <span class="program-availability">
-                                <?php if ($existingApplication): ?>Applications are unavailable because you have already applied this school year.
-                                <?php elseif ($program['available_slots'] === null): ?>Applications are open.
+                                <?php if ($program['available_slots'] === null): ?>Applications are open.
                                 <?php else: ?>Scholar slot limit: <?= (int) $program['available_slots'] ?><?php endif; ?>
                             </span>
                         </label>
                     <?php endforeach; ?>
                 </div>
                 <div class="scholarship-form-actions">
-                    <button type="submit" class="button button-primary" <?= $existingApplication ? 'disabled' : '' ?>>Submit Application</button>
+                    <button type="submit" class="button button-primary">Submit Application</button>
                     <a href="<?= BASE_URL ?>/student/my_applications.php" class="button button-secondary">View My Applications</a>
                 </div>
                 <p class="muted">You may select only one scholarship program per school year. After submission, your application will undergo an initial review. Shortlisted applicants will receive their screening schedule through the portal.</p>
@@ -271,6 +277,7 @@ require_once __DIR__ . '/../includes/header.php';
         <?php endif; ?>
     <?php else: ?>
         <div class="empty-state"><h3>No Active School Year</h3><p class="muted">Scholarship applications are currently unavailable because no school year is marked as active. Please contact the school.</p></div>
+    <?php endif; ?>
     <?php endif; ?>
 </section>
 

@@ -394,7 +394,7 @@ require_once __DIR__ . '/../includes/header.php';
             <h2>1. Enrollment Information</h2>
 
             <label>
-                Learner Reference Number (LRN)
+                <span><span class="student-required" aria-hidden="true">*</span> Learner Reference Number (LRN)</span>
                 <input type="text"
                        name="lrn"
                        maxlength="20"
@@ -410,7 +410,7 @@ require_once __DIR__ . '/../includes/header.php';
             </label>
 
             <label>
-                Enrollment Type
+                <span><span class="student-required" aria-hidden="true">*</span> Enrollment Type</span>
 
                 <select name="enrollment_type" required>
                     <option value="">Select enrollment type</option>
@@ -426,7 +426,7 @@ require_once __DIR__ . '/../includes/header.php';
             </label>
 
             <label>
-                Requested Grade Level
+                <span><span class="student-required" aria-hidden="true">*</span> Requested Grade Level</span>
 
                 <select name="requested_grade_level_id" required>
                     <option value="">Select grade level</option>

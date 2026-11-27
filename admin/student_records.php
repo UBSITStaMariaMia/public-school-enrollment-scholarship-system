@@ -103,8 +103,6 @@ require_once __DIR__ . '/../includes/header.php';
 
     <h1>Student Records</h1>
 
-    <p>View and manage registered student accounts and information.</p>
-
     <?php if (isset($_GET['deleted'])): ?>
         <p class="success-message">
             Student account and connected records were permanently deleted.
@@ -236,7 +234,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <a
                     href="<?= BASE_URL ?>/admin/student_records_report.php?<?= e($reportParameters) ?>&print=1"
                     class="button button-outline"
-                    target="_blank"
+                    data-print-report target="_blank"
                     rel="noopener"
                 >
                     Print Records

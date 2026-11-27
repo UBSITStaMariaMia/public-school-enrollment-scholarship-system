@@ -231,7 +231,6 @@ require_once __DIR__ . '/../includes/header.php';
         <h1><?= e($pageTitle) ?></h1>
     <?php else: ?>
         <h1>Section Management</h1>
-        <p class="muted">Create and review class sections by grade level and school year.</p>
     <?php endif; ?>
 
     <?php if ($success): ?>

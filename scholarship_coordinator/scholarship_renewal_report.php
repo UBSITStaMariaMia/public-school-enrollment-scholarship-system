@@ -139,7 +139,6 @@ require_once __DIR__ . '/../includes/header.php';
 <section class="form-card form-card-wide renewal-page">
     <div class="renewal-hero">
         <h1>Scholarship Renewal Report</h1>
-        <p>Track academic performance, behavior, program participation, and renewal decisions for approved scholars.</p>
     </div>
 
     <?php if (!empty($error)): ?><p class="error-message"><?= e($error) ?></p><?php endif; ?>
