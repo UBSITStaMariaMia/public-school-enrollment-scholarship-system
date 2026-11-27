@@ -18,6 +18,14 @@ $announcementTypes = [
 ];
 
 $allowedStatuses = ['Draft', 'Published', 'Archived'];
+$announcementTabs = ['Published', 'Draft', 'Expired', 'Archived'];
+$activeTab = $_GET['view'] ?? 'Published';
+if (!in_array($activeTab, $announcementTabs, true)) {
+    $activeTab = 'Published';
+}
+$announcementListUrl = BASE_URL . '/registrar/announcements.php?' . http_build_query(['view' => $activeTab]);
+$showAnnouncementEditor = ($_GET['add'] ?? '') === '1' || isset($_GET['edit'])
+    || ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save');
 
 $values = [
     'announcement_id' => '',
@@ -179,7 +187,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
 
-                redirect('/registrar/announcements.php?saved=1');
+                $savedTab = $values['status'];
+                if ($savedTab === 'Published' && $expiryDate !== null && $expiryDate < new DateTime()) {
+                    $savedTab = 'Expired';
+                }
+                redirect('/registrar/announcements.php?' . http_build_query(['view' => $savedTab, 'saved' => 1]));
 
             } catch (Throwable $exception) {
 
@@ -218,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'announcement_id' => $announcementId
                 ]);
 
-                redirect('/registrar/announcements.php?deleted=1');
+                redirect('/registrar/announcements.php?' . http_build_query(['view' => $activeTab, 'deleted' => 1]));
 
             } catch (Throwable $exception) {
 
@@ -290,7 +302,7 @@ if (
 
 /* Get all announcements */
 $announcementQuery = $pdo->query(
-    'SELECT
+    "SELECT
         a.announcement_id,
         a.title,
         a.content,
@@ -298,44 +310,44 @@ $announcementQuery = $pdo->query(
         a.publish_date,
         a.expiry_date,
         a.status,
+        CASE WHEN a.status = 'Published' AND a.expiry_date < NOW() THEN 'Expired'
+             ELSE a.status END AS list_status,
         u.username AS creator_name
      FROM announcements a
      LEFT JOIN users u
         ON a.created_by = u.user_id
-     ORDER BY a.publish_date DESC, a.announcement_id DESC'
+     ORDER BY a.publish_date DESC, a.announcement_id DESC"
 );
 
 $announcements = $announcementQuery->fetchAll();
 
 /* Count announcements by status */
-$statusCounts = [
-    'Published' => 0,
-    'Draft' => 0,
-    'Archived' => 0
-];
-
+$statusCounts = array_fill_keys($announcementTabs, 0);
 foreach ($announcements as $announcement) {
-    if (isset($statusCounts[$announcement['status']])) {
-        $statusCounts[$announcement['status']]++;
-    }
+    $statusCounts[$announcement['list_status']]++;
 }
+$announcements = array_filter($announcements, static fn(array $item): bool => $item['list_status'] === $activeTab);
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
 
 
+<?php if ($showAnnouncementEditor): ?>
+    <div class="portal-back-row">
+        <a class="portal-back-link" href="<?= e($announcementListUrl) ?>">Back to announcements</a>
+    </div>
+<?php endif; ?>
 <section class="form-card form-card-wide announcement-management">
 
-    <div>
-        <p class="eyebrow">School Administration</p>
-        <h1>Announcement Management</h1>
-
-        <p class="muted">
-            Create, edit, publish, and manage enrollment announcements,
-            scholarship application deadlines, and school announcements.
-        </p>
-    </div>
+    <?php if ($showAnnouncementEditor): ?>
+        <h1><?= $values['announcement_id'] !== '' ? 'Edit Announcement' : 'New Announcement' ?></h1>
+    <?php else: ?>
+        <div class="portal-page-actions">
+            <h1>Announcement Management</h1>
+            <a class="button button-primary portal-add-action" href="<?= e($announcementListUrl . '&add=1') ?>"><span class="portal-add-icon" aria-hidden="true">+</span>New Announcement</a>
+        </div>
+    <?php endif; ?>
 
     <?php if ($success): ?>
         <div class="alert alert-success">
@@ -349,33 +361,8 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     <?php endforeach; ?>
 
-    <div class="announcement-stats">
-
-        <div class="announcement-stat">
-            <small>Published Announcements</small>
-            <strong><?= $statusCounts['Published'] ?></strong>
-        </div>
-
-        <div class="announcement-stat">
-            <small>Draft Announcements</small>
-            <strong><?= $statusCounts['Draft'] ?></strong>
-        </div>
-
-        <div class="announcement-stat">
-            <small>Archived Announcements</small>
-            <strong><?= $statusCounts['Archived'] ?></strong>
-        </div>
-
-    </div>
-
+    <?php if ($showAnnouncementEditor): ?>
     <div class="announcement-form-card">
-
-        <h2>
-            <?= $values['announcement_id'] !== ''
-                ? 'Edit Announcement'
-                : 'Create New Announcement' ?>
-        </h2>
-
         <form method="post" class="announcement-form">
 
             <input
@@ -485,14 +472,7 @@ require_once __DIR__ . '/../includes/header.php';
                         : 'Create Announcement' ?>
                 </button>
 
-                <?php if ($values['announcement_id'] !== ''): ?>
-                    <a
-                        href="<?= BASE_URL ?>/registrar/announcements.php"
-                        class="button button-outline"
-                    >
-                        Cancel Editing
-                    </a>
-                <?php endif; ?>
+                <a href="<?= e($announcementListUrl) ?>" class="button button-outline">Cancel</a>
 
             </div>
 
@@ -500,19 +480,21 @@ require_once __DIR__ . '/../includes/header.php';
 
     </div>
 
+    <?php else: ?>
+    <nav class="application-status-links" aria-label="Announcement status">
+        <?php foreach ($announcementTabs as $tab): ?>
+            <a class="button <?= $activeTab === $tab ? 'button-primary' : 'button-outline' ?>"
+               href="?<?= e(http_build_query(['view' => $tab])) ?>"
+               <?= $activeTab === $tab ? 'aria-current="true"' : '' ?>>
+                <?= e($tab === 'Draft' ? 'Drafts' : $tab) ?> (<?= $statusCounts[$tab] ?>)
+            </a>
+        <?php endforeach; ?>
+    </nav>
     <div class="announcement-list-card">
-
-        <h2>All Announcements</h2>
-
-        <p class="muted">
-            View and manage all created announcements, including drafts and archived posts.
-        </p>
-
         <?php if (empty($announcements)): ?>
 
             <div class="announcement-empty">
-                <h3>No Announcements Yet</h3>
-                <p>Create your first announcement using the form above.</p>
+                <p>No <?= e(strtolower($activeTab)) ?> announcements.</p>
             </div>
 
         <?php else: ?>
@@ -557,8 +539,8 @@ require_once __DIR__ . '/../includes/header.php';
                                 </td>
 
                                 <td>
-                                    <span class="announcement-status status-<?= strtolower(e($announcement['status'])) ?>">
-                                        <?= e($announcement['status']) ?>
+                                    <span class="announcement-status status-<?= strtolower(e($announcement['list_status'])) ?>">
+                                        <?= e($announcement['list_status']) ?>
                                     </span>
                                 </td>
 
@@ -566,7 +548,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <div class="announcement-actions">
 
                                         <a
-                                            href="<?= BASE_URL ?>/registrar/announcements.php?edit=<?= (int) $announcement['announcement_id'] ?>"
+                                            href="<?= e($announcementListUrl . '&edit=' . (int) $announcement['announcement_id']) ?>"
                                             class="button button-outline"
                                         >
                                             Edit
@@ -574,7 +556,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                                         <form
                                             method="post"
-                                            onsubmit="return confirm('Are you sure you want to delete this announcement?');"
+                                            data-confirm-delete="Delete &quot;<?= e($announcement['title']) ?>&quot;? This action cannot be undone."
                                         >
 
                                             <input
@@ -621,6 +603,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     </div>
 
+    <?php endif; ?>
 </section>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

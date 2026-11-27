@@ -157,9 +157,14 @@ $stipends = $query->fetchAll(PDO::FETCH_ASSOC);
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
+<div class="portal-back-row">
+    <a href="<?= BASE_URL ?>/admin/student_records.php"
+    class="portal-back-link">
+    Back to Student Records
+    </a>
+</div>
 <section class="form-card">
 
-    <p class="eyebrow">System Administration</p>
 
     <h1>Student Information</h1>
 
@@ -171,10 +176,6 @@ require_once __DIR__ . '/../includes/header.php';
 
     <p>LRN: <?= e($student['lrn'] ?? '—') ?></p>
 
-    <a href="<?= BASE_URL ?>/admin/student_records.php"
-       class="button button-outline">
-        Back to Student Records
-    </a>
 
 </section>
 
@@ -183,6 +184,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     <h2>Account Information</h2>
 
+    <div class="table-responsive">
     <table>
         <tr>
             <th>Username</th>
@@ -204,6 +206,7 @@ require_once __DIR__ . '/../includes/header.php';
             <td><?= e($student['created_at']) ?></td>
         </tr>
     </table>
+    </div>
 
 </section>
 
@@ -212,6 +215,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     <h2>Personal Information</h2>
 
+    <div class="table-responsive">
     <table>
         <tr><th>First Name</th><td><?= e($student['first_name']) ?></td></tr>
         <tr><th>Middle Name</th><td><?= e($student['middle_name'] ?? '—') ?></td></tr>
@@ -229,6 +233,7 @@ require_once __DIR__ . '/../includes/header.php';
         <tr><th>Section</th><td><?= e($student['section_name'] ?? 'Not assigned') ?></td></tr>
         <tr><th>Readmission Status</th><td><?= e($student['readmission_status']) ?></td></tr>
     </table>
+    </div>
 
 </section>
 
@@ -245,6 +250,7 @@ require_once __DIR__ . '/../includes/header.php';
 
             <h3>Mother's Information</h3>
 
+            <div class="table-responsive">
             <table>
                 <tr><th>Name</th><td><?= e($parent['mother_name'] ?? '—') ?></td></tr>
                 <tr><th>Occupation</th><td><?= e($parent['mother_occupation'] ?? '—') ?></td></tr>
@@ -252,9 +258,11 @@ require_once __DIR__ . '/../includes/header.php';
                 <tr><th>Email</th><td><?= e($parent['mother_email'] ?? '—') ?></td></tr>
                 <tr><th>Address</th><td><?= e($parent['mother_address'] ?? '—') ?></td></tr>
             </table>
+            </div>
 
             <h3>Father's Information</h3>
 
+            <div class="table-responsive">
             <table>
                 <tr><th>Name</th><td><?= e($parent['father_name'] ?? '—') ?></td></tr>
                 <tr><th>Occupation</th><td><?= e($parent['father_occupation'] ?? '—') ?></td></tr>
@@ -262,6 +270,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <tr><th>Email</th><td><?= e($parent['father_email'] ?? '—') ?></td></tr>
                 <tr><th>Address</th><td><?= e($parent['father_address'] ?? '—') ?></td></tr>
             </table>
+            </div>
 
         <?php endforeach; ?>
 
@@ -280,6 +289,7 @@ require_once __DIR__ . '/../includes/header.php';
 
         <?php foreach ($guardians as $guardian): ?>
 
+            <div class="table-responsive">
             <table>
                 <tr><th>Name</th><td><?= e($guardian['full_name']) ?></td></tr>
                 <tr><th>Relationship</th><td><?= e($guardian['relationship'] ?? '—') ?></td></tr>
@@ -289,6 +299,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <tr><th>Address</th><td><?= e($guardian['address'] ?? '—') ?></td></tr>
                 <tr><th>Primary Guardian</th><td><?= $guardian['is_primary'] ? 'Yes' : 'No' ?></td></tr>
             </table>
+            </div>
 
         <?php endforeach; ?>
 

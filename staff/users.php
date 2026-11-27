@@ -181,7 +181,6 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="form-card">
-    <p class="eyebrow">Administration</p>
     <h1>User Management</h1>
     <p>Create staff accounts and manage their account status.</p>
 

@@ -334,7 +334,6 @@ require_once __DIR__ . '/../includes/header.php';
 
 <section class="form-card form-card-wide <?= $isEditing ? 'profile-editing' : '' ?>">
 
-    <p class="eyebrow">Student Information</p>
 
     <h1>My Profile</h1>
 
@@ -401,12 +400,13 @@ require_once __DIR__ . '/../includes/header.php';
         <label>
             Phone Number
 
-            <div class="phone-input-wrapper">
-                <span class="phone-prefix">+63</span>
-                <span class="phone-divider" aria-hidden="true"></span>
+            <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
+                <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
+                <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
 
                 <input
                     type="tel"
+                    style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
                     name="contact_number"
                     inputmode="numeric"
                     pattern="9[0-9]{9}"
@@ -436,12 +436,13 @@ require_once __DIR__ . '/../includes/header.php';
         <label>
             Contact Number
 
-            <div class="phone-input-wrapper">
-                <span class="phone-prefix">+63</span>
-                <span class="phone-divider" aria-hidden="true"></span>
+            <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
+                <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
+                <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
 
                 <input
                     type="tel"
+                    style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
                     name="mother_contact_number"
                     inputmode="numeric"
                     pattern="9[0-9]{9}"
@@ -506,12 +507,13 @@ require_once __DIR__ . '/../includes/header.php';
         <label>
             Contact Number
 
-            <div class="phone-input-wrapper">
-                <span class="phone-prefix">+63</span>
-                <span class="phone-divider" aria-hidden="true"></span>
+            <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
+                <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
+                <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
 
                 <input
                     type="tel"
+                    style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
                     name="father_contact_number"
                     inputmode="numeric"
                     pattern="9[0-9]{9}"
@@ -581,12 +583,13 @@ require_once __DIR__ . '/../includes/header.php';
         <label>
             Contact Number
 
-            <div class="phone-input-wrapper">
-                <span class="phone-prefix">+63</span>
-                <span class="phone-divider" aria-hidden="true"></span>
+            <div class="phone-input-wrapper" style="display: flex; align-items: center; flex-wrap: nowrap; width: 100%; min-height: 45px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ced4da; border-radius: 8px; background: #fff;">
+                <span class="phone-prefix" style="flex: 0 0 auto; white-space: nowrap; padding-right: 12px;">+63</span>
+                <span class="phone-divider" aria-hidden="true" style="flex: 0 0 1px; height: 22px; background: #ced4da; margin-right: 12px;"></span>
 
                 <input
                     type="tel"
+                    style="flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; border: 0; outline: 0; box-shadow: none; background: transparent; padding: 12px 0; margin: 0;"
                     name="guardian_contact_number"
                     inputmode="numeric"
                     pattern="9[0-9]{9}"

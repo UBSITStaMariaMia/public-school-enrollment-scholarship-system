@@ -119,6 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$selectedGrade) {
         $errors[] = 'Select a valid grade level.';
+    } elseif ($values['enrollment_type'] === 'Incoming Grade 7' && (int) $selectedGrade['grade_level'] !== 7) {
+        $errors[] = 'Incoming Grade 7 applications must request Grade 7.';
     }
 
     /* Validate scholarship selection */
@@ -158,191 +160,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'You already have an enrollment application for this school year. Please check My Applications.';
     }
 
-    /* Validate only documents selected by the student */
-    $uploadedFiles = [];
-    $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
-    $allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-    $maxFileSize = 5 * 1024 * 1024;
-
+    /* Validate selected supporting document checkboxes */
     foreach ($values['available_documents'] as $selectedIndex) {
-        if (!ctype_digit($selectedIndex) || !array_key_exists((int) $selectedIndex, $requiredDocuments)) {
+        if (
+            !ctype_digit($selectedIndex) ||
+            !array_key_exists((int) $selectedIndex, $requiredDocuments)
+        ) {
             $errors[] = 'An invalid supporting document was selected.';
-            continue;
         }
-
-        $index = (int) $selectedIndex;
-        $documentName = $requiredDocuments[$index];
-        $file = $_FILES['documents']['tmp_name'][$index] ?? '';
-        $fileName = $_FILES['documents']['name'][$index] ?? '';
-        $fileSize = (int) ($_FILES['documents']['size'][$index] ?? 0);
-        $fileError = $_FILES['documents']['error'][$index] ?? UPLOAD_ERR_NO_FILE;
-
-        if ($fileError !== UPLOAD_ERR_OK || !is_uploaded_file($file)) {
-            $errors[] = 'Please choose a file for ' . $documentName . '.';
-            continue;
-        }
-
-        if ($fileSize > $maxFileSize) {
-            $errors[] = $documentName . ' must not exceed 5 MB.';
-            continue;
-        }
-
-        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        if (!in_array($extension, $allowedExtensions, true)) {
-            $errors[] = $documentName . ' must be a PDF, JPG, JPEG, or PNG file.';
-            continue;
-        }
-
-        $fileInfo = new finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $fileInfo->file($file);
-        if (!in_array($mimeType, $allowedMimeTypes, true)) {
-            $errors[] = $documentName . ' has an invalid file type.';
-            continue;
-        }
-
-        $uploadedFiles[$index] = [
-            'tmp_name' => $file,
-            'extension' => $extension,
-            'document_type' => $documentName
-        ];
     }
 
     /* Save application */
     if (!$errors) {
+        try {
+            $pdo->beginTransaction();
 
-        $uploadDirectory = __DIR__ . '/../uploads/enrollment';
+            /* Create enrollment application */
+            $applicationInsert = $pdo->prepare(
+                'INSERT INTO enrollment_applications (
+                    student_id,
+                    school_year_id,
+                    lrn,
+                    enrollment_type,
+                    requested_grade_level_id,
+                    application_status
+                ) VALUES (
+                    :student_id,
+                    :school_year_id,
+                    :lrn,
+                    :enrollment_type,
+                    :grade_level_id,
+                    :application_status
+                )'
+            );
 
-        if (
-            !empty($uploadedFiles) &&
-            !is_dir($uploadDirectory) &&
-            !mkdir($uploadDirectory, 0755, true)
-        ) {
-            $errors[] = 'The document upload folder could not be created.';
-        } else {
+            $applicationInsert->execute([
+                'student_id' => $studentId,
+                'school_year_id' => $schoolYear['school_year_id'],
+                'lrn' => $values['lrn'],
+                'enrollment_type' => $values['enrollment_type'],
+                'grade_level_id' => $values['requested_grade_level_id'],
+                'application_status' => 'Pending Review'
+            ]);
 
-            $savedFiles = [];
+            $applicationId = (int) $pdo->lastInsertId();
 
-            try {
-                $pdo->beginTransaction();
+            /* Save supporting documents indicated as available by the student.
+               No digital file is uploaded through this enrollment form. */
+            $documentInsert = $pdo->prepare(
+                'INSERT INTO enrollment_documents (
+                    application_id,
+                    document_type,
+                    file_path,
+                    verification_status,
+                    remarks,
+                    uploaded_at
+                ) VALUES (
+                    :application_id,
+                    :document_type,
+                    NULL,
+                    :verification_status,
+                    :remarks,
+                    NULL
+                )'
+            );
 
-                /* Create enrollment application */
-                $applicationInsert = $pdo->prepare(
-                    'INSERT INTO enrollment_applications (
+            foreach ($values['available_documents'] as $selectedIndex) {
+                $index = (int) $selectedIndex;
+
+                $documentInsert->execute([
+                    'application_id' => $applicationId,
+                    'document_type' => $requiredDocuments[$index],
+                    'verification_status' => 'Not Submitted',
+                    'remarks' => 'Student indicated this document is available. No digital file was uploaded.'
+                ]);
+            }
+
+            /* Create separate scholarship application */
+            if ($values['scholarship'] === 'Yes') {
+                $scholarshipInsert = $pdo->prepare(
+                    'INSERT INTO scholarship_applications (
                         student_id,
+                        program_id,
                         school_year_id,
-                        lrn,
-                        enrollment_type,
-                        requested_grade_level_id,
                         application_status
                     ) VALUES (
                         :student_id,
+                        :program_id,
                         :school_year_id,
-                        :lrn,
-                        :enrollment_type,
-                        :grade_level_id,
                         :application_status
                     )'
                 );
 
-                $applicationInsert->execute([
+                $scholarshipInsert->execute([
                     'student_id' => $studentId,
+                    'program_id' => $values['program_id'],
                     'school_year_id' => $schoolYear['school_year_id'],
-                    'lrn' => $values['lrn'],
-                    'enrollment_type' => $values['enrollment_type'],
-                    'grade_level_id' => $values['requested_grade_level_id'],
                     'application_status' => 'Pending Review'
                 ]);
-
-                $applicationId = (int) $pdo->lastInsertId();
-
-                /* Save required documents */
-                $documentInsert = $pdo->prepare(
-                    'INSERT INTO enrollment_documents (
-                        application_id,
-                        document_type,
-                        file_path,
-                        verification_status,
-                        uploaded_at
-                    ) VALUES (
-                        :application_id,
-                        :document_type,
-                        :file_path,
-                        :verification_status,
-                        NOW()
-                    )'
-                );
-
-                foreach ($uploadedFiles as $file) {
-
-                    $storedName = bin2hex(random_bytes(16)) . '.' . $file['extension'];
-
-                    $destination = $uploadDirectory . '/' . $storedName;
-
-                    if (!move_uploaded_file($file['tmp_name'], $destination)) {
-                        throw new RuntimeException('A document could not be uploaded.');
-                    }
-
-                    $savedFiles[] = $destination;
-
-                    $relativePath = 'uploads/enrollment/' . $storedName;
-
-                    $documentInsert->execute([
-                        'application_id' => $applicationId,
-                        'document_type' => $file['document_type'],
-                        'file_path' => $relativePath,
-                        'verification_status' => 'Submitted'
-                    ]);
-                }
-
-                /* Create separate scholarship application */
-                if ($values['scholarship'] === 'Yes') {
-
-                    $scholarshipInsert = $pdo->prepare(
-                        'INSERT INTO scholarship_applications (
-                            student_id,
-                            program_id,
-                            school_year_id,
-                            application_status
-                        ) VALUES (
-                            :student_id,
-                            :program_id,
-                            :school_year_id,
-                            :application_status
-                        )'
-                    );
-
-                    $scholarshipInsert->execute([
-                        'student_id' => $studentId,
-                        'program_id' => $values['program_id'],
-                        'school_year_id' => $schoolYear['school_year_id'],
-                        'application_status' => 'Pending Review'
-                    ]);
-                }
-
-                $pdo->commit();
-
-                $success = 'Your enrollment application has been submitted successfully.';
-
-                if ($values['scholarship'] === 'Yes') {
-                    $success .= ' Your special program scholarship application has also been submitted.';
-                }
-
-            } catch (Throwable $exception) {
-
-                if ($pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-
-                foreach ($savedFiles as $savedFile) {
-                    if (is_file($savedFile)) {
-                        unlink($savedFile);
-                    }
-                }
-
-                error_log('Enrollment submission error: ' . $exception->getMessage());
-
-                $errors[] = 'Your application could not be submitted. Please try again.';
             }
+
+            $pdo->commit();
+
+            $success = 'Your enrollment application has been submitted successfully.';
+
+            if ($values['scholarship'] === 'Yes') {
+                $success .= ' Your special program scholarship application has also been submitted.';
+            }
+
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            error_log('Enrollment submission error: ' . $exception->getMessage());
+
+            $errors[] = 'Your application could not be submitted. Please try again.';
         }
     }
 }
@@ -353,18 +286,19 @@ require_once __DIR__ . '/../includes/header.php';
 
 
 
+<div class="portal-back-row">
+    <a href="<?= BASE_URL ?>/student/dashboard.php"
+    class="portal-back-link">
+    Back to Dashboard
+    </a>
+</div>
 <section class="form-card form-card-wide">
 
-    <a href="<?= BASE_URL ?>/student/dashboard.php"
-       class="button button-outline applications-back-button">
-        &larr; Back to Dashboard
-    </a>
 
-    <p class="eyebrow">Student Services</p>
     <h1>New Enrollment</h1>
 
     <p class="muted">
-        Complete the enrollment form and upload the supporting documents you currently have.
+        Complete the enrollment form and check the supporting documents you currently have.
     </p>
 
     <?php if ($success): ?>
@@ -385,7 +319,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     <?php if (!$success): ?>
 
-    <form method="post" enctype="multipart/form-data" class="form-grid">
+    <form method="post" class="form-grid">
 
         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
@@ -456,7 +390,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <option value="">Select grade level</option>
 
                 <?php foreach ($gradeLevels as $grade): ?>
-                    <option value="<?= (int) $grade['grade_level_id'] ?>"
+                    <option data-grade-level="<?= e($grade['grade_level']) ?>" value="<?= (int) $grade['grade_level_id'] ?>"
                         <?= $values['requested_grade_level_id'] === (string) $grade['grade_level_id'] ? 'selected' : '' ?>>
                         Grade <?= e($grade['grade_level']) ?>
                     </option>
@@ -519,9 +453,8 @@ require_once __DIR__ . '/../includes/header.php';
         <h2>4. Required Supporting Documents</h2>
 
         <p class="muted">
-            Check the documents you currently have. A Choose File button will appear
-            for each selected document. You may leave documents unchecked if you do not
-            have them yet. Accepted formats: PDF, JPG, JPEG, and PNG. Maximum file size: 5 MB each.
+            Check the supporting documents you currently have. You may leave
+            documents unchecked if you do not have them yet.
         </p>
 
         <div class="document-checklist">
@@ -533,21 +466,9 @@ require_once __DIR__ . '/../includes/header.php';
                         <input type="checkbox"
                             name="available_documents[]"
                             value="<?= $index ?>"
-                            data-document-index="<?= $index ?>"
                             <?= $isSelected ? 'checked' : '' ?>>
                         <span><?= e($document) ?></span>
                     </label>
-
-                    <div id="document-upload-<?= $index ?>"
-                        class="document-upload"
-                        class="document-upload <?= $isSelected ? '' : 'is-hidden' ?>" >
-                        <label for="document-file-<?= $index ?>">Choose File</label>
-                        <input type="file"
-                            id="document-file-<?= $index ?>"
-                            name="documents[<?= $index ?>]"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            <?= $isSelected ? 'required' : '' ?>>
-                    </div>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -598,28 +519,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     updateScholarshipFields();
 
-    /* Show a file input only when its document checkbox is selected. */
-    const documentCheckboxes = document.querySelectorAll(
-        'input[name="available_documents[]"]'
-    );
 
-    documentCheckboxes.forEach(function (checkbox) {
-        checkbox.addEventListener('change', function () {
-            const index = this.dataset.documentIndex;
-            const uploadArea = document.getElementById('document-upload-' + index);
-            const fileInput = document.getElementById('document-file-' + index);
-
-            if (this.checked) {
-                uploadArea.style.display = 'block';
-                fileInput.required = true;
-            } else {
-                uploadArea.style.display = 'none';
-                fileInput.required = false;
-                fileInput.value = '';
-            }
-        });
-    });
 });
 </script>
 
+<?php require __DIR__ . '/../includes/enrollment_grade_selection.php'; ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

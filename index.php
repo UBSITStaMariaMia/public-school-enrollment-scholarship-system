@@ -90,7 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-/* Retrieve published announcements using the existing database schema. */
+/* Retrieve the latest published announcements, including future-dated posts.
+ * Drafts, archived posts, and expired announcements remain hidden.
+ */
 $announcements = [];
 
 try {
@@ -161,7 +163,7 @@ require_once __DIR__ . '/includes/header.php';
 
         <p class="login-register-link">
             Don't have a student account?
-            <a href="<?= BASE_URL ?>/register.php">Register here</a>
+            <a href="<?= BASE_URL ?>/register.php">How to Register?</a>
         </p>
     </section>
 

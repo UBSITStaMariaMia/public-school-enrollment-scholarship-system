@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.3
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 22, 2026 at 11:38 AM
--- Server version: 10.11.16-MariaDB
--- PHP Version: 8.3.36
+-- Generation Time: Nov 23, 2026 at 02:25 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -273,6 +273,20 @@ INSERT INTO `scholarship_applications` (`scholarship_application_id`, `student_i
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `scholarship_documents`
+--
+
+CREATE TABLE `scholarship_documents` (
+  `scholarship_document_id` int(10) UNSIGNED NOT NULL,
+  `scholarship_application_id` int(10) UNSIGNED NOT NULL,
+  `document_name` varchar(100) NOT NULL,
+  `other_document` varchar(150) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `scholarship_monitoring`
 --
 
@@ -359,7 +373,7 @@ CREATE TABLE `special_programs` (
 
 INSERT INTO `special_programs` (`program_id`, `program_name`, `description`, `available_slots`, `status`) VALUES
 (1, 'Sports', 'Special program for student athletes.', NULL, 'Active'),
-(2, 'Arts', 'Special program for students with artistic skills.', NULL, 'Inactive'),
+(2, 'Arts', 'Special program for students with artistic skills.', NULL, 'Active'),
 (3, 'Journalism', 'Special program for student journalists.', NULL, 'Active'),
 (4, 'Foreign Language', 'Special program for foreign language learning.', NULL, 'Active');
 
@@ -693,6 +707,13 @@ ALTER TABLE `scholarship_applications`
   ADD KEY `fk_scholarship_reviewer` (`reviewed_by`);
 
 --
+-- Indexes for table `scholarship_documents`
+--
+ALTER TABLE `scholarship_documents`
+  ADD PRIMARY KEY (`scholarship_document_id`),
+  ADD KEY `fk_scholarship_document_application` (`scholarship_application_id`);
+
+--
 -- Indexes for table `scholarship_monitoring`
 --
 ALTER TABLE `scholarship_monitoring`
@@ -858,6 +879,12 @@ ALTER TABLE `scholarship_applications`
   MODIFY `scholarship_application_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `scholarship_documents`
+--
+ALTER TABLE `scholarship_documents`
+  MODIFY `scholarship_document_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `scholarship_monitoring`
 --
 ALTER TABLE `scholarship_monitoring`
@@ -992,6 +1019,12 @@ ALTER TABLE `scholarship_applications`
   ADD CONSTRAINT `fk_scholarship_reviewer` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_scholarship_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`student_id`),
   ADD CONSTRAINT `fk_scholarship_year` FOREIGN KEY (`school_year_id`) REFERENCES `school_years` (`school_year_id`);
+
+--
+-- Constraints for table `scholarship_documents`
+--
+ALTER TABLE `scholarship_documents`
+  ADD CONSTRAINT `fk_scholarship_document_application` FOREIGN KEY (`scholarship_application_id`) REFERENCES `scholarship_applications` (`scholarship_application_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `scholarship_monitoring`

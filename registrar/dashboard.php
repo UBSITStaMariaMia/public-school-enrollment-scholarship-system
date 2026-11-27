@@ -1,60 +1,23 @@
-
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 
 require_role('School Registrar');
 
+$user = current_user();
+$registrarName = $user['username'] ?? 'Registrar';
+
 $pageTitle = 'Registrar Dashboard';
 
+$dashboardLinks = [
+    ['Student Registration', '/registrar/student_registration.php', 'new-enrollment', 'Create a student portal account at the registrar’s office.'],
+    ['Enrollment Review', '/registrar/enrollment_review.php', 'enrollment', 'Review applications and verify supporting documents.'],
+    ['Student Records', '/registrar/student_records.php', 'student-record', 'Find student profiles, grades, and attendance records.'],
+    ['Section Management', '/registrar/sections.php', 'section', 'Create class sections and organize them by grade.'],
+    ['Enrollment Reports', '/registrar/enrollment_reports.php', 'report', 'View application totals by status, grade, and school year.'],
+    ['Announcements', '/registrar/announcements.php', 'announcement', 'Publish and manage notices for the school community.'],
+];
+$dashboardHeading = 'Welcome, ' . $registrarName;
+
 require_once __DIR__ . '/../includes/header.php';
-
-$user = current_user();
-?>
-
-<section class="form-card">
-    <p class="eyebrow">Registrar workspace</p>
-
-    <h1>School Registrar Dashboard</h1>
-
-    <p>
-        Welcome to the Registrar workspace.
-        Manage enrollment applications, verify student documents,
-        maintain student records, and generate enrollment reports.
-    </p>
-
-    <div class="form-actions">
-
-        <a class="btn btn-primary"
-           href="<?= BASE_URL ?>/registrar/enrollment_review.php">
-            Enrollment Applications
-        </a>
-
-        <a class="btn btn-secondary"
-           href="<?= BASE_URL ?>/registrar/enrollment_documents.php">
-            Document Verification
-        </a>
-
-        <a class="btn btn-secondary"
-           href="<?= BASE_URL ?>/registrar/student_records.php">
-            Student Records
-        </a>
-
-        <a class="btn btn-secondary"
-           href="<?= BASE_URL ?>/registrar/sections.php">
-            Section Management
-        </a>
-
-        <a class="btn btn-secondary"
-           href="<?= BASE_URL ?>/registrar/enrollment_reports.php">
-            Enrollment Reports
-        </a>
-
-        <a class="btn btn-secondary"
-           href="<?= BASE_URL ?>/registrar/announcements.php">
-            Announcements
-        </a>
-
-    </div>
-</section>
-
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+require __DIR__ . '/../includes/dashboard_shortcuts.php';
+require_once __DIR__ . '/../includes/footer.php';

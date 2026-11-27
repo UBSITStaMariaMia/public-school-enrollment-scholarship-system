@@ -491,7 +491,6 @@ require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="form-card">
-    <p class="eyebrow">Administration</p>
     <h1>User Management</h1>
     <p>Create, update, activate, deactivate, and delete staff accounts.</p>
 
@@ -784,7 +783,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <form
                                         method="POST"
                                         action=""
-                                        onsubmit="return confirm('Are you sure you want to permanently delete this staff account? Its staff profile and related teacher assignments may also be removed.');"
+                                        data-confirm-delete="Are you sure you want to permanently delete this staff account? Its staff profile and related teacher assignments may also be removed."
                                     >
                                         <input
                                             type="hidden"
