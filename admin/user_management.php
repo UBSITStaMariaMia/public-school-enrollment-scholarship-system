@@ -29,6 +29,27 @@ unset(
 );
 
 $errors = [];
+$showCreateForm = isset($_GET['new']);
+$search = is_string($_GET['q'] ?? null) ? trim($_GET['q']) : '';
+$requestedRole = $_GET['role'] ?? '';
+$roleFilter = in_array($requestedRole, $managedRoles, true) ? $requestedRole : '';
+$listQuery = array_filter(['q' => $search, 'role' => $roleFilter], static fn (string $value): bool => $value !== '');
+$accountPath = BASE_URL . '/admin/user_management.php';
+$listPath = '/admin/user_management.php' . ($listQuery ? '?' . http_build_query($listQuery) : '');
+$listUrl = BASE_URL . $listPath;
+
+$receipt = $_GET['created'] ?? null;
+$createdAccount = null;
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && is_string($receipt)) {
+    $createdAccount = $_SESSION['staff_creation_receipts'][$receipt] ?? null;
+    unset($_SESSION['staff_creation_receipts'][$receipt]);
+    if (!$createdAccount) {
+        redirect($listPath);
+    }
+    header('Cache-Control: no-store');
+    $pageTitle = 'Staff Account Created';
+}
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -40,87 +61,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // CREATE STAFF ACCOUNT
         if ($action === 'create') {
+            $showCreateForm = true;
 
-            $username = trim($_POST['username'] ?? '');
-            $email = trim($_POST['email'] ?? '');
-            $password = $_POST['password'] ?? '';
+            $firstName = is_string($_POST['first_name'] ?? null) ? trim($_POST['first_name']) : '';
+            $middleName = is_string($_POST['middle_name'] ?? null) ? trim($_POST['middle_name']) : '';
+            $lastName = is_string($_POST['last_name'] ?? null) ? trim($_POST['last_name']) : '';
+            $email = is_string($_POST['email'] ?? null) ? trim($_POST['email']) : '';
             $roleName = $_POST['role_name'] ?? '';
 
-            if (strlen($username) < 3 || strlen($username) > 50) {
-                $errors[] = 'Username must be between 3 and 50 characters.';
+            if ($firstName === '' || $lastName === '' || max(mb_strlen($firstName), mb_strlen($middleName), mb_strlen($lastName)) > 100) {
+                $errors[] = 'Enter a first and last name. Each name can have up to 100 characters.';
             }
-
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors[] = 'Please enter a valid email address.';
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 150) {
+                $errors[] = 'Enter a valid email address.';
             }
-
-            if (strlen($password) < 8) {
-                $errors[] = 'Password must contain at least 8 characters.';
-            }
-
             if (!in_array($roleName, $allowedRoles, true)) {
-                $errors[] = 'Please select a valid staff role.';
+                $errors[] = 'Select a valid staff role.';
             }
 
             if (!$errors) {
                 try {
-                    $roleQuery = $pdo->prepare(
-                        'SELECT role_id
-                         FROM roles
-                         WHERE role_name = :role_name
-                         LIMIT 1'
-                    );
-
-                    $roleQuery->execute([
-                        'role_name' => $roleName
-                    ]);
-
-                    $role = $roleQuery->fetch();
-
-                    if (!$role) {
-                        $errors[] = 'The selected role does not exist.';
-                    } else {
-
-                        $passwordHash = password_hash(
-                            $password,
-                            PASSWORD_DEFAULT
-                        );
-
-                        $insert = $pdo->prepare(
-                            'INSERT INTO users
-                                (role_id, username, email, password_hash, account_status)
-                             VALUES
-                                (:role_id, :username, :email, :password_hash, :account_status)'
-                        );
-
-                        $insert->execute([
-                            'role_id' => $role['role_id'],
-                            'username' => $username,
-                            'email' => $email,
-                            'password_hash' => $passwordHash,
-                            'account_status' => 'Active'
-                        ]);
-
-                        $_SESSION['user_management_message'] =
-                            'Staff account created successfully.';
-
-                        $_SESSION['user_management_type'] = 'success';
-
-                        redirect('/admin/user_management.php');
+                    $roleQuery = $pdo->prepare('SELECT role_id FROM roles WHERE role_name = :role');
+                    $roleQuery->execute(['role' => $roleName]);
+                    $roleId = $roleQuery->fetchColumn();
+                    if (!$roleId) {
+                        throw new RuntimeException('The selected role does not exist.');
                     }
 
-                } catch (PDOException $exception) {
+                    $surname = preg_replace('/[^\p{L}\p{N}]+/u', '', mb_strtolower($lastName, 'UTF-8'));
+                    $firstNameLetters = preg_replace('/[^\p{L}]+/u', '', mb_strtolower($firstName, 'UTF-8'));
+                    if (!$surname || !$firstNameLetters) {
+                        throw new RuntimeException('Enter names that contain letters to generate the username.');
+                    }
 
+                    $base = mb_strcut($surname, 0, 40, 'UTF-8') . '_' . mb_substr($firstNameLetters, 0, 1, 'UTF-8');
+                    $username = $base;
+                    $check = $pdo->prepare('SELECT 1 FROM users WHERE username = :username');
+                    for ($suffix = 2; ; $suffix++) {
+                        $check->execute(['username' => $username]);
+                        if (!$check->fetchColumn()) {
+                            break;
+                        }
+                        $username = $base . $suffix;
+                    }
+
+                    $employeeId = 'BCNHS-' . strtoupper(bin2hex(random_bytes(8)));
+                    $pdo->beginTransaction();
+                    $insert = $pdo->prepare("INSERT INTO users
+                        (role_id, username, email, password_hash, account_status, must_change_password)
+                        VALUES (:role, :username, :email, :password, 'Active', 1)");
+                    $insert->execute([
+                        'role' => $roleId,
+                        'username' => $username,
+                        'email' => $email,
+                        'password' => password_hash($employeeId, PASSWORD_DEFAULT),
+                    ]);
+                    $profile = $pdo->prepare("INSERT INTO staff_profiles
+                        (user_id, employee_id, first_name, middle_name, last_name)
+                        VALUES (:user, :employee, :first, :middle, :last)");
+                    $profile->execute([
+                        'user' => $pdo->lastInsertId(),
+                        'employee' => $employeeId,
+                        'first' => $firstName,
+                        'middle' => $middleName !== '' ? $middleName : null,
+                        'last' => $lastName,
+                    ]);
+                    $pdo->commit();
+
+                    $receipt = bin2hex(random_bytes(16));
+                    $receipts = $_SESSION['staff_creation_receipts'] ?? [];
+                    $receipts[$receipt] = ['username' => $username, 'employee_id' => $employeeId];
+                    $_SESSION['staff_creation_receipts'] = array_slice($receipts, -5, null, true);
+                    redirect('/admin/user_management.php?' . http_build_query($listQuery + ['created' => $receipt]));
+                } catch (PDOException $exception) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
                     if ($exception->getCode() === '23000') {
-                        $errors[] = 'That username or email address is already registered.';
+                        $errors[] = 'An account with the same email or generated identifier already exists. Check the email address and try again.';
                     } else {
                         error_log('Staff account creation error: ' . $exception->getMessage());
                         $errors[] = 'Unable to create the account. Please try again.';
                     }
+                } catch (RuntimeException $exception) {
+                    $errors[] = $exception->getMessage();
                 }
             }
 
-        // UPDATE STAFF ACCOUNT
         } elseif ($action === 'update') {
 
             $targetUserId = filter_var(
@@ -253,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             $_SESSION['user_management_type'] = 'success';
 
-                            redirect('/admin/user_management.php');
+                            redirect($listPath);
                         }
                     }
 
@@ -337,7 +364,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         $_SESSION['user_management_type'] = 'success';
 
-                        redirect('/admin/user_management.php');
+                        redirect($listPath);
                     }
 
                 } catch (PDOException $exception) {
@@ -408,7 +435,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         $_SESSION['user_management_type'] = 'success';
 
-                        redirect('/admin/user_management.php');
+                        redirect($listPath);
                     }
 
                 } catch (PDOException $exception) {
@@ -465,53 +492,87 @@ if (isset($_GET['edit'])) {
     }
 }
 
-// GET STAFF ACCOUNTS.
-$staffQuery = $pdo->prepare(
-    "SELECT
-        u.user_id,
-        u.username,
-        u.email,
-        u.account_status,
-        u.created_at,
-        r.role_name
-     FROM users u
-     INNER JOIN roles r ON r.role_id = u.role_id
-     WHERE r.role_name IN (
-        'School Registrar',
-        'Teacher',
-        'Scholarship Coordinator'
-     )
-     ORDER BY r.role_name ASC, u.username ASC"
-);
+if ($editAccount && $errors && ($_POST['action'] ?? '') === 'update') {
+    foreach (['username', 'email', 'role_name', 'account_status'] as $field) {
+        if (is_string($_POST[$field] ?? null)) {
+            $editAccount[$field] = $_POST[$field];
+        }
+    }
+}
 
-$staffQuery->execute();
-$staffAccounts = $staffQuery->fetchAll();
+$showAccountForm = $editAccount || $showCreateForm;
+$staffAccounts = [];
+
+if (!$showAccountForm && !$createdAccount) {
+    $staffSql = "SELECT u.user_id, u.username, u.email, u.account_status, u.created_at, r.role_name
+        FROM users u
+        INNER JOIN roles r ON r.role_id = u.role_id
+        WHERE r.role_name IN ('School Registrar', 'Teacher', 'Scholarship Coordinator')";
+    $staffParams = [];
+
+    if ($search !== '') {
+        $staffSql .= ' AND (u.username LIKE :username OR u.email LIKE :email)';
+        $staffParams = ['username' => "%{$search}%", 'email' => "%{$search}%"];
+    }
+
+    if ($roleFilter !== '') {
+        $staffSql .= ' AND r.role_name = :role';
+        $staffParams['role'] = $roleFilter;
+    }
+
+    $staffQuery = $pdo->prepare($staffSql . ' ORDER BY r.role_name ASC, u.username ASC');
+    $staffQuery->execute($staffParams);
+    $staffAccounts = $staffQuery->fetchAll();
+}
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
+<?php if ($createdAccount): ?>
+<section class="form-card staff-account-confirmation" aria-labelledby="staff-created-title">
+    <h1 id="staff-created-title">Staff Account Created</h1>
+    <dl class="staff-account-credentials">
+        <div>
+            <dt>Username</dt>
+            <dd><?= e($createdAccount['username']) ?></dd>
+        </div>
+        <div>
+            <dt>Staff ID and temporary password</dt>
+            <dd><?= e($createdAccount['employee_id']) ?></dd>
+        </div>
+    </dl>
+    <p>Give these details privately to the staff member.</p>
+    <div class="form-actions">
+        <a class="button button-primary" href="<?= e($listUrl) ?>">Return to Staff Accounts</a>
+        <a class="button button-outline" href="<?= e($listUrl . ($listQuery ? '&' : '?') . 'new=1') ?>">Add Another Staff Account</a>
+    </div>
+</section>
+<?php else: ?>
+
+<?php if ($showAccountForm): ?>
+    <div class="portal-back-row">
+        <a class="portal-back-link" href="<?= e($listUrl) ?>">Back to User Management</a>
+    </div>
+<?php endif; ?>
+
 <section class="form-card">
-    <h1>User Management</h1>
+    <h1><?= $editAccount ? 'Edit Staff Account' : ($showCreateForm ? 'Create Staff Account' : 'User Management') ?></h1>
 
     <?php if ($message): ?>
-        <div class="alert alert-success">
-            <?= e($message) ?>
-        </div>
+        <p class="alert alert-success" role="status"><?= e($message) ?></p>
     <?php endif; ?>
 
     <?php if ($errors): ?>
-        <div class="alert alert-error">
-            <?php foreach ($errors as $error): ?>
-                <p><?= e($error) ?></p>
-            <?php endforeach; ?>
+        <div class="alert alert-error" role="alert">
+            <ul>
+                <?php foreach ($errors as $error): ?>
+                    <li><?= e($error) ?></li>
+                <?php endforeach; ?>
+            </ul>
         </div>
     <?php endif; ?>
-</section>
 
-<?php if ($editAccount): ?>
-
-    <section class="form-card">
-        <h2>Edit Staff Account</h2>
+    <?php if ($editAccount): ?>
 
         <form method="POST" action="">
             <input
@@ -596,7 +657,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </label>
 
                 <label>
-                    New Password
+                    New Password (optional)
                     <input
                         type="password"
                         name="password"
@@ -604,7 +665,6 @@ require_once __DIR__ . '/../includes/header.php';
                         placeholder="Leave blank to keep current password"
                         autocomplete="new-password"
                     >
-                    <small>Only enter a password if you want to change it.</small>
                 </label>
 
             </div>
@@ -615,19 +675,14 @@ require_once __DIR__ . '/../includes/header.php';
                 </button>
 
                 <a
-                    href="<?= BASE_URL ?>/admin/user_management.php"
+                    href="<?= e($listUrl) ?>"
                     class="button button-outline"
                 >
                     Cancel
                 </a>
             </div>
         </form>
-    </section>
-
-<?php else: ?>
-
-    <section class="form-card">
-        <h2>Create Staff Account</h2>
+    <?php elseif ($showCreateForm): ?>
 
         <form method="POST" action="">
             <input
@@ -641,15 +696,16 @@ require_once __DIR__ . '/../includes/header.php';
             <div class="user-form-grid">
 
                 <label>
-                    Username
-                    <input
-                        type="text"
-                        name="username"
-                        minlength="3"
-                        maxlength="50"
-                        value="<?= e($_POST['username'] ?? '') ?>"
-                        required
-                    >
+                    First Name
+                    <input name="first_name" autocomplete="given-name" maxlength="100" value="<?= e($firstName ?? '') ?>" required>
+                </label>
+                <label>
+                    Middle Name (optional)
+                    <input name="middle_name" autocomplete="additional-name" maxlength="100" value="<?= e($middleName ?? '') ?>">
+                </label>
+                <label>
+                    Last Name
+                    <input name="last_name" autocomplete="family-name" maxlength="100" value="<?= e($lastName ?? '') ?>" required>
                 </label>
 
                 <label>
@@ -658,21 +714,9 @@ require_once __DIR__ . '/../includes/header.php';
                         type="email"
                         name="email"
                         maxlength="150"
-                        value="<?= e($_POST['email'] ?? '') ?>"
+                        value="<?= e($email ?? '') ?>"
                         required
                     >
-                </label>
-
-                <label>
-                    Temporary Password
-                    <input
-                        type="password"
-                        name="password"
-                        minlength="8"
-                        required
-                        autocomplete="new-password"
-                    >
-                    <small>Use at least 8 characters.</small>
                 </label>
 
                 <label>
@@ -693,134 +737,173 @@ require_once __DIR__ . '/../includes/header.php';
 
             </div>
 
+            <p class="muted">The portal generates a username from the last name and first initial, such as benny_p, and creates an employee ID. The employee ID is the temporary password and must be changed at first sign-in.</p>
             <div class="form-actions">
                 <button type="submit" class="button button-primary">
                     Create Staff Account
                 </button>
+                <a href="<?= e($listUrl) ?>" class="button button-outline">Cancel</a>
             </div>
         </form>
-    </section>
-
-<?php endif; ?>
-
-<section class="form-card">
-    <h2>Staff Accounts</h2>
-
-    <?php if (!$staffAccounts): ?>
-
-        <p>No staff accounts have been created yet.</p>
 
     <?php else: ?>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Created At</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-
-                    <?php foreach ($staffAccounts as $staff): ?>
-
-                        <tr>
-                            <td><?= e($staff['username']) ?></td>
-
-                            <td><?= e($staff['email']) ?></td>
-
-                            <td><?= e($staff['role_name']) ?></td>
-
-                            <td><?= e($staff['account_status']) ?></td>
-
-                            <td><?= e($staff['created_at']) ?></td>
-
-                            <td>
-                                <div class="account-actions">
-
-                                    <a
-                                        href="<?= BASE_URL ?>/admin/user_management.php?edit=<?= (int) $staff['user_id'] ?>"
-                                        class="button button-outline portal-record-action"
-                                    >
-                                        Edit
-                                    </a>
-
-                                    <form method="POST" action="">
-                                        <input
-                                            type="hidden"
-                                            name="csrf_token"
-                                            value="<?= e(csrf_token()) ?>"
-                                        >
-
-                                        <input
-                                            type="hidden"
-                                            name="action"
-                                            value="toggle_status"
-                                        >
-
-                                        <input
-                                            type="hidden"
-                                            name="user_id"
-                                            value="<?= (int) $staff['user_id'] ?>"
-                                        >
-
-                                        <button
-                                            type="submit"
-                                            class="button button-outline"
-                                        >
-                                            <?= $staff['account_status'] === 'Active'
-                                                ? 'Deactivate'
-                                                : 'Activate' ?>
-                                        </button>
-                                    </form>
-
-                                    <form
-                                        method="POST"
-                                        action=""
-                                        data-confirm-delete="Are you sure you want to permanently delete this staff account? Its staff profile and related teacher assignments may also be removed."
-                                    >
-                                        <input
-                                            type="hidden"
-                                            name="csrf_token"
-                                            value="<?= e(csrf_token()) ?>"
-                                        >
-
-                                        <input
-                                            type="hidden"
-                                            name="action"
-                                            value="delete"
-                                        >
-
-                                        <input
-                                            type="hidden"
-                                            name="user_id"
-                                            value="<?= (int) $staff['user_id'] ?>"
-                                        >
-
-                                        <button
-                                            type="submit"
-                                            class="button portal-record-action button-danger-outline"
-                                        >
-                                            Delete
-                                        </button>
-                                    </form>
-
-                                </div>
-                            </td>
-                        </tr>
-
-                    <?php endforeach; ?>
-
-                </tbody>
-            </table>
+        <div class="portal-list-toolbar">
+            <h2 id="staff-accounts-heading">Staff Accounts</h2>
+            <a class="button button-primary portal-add-action" href="<?= e($listUrl . ($listQuery ? '&' : '?') . 'new=1') ?>">
+                <span class="portal-add-icon" aria-hidden="true">+</span>Add Staff Account
+            </a>
         </div>
 
+        <nav class="application-status-links" aria-label="Filter staff accounts by role">
+            <?php foreach (array_merge([''], $managedRoles) as $filterRole): ?>
+                <?php
+                $roleQuery = array_filter(['q' => $search, 'role' => $filterRole], static fn (string $value): bool => $value !== '');
+                $roleUrl = $accountPath . ($roleQuery ? '?' . http_build_query($roleQuery) : '');
+                ?>
+                <a class="button <?= $roleFilter === $filterRole ? 'button-primary' : 'button-outline' ?>"
+                   href="<?= e($roleUrl) ?>" <?= $roleFilter === $filterRole ? 'aria-current="true"' : '' ?>>
+                    <?= e($filterRole === '' ? 'All roles' : $filterRole) ?>
+                </a>
+            <?php endforeach; ?>
+        </nav>
+
+        <form method="get" class="table-search-form" role="search" aria-label="Staff accounts">
+            <?php if ($roleFilter !== ''): ?>
+                <input type="hidden" name="role" value="<?= e($roleFilter) ?>">
+            <?php endif; ?>
+            <div class="table-search-toolbar">
+                <div class="table-search-field">
+                    <label for="account-search">Search staff accounts</label>
+                    <input type="search" id="account-search" name="q" value="<?= e($search) ?>" placeholder="Enter username or email">
+                </div>
+                <button type="submit" class="button button-primary">Search</button>
+                <?php if ($search !== ''): ?>
+                    <a href="<?= e($accountPath . ($roleFilter !== '' ? '?' . http_build_query(['role' => $roleFilter]) : '')) ?>" class="button button-outline">Clear search</a>
+                <?php endif; ?>
+            </div>
+        </form>
+
+        <?php if (!$staffAccounts): ?>
+
+            <p><?= $listQuery ? 'No staff accounts match these filters.' : 'No staff accounts have been created yet.' ?></p>
+
+        <?php else: ?>
+
+            <div class="table-container">
+                <table class="portal-row-table" aria-labelledby="staff-accounts-heading">
+                    <thead>
+                        <tr>
+                            <th scope="col">Username</th>
+                            <th scope="col">Email</th>
+                            <th scope="col">Role</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Created At</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        <?php foreach ($staffAccounts as $staff): ?>
+
+                            <tr>
+                                <td><?= e($staff['username']) ?></td>
+
+                                <td><?= e($staff['email']) ?></td>
+
+                                <td><?= e($staff['role_name']) ?></td>
+
+                                <td>
+                                    <span class="announcement-status<?= $staff['account_status'] === 'Active' ? ' status-published' : '' ?>">
+                                        <?= e($staff['account_status']) ?>
+                                    </span>
+                                </td>
+
+                                <td><?= e($staff['created_at']) ?></td>
+
+                                <td>
+                                    <div class="admin-account-actions">
+
+                                        <a
+                                            href="<?= e($listUrl . ($listQuery ? '&' : '?') . 'edit=' . (int) $staff['user_id']) ?>"
+                                            class="button button-outline portal-record-action"
+                                        >
+                                            Edit
+                                        </a>
+
+                                        <form method="POST" action="">
+                                            <input
+                                                type="hidden"
+                                                name="csrf_token"
+                                                value="<?= e(csrf_token()) ?>"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="action"
+                                                value="toggle_status"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="user_id"
+                                                value="<?= (int) $staff['user_id'] ?>"
+                                            >
+
+                                            <button
+                                                type="submit"
+                                                class="button button-outline portal-record-action"
+                                            >
+                                                <?= $staff['account_status'] === 'Active'
+                                                    ? 'Deactivate'
+                                                    : 'Activate' ?>
+                                            </button>
+                                        </form>
+
+                                        <form
+                                            method="POST"
+                                            action=""
+                                            data-confirm-delete="Are you sure you want to permanently delete this staff account? Its staff profile and related teacher assignments may also be removed."
+                                        >
+                                            <input
+                                                type="hidden"
+                                                name="csrf_token"
+                                                value="<?= e(csrf_token()) ?>"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="action"
+                                                value="delete"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="user_id"
+                                                value="<?= (int) $staff['user_id'] ?>"
+                                            >
+
+                                            <button
+                                                type="submit"
+                                                class="button portal-record-action button-danger-outline"
+                                            >
+                                                Delete
+                                            </button>
+                                        </form>
+
+                                    </div>
+                                </td>
+                            </tr>
+
+                        <?php endforeach; ?>
+
+                    </tbody>
+                </table>
+            </div>
+
+        <?php endif; ?>
     <?php endif; ?>
 </section>
 
+<?php endif; ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

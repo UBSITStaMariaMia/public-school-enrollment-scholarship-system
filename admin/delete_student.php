@@ -4,6 +4,8 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 
 require_role('System Administrator');
 
+$listParameters = array_filter(array_intersect_key($_GET, array_flip(['search', 'search_by', 'grade'])), 'is_string');
+
 // Only accept POST requests.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -23,7 +25,7 @@ $studentId = filter_var(
 );
 
 if (!$studentId || $studentId < 1) {
-    redirect('/admin/student_records.php?error=invalid');
+    redirect('/admin/student_records.php?' . http_build_query($listParameters + ['error' => 'invalid']));
 }
 
 $admin = current_user();
@@ -54,7 +56,7 @@ try {
 
     if (!$student) {
         $pdo->rollBack();
-        redirect('/admin/student_records.php?error=not_found');
+        redirect('/admin/student_records.php?' . http_build_query($listParameters + ['error' => 'not_found']));
     }
 
     $userId = $student['user_id'];
@@ -228,7 +230,7 @@ try {
         }
     }
 
-    redirect('/admin/student_records.php?deleted=1');
+    redirect('/admin/student_records.php?' . http_build_query($listParameters + ['deleted' => '1']));
 
 } catch (PDOException $exception) {
 
@@ -238,6 +240,6 @@ try {
 
     error_log('Student deletion error: ' . $exception->getMessage());
 
-    redirect('/admin/student_records.php?error=delete_failed');
+    redirect('/admin/student_records.php?' . http_build_query($listParameters + ['error' => 'delete_failed']));
 }
 ?>

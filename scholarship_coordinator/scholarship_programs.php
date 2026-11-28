@@ -68,7 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $sql = 'SELECT sp.*,
         (SELECT COUNT(*)
          FROM scholarship_applications sa
-         WHERE sa.program_id = sp.program_id) AS application_count
+         WHERE sa.program_id = sp.program_id) AS application_count,
+        (SELECT COUNT(*)
+         FROM scholarship_applications sa
+         JOIN school_years sy ON sy.school_year_id = sa.school_year_id
+         WHERE sa.program_id = sp.program_id AND sa.application_status = \'Approved\'
+           AND sy.status = \'Active\') AS current_scholar_count
         FROM special_programs sp
         ORDER BY sp.program_name';
 
@@ -103,11 +108,11 @@ require_once __DIR__ . '/../includes/header.php';
         <table class="scholarship-program-table">
             <thead>
                 <tr>
-                    <th>Program</th>
-                    <th>Slots</th>
-                    <th>Applications</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th scope="col">Program</th>
+                    <th scope="col">Slots</th>
+                    <th scope="col">Applications</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Actions</th>
                 </tr>
             </thead>
 
@@ -130,7 +135,7 @@ require_once __DIR__ . '/../includes/header.php';
                             <td><?= (int) $program['application_count'] ?></td>
 
                             <td>
-                                <span class="program-status <?= $program['status'] === 'Active'
+                                <span class="scholarship-status-label <?= $program['status'] === 'Active'
                                     ? 'program-status-active'
                                     : 'program-status-inactive' ?>">
                                     <?= e($program['status']) ?>
@@ -146,7 +151,13 @@ require_once __DIR__ . '/../includes/header.php';
                                         Edit
                                     </a>
 
-                                    <form method="post" class="scholarship-toggle-form">
+                                    <form method="post" class="scholarship-toggle-form"
+                                        <?php if ($program['status'] === 'Active' && (int) $program['current_scholar_count'] > 0): ?>
+                                            data-confirm-delete="<?= e('This program has ' . $program['current_scholar_count'] . ' approved scholarship applications for the active school year. Deactivating it closes the program to new applications. Existing records will remain available.') ?>"
+                                            data-confirm-title="Deactivate scholarship program?"
+                                            data-confirm-label="Deactivate"
+                                        <?php endif; ?>
+                                    >
                                         <input
                                             type="hidden"
                                             name="csrf_token"

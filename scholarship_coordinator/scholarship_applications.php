@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_role('System Administrator', 'Scholarship Coordinator');
@@ -12,6 +11,21 @@ if (!in_array($statusFilter, $statuses, true)) {
     $statusFilter = '';
 }
 
+$search = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 150) : '';
+$programFilter = filter_var($_GET['program'] ?? null, FILTER_VALIDATE_INT) ?: '';
+$yearFilter = filter_var($_GET['year'] ?? null, FILTER_VALIDATE_INT) ?: '';
+$filters = ['q' => $search, 'program' => $programFilter, 'year' => $yearFilter, 'status' => $statusFilter];
+$page = max(1, filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT) ?: 1);
+$reviewId = filter_var($_GET['review'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
+$listUrl = '?' . http_build_query($filters + ['page' => $page]);
+$feedback = $_SESSION['scholarship_review_feedback'] ?? [];
+$completedQueue = false;
+if ($reviewId && ($feedback['review_id'] ?? null) === $reviewId) {
+    $success = $feedback['message'];
+    $completedQueue = $feedback['complete'];
+    unset($_SESSION['scholarship_review_feedback']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
@@ -19,6 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $applicationId = filter_var($_POST['scholarship_application_id'] ?? null, FILTER_VALIDATE_INT);
+        if (!$reviewId || $applicationId !== $reviewId) {
+            throw new RuntimeException('Open the scholarship application before saving its review.');
+        }
         $status = $_POST['application_status'] ?? '';
         $remarks = trim($_POST['remarks'] ?? '');
         $screeningDate = trim($_POST['screening_date'] ?? '');
@@ -88,7 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'application_id' => $applicationId
         ]);
 
-        $success = 'Scholarship application review and screening details have been saved.';
+        $savedReview = true;
+        $continueReview = ($_POST['after_save'] ?? '') === 'next';
 
     } catch (PDOException $exception) {
         error_log('Scholarship application review: ' . $exception->getMessage());
@@ -99,6 +117,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$where = [];
+$params = [];
+foreach (['sa.application_status' => $statusFilter, 'sa.program_id' => $programFilter, 'sa.school_year_id' => $yearFilter] as $field => $value) {
+    if ($value !== '') {
+        $key = 'filter_' . count($params);
+        $where[] = "$field = :$key";
+        $params[$key] = $value;
+    }
+}
+if ($search !== '') {
+    $searchPattern = '%' . strtr($search, ['!' => '!!', '%' => '!%', '_' => '!_']) . '%';
+    $where[] = "(CONCAT_WS(' ', st.first_name, st.middle_name, st.last_name) LIKE :full_name ESCAPE '!'
+        OR CONCAT_WS(' ', st.last_name, st.first_name, st.middle_name) LIKE :surname_first ESCAPE '!'
+        OR CONCAT_WS(' ', st.first_name, st.last_name) LIKE :short_name ESCAPE '!'
+        OR st.lrn LIKE :lrn ESCAPE '!')";
+    $params += array_fill_keys(['full_name', 'surname_first', 'short_name', 'lrn'], $searchPattern);
+}
+$joins = '
+     FROM scholarship_applications sa
+     INNER JOIN special_programs sp ON sp.program_id = sa.program_id
+     INNER JOIN students st ON st.student_id = sa.student_id
+     INNER JOIN school_years sy ON sy.school_year_id = sa.school_year_id
+';
+if (!empty($savedReview)) {
+    $nextId = null;
+    if ($continueReview) {
+        $nextWhere = $where;
+        $nextWhere[] = '(sa.application_date, sa.scholarship_application_id) < (
+            SELECT application_date, scholarship_application_id
+            FROM scholarship_applications
+            WHERE scholarship_application_id = :current_review
+        )';
+        $next = $pdo->prepare(
+            'SELECT sa.scholarship_application_id ' . $joins . ' WHERE ' . implode(' AND ', $nextWhere)
+            . ' ORDER BY sa.application_date DESC, sa.scholarship_application_id DESC LIMIT 1'
+        );
+        $next->execute($params + ['current_review' => $reviewId]);
+        $nextId = $next->fetchColumn();
+    }
+
+    $targetId = (int) ($nextId ?: $reviewId);
+    $_SESSION['scholarship_review_feedback'] = [
+        'review_id' => $targetId,
+        'message' => $nextId ? 'Previous review saved. Now reviewing the next applicant.' : 'Scholarship review saved.',
+        'complete' => $continueReview && !$nextId,
+    ];
+    redirect('/scholarship_coordinator/scholarship_applications.php?' . http_build_query(
+        $filters + ['page' => $page, 'review' => $targetId]
+    ));
+}
+if ($reviewId) {
+    // A saved review can change status and therefore leave the originating list.
+    $where = ['sa.scholarship_application_id = :review'];
+    $params = ['review' => $reviewId];
+}
+$whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
+$limit = '';
+$total = 0;
+$totalPages = 1;
+if (!$reviewId) {
+    $count = $pdo->prepare('SELECT COUNT(*) ' . $joins . $whereSql);
+    $count->execute($params);
+    $total = (int) $count->fetchColumn();
+    $totalPages = max(1, (int) ceil($total / 10));
+    $page = min($page, $totalPages);
+    $offset = ($page - 1) * 10;
+    $limit = " LIMIT 10 OFFSET $offset";
+}
 $applicationsQuery = $pdo->prepare(
     'SELECT
         sa.scholarship_application_id,
@@ -114,32 +200,33 @@ $applicationsQuery = $pdo->prepare(
         st.last_name,
         st.lrn,
         sy.school_year
-     FROM scholarship_applications sa
-     INNER JOIN special_programs sp ON sp.program_id = sa.program_id
-     INNER JOIN students st ON st.student_id = sa.student_id
-     INNER JOIN school_years sy ON sy.school_year_id = sa.school_year_id
-     ' . ($statusFilter !== '' ? 'WHERE sa.application_status = :status' : '') .
-    ' ORDER BY sa.application_date DESC'
+    ' . $joins . $whereSql . ' ORDER BY sa.application_date DESC, sa.scholarship_application_id DESC' . $limit
 );
-$applicationsQuery->execute($statusFilter !== '' ? ['status' => $statusFilter] : []);
+$applicationsQuery->execute($params);
 
 $applications = $applicationsQuery->fetchAll();
 $documentsByApplication = [];
 
 $documentDataAvailable = true;
 try {
-    $documentsQuery = $pdo->query(
+    $applicationIds = array_column($applications, 'scholarship_application_id');
+    if ($applicationIds && $reviewId) {
+        $placeholders = implode(', ', array_fill(0, count($applicationIds), '?'));
+        $documentsQuery = $pdo->prepare(
         'SELECT
             scholarship_application_id,
             document_name,
             other_document
          FROM scholarship_documents
+         WHERE scholarship_application_id IN (' . $placeholders . ')
          ORDER BY scholarship_document_id'
     );
 
+    $documentsQuery->execute($applicationIds);
     foreach ($documentsQuery->fetchAll() as $document) {
         $applicationId = (int) $document['scholarship_application_id'];
         $documentsByApplication[$applicationId][] = $document;
+    }
     }
 } catch (PDOException $exception) {
     if ($exception->getCode() !== '42S02') {
@@ -148,294 +235,15 @@ try {
     $documentDataAvailable = false;
 }
 
-$printReport = isset($_GET['print']);
-$downloadReport = isset($_GET['download']);
-
-if ($printReport || $downloadReport) {
-    if (!$applications) {
-        http_response_code(404);
-        exit('No scholarship applications found.');
-    }
-
-    $generatedDate = date('F d, Y h:i A');
-
-    if ($downloadReport) {
-        header('Content-Type: application/msword; charset=utf-8');
-        header('Content-Disposition: attachment; filename="scholarship_applications_' . date('Ymd_His') . '.doc"');
-        header('Cache-Control: max-age=0');
-        header('X-Content-Type-Options: nosniff');
-    } else {
-        header('Content-Type: text/html; charset=utf-8');
-    }
-    ?>
-    <!DOCTYPE html>
-    <html lang="en" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Scholarship Applications Report</title>
-        <?php require __DIR__ . '/../includes/formal_report_styles.php'; ?>
-    </head>
-
-    <body>
-
-        <?php if (!$downloadReport): ?>
-
-            <div class="report-actions">
-                <button type="button" onclick="window.print()">
-                    Print Report
-                </button>
-            </div>
-
-        <?php endif; ?>
-
-        <main class="report-page">
-
-            <header class="report-header">
-                <h1 class="school-name">
-                    Baguio City National High School
-                </h1>
-
-                <p class="school-subtitle">
-                    OFFICIAL SCHOOL RECORDS
-                </p>
-            </header>
-
-            <h2 class="report-title">
-                Scholarship Applications Report
-            </h2>
-
-            <div class="report-meta">
-
-                <span>
-                    <strong>Total Applications:</strong>
-                    <?= count($applications) ?>
-                </span>
-
-                <span>
-                    <strong>Generated:</strong>
-                    <?= e($generatedDate) ?>
-                </span>
-
-            </div>
-
-            <?php foreach ($applications as $index => $application): ?>
-
-                <?php
-                $applicantName = trim(
-                    $application['first_name'] . ' ' .
-                    ($application['middle_name'] ?? '') . ' ' .
-                    $application['last_name']
-                );
-
-                $applicationDocuments = $documentsByApplication[
-                    (int) $application['scholarship_application_id']
-                ] ?? [];
-                ?>
-
-                <section class="application-report-card">
-
-                    <h3>
-                        Applicant #<?= $index + 1 ?> - <?= e($applicantName) ?>
-                    </h3>
-
-                    <table>
-
-                        <tr>
-                            <th>LRN</th>
-                            <td>
-                                <?= e($application['lrn'] ?: 'Not recorded') ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>Scholarship Program</th>
-                            <td>
-                                <?= e($application['program_name']) ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>School Year</th>
-                            <td>
-                                <?= e($application['school_year']) ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>Application Date</th>
-                            <td>
-                                <?= e($application['application_date']) ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>Application Status</th>
-                            <td>
-                                <?= e($application['application_status']) ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>Screening Date</th>
-                            <td>
-                                <?= e($application['screening_date'] ?: 'Not scheduled') ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>Screening Time</th>
-                            <td>
-                                <?= e(
-                                    $application['screening_time']
-                                    ? date('h:i A', strtotime($application['screening_time']))
-                                    : 'Not scheduled'
-                                ) ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>Screening Venue</th>
-                            <td>
-                                <?= e($application['screening_venue'] ?: 'Not assigned') ?>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>Supporting Documents</th>
-                            <td>
-
-                                <?php if ($applicationDocuments): ?>
-
-                                    <?php foreach ($applicationDocuments as $document): ?>
-
-                                        <?= e($document['document_name']) ?>
-
-                                        <?php if (
-                                            $document['document_name'] === 'Other (Specify)'
-                                            && !empty($document['other_document'])
-                                        ): ?>
-                                            : <?= e($document['other_document']) ?>
-                                        <?php endif; ?>
-
-                                        <br>
-
-                                    <?php endforeach; ?>
-
-                                <?php else: ?>
-
-                                    <?= $documentDataAvailable ? 'No supporting documents selected.' : 'Document information is unavailable in this installation.' ?>
-
-                                <?php endif; ?>
-
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th>Review Remarks</th>
-                            <td>
-                                <?= nl2br(e($application['remarks'] ?: 'No remarks')) ?>
-                            </td>
-                        </tr>
-
-                    </table>
-
-                </section>
-
-            <?php endforeach; ?>
-
-            <div class="report-footer">
-                Baguio City National High School |
-                Scholarship Applications |
-                <?= count($applications) ?> record(s)
-            </div>
-
-        </main>
-
-        <?php if ($printReport): ?>
-
-            <script>
-                window.onload = function () {
-                    if (window.parent === window) window.print();
-                };
-            </script>
-
-        <?php endif; ?>
-
-    </body>
-    </html>
-    <?php
-    exit;
-}
-
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
+<?php if ($reviewId): ?>
+<div class="portal-back-row"><a class="portal-back-link" href="<?= e($listUrl) ?>">Back to scholarship applications</a></div>
+<?php endif; ?>
 <section class="form-card form-card-wide">
 
-    <div class="scholarship-applications-heading">
-
-        <div>
-            <h1>Scholarship Applications</h1>
-        </div>
-
-        <?php if ($applications): ?>
-
-            <div class="scholarship-report-actions">
-
-                <a
-                    href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_applications.php?<?= e(http_build_query(['print' => 1, 'status' => $statusFilter])) ?>"
-                    class="button button-outline scholarship-icon-button"
-                    data-print-report target="_blank"
-                    rel="noopener"
-                    title="Print Applications"
-                    aria-label="Print Applications"
-                >
-                    <svg
-                        viewBox="0 0 24 24"
-                        width="20"
-                        height="20"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                    >
-                        <path d="M6 9V2h12v7"/>
-                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                        <path d="M6 14h12v8H6z"/>
-                    </svg>
-                </a>
-
-                <a
-                    href="<?= BASE_URL ?>/scholarship_coordinator/scholarship_applications.php?<?= e(http_build_query(['download' => 1, 'status' => $statusFilter])) ?>"
-                    class="button button-primary scholarship-icon-button"
-                    title="Download Applications"
-                    aria-label="Download Applications"
-                >
-                    <svg
-                        viewBox="0 0 24 24"
-                        width="20"
-                        height="20"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                    >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <path d="m7 10 5 5 5-5"/>
-                        <path d="M12 15V3"/>
-                    </svg>
-                </a>
-
-            </div>
-
-        <?php endif; ?>
-
-    </div>
+    <h1><?= $reviewId ? 'Review Scholarship Application' : 'Scholarship Applications' ?></h1>
 
     <?php if ($success): ?>
 
@@ -453,55 +261,93 @@ require_once __DIR__ . '/../includes/header.php';
 
     <?php endif; ?>
 
+    <?php if (!$reviewId): ?>
     <nav class="application-status-links" aria-label="Scholarship application status">
         <?php foreach (array_merge([''], $statuses) as $quickStatus): ?>
             <a class="button <?= $statusFilter === $quickStatus ? 'button-primary' : 'button-outline' ?>"
-               href="?<?= e(http_build_query(['status' => $quickStatus])) ?>"
+               href="?<?= e(http_build_query(['status' => $quickStatus] + $filters)) ?>"
                <?= $statusFilter === $quickStatus ? 'aria-current="true"' : '' ?>>
                 <?= e($quickStatus ?: 'All applications') ?>
             </a>
         <?php endforeach; ?>
     </nav>
 
-    <?php if (!$applications): ?>
-
-        <div class="empty-state">
-
-            <h3>No Scholarship Applications</h3>
-
-            <p class="muted">
-                No students have submitted scholarship applications yet.
-            </p>
-
+    <form method="get" class="table-search-form">
+        <input type="hidden" name="status" value="<?= e($statusFilter) ?>">
+        <div class="table-search-toolbar">
+            <label class="table-search-field">Search by name or LRN
+                <input type="search" name="q" placeholder="Enter applicant name or LRN" value="<?= e($search) ?>">
+            </label>
+            <button type="submit" class="button button-primary">Search</button>
+            <details class="table-search-disclosure">
+                <summary class="button button-outline">Filters
+                    <?php if ($programFilter || $yearFilter): ?>
+                        <span class="scholarship-filter-active">Active</span>
+                    <?php endif; ?>
+                </summary>
+                <div class="table-search-panel">
+                    <div class="table-search-fields">
+                        <?php foreach ([
+                            ['program', 'Program', $programFilter, 'SELECT program_id, program_name FROM special_programs ORDER BY program_name'],
+                            ['year', 'School Year', $yearFilter, 'SELECT school_year_id, school_year FROM school_years ORDER BY school_year DESC'],
+                        ] as [$key, $label, $selected, $optionSql]): ?>
+                            <label><?= e($label) ?>
+                                <select name="<?= e($key) ?>">
+                                    <option value="">All</option>
+                                    <?php foreach ($pdo->query($optionSql)->fetchAll(PDO::FETCH_NUM) as [$id, $name]): ?>
+                                        <option value="<?= (int) $id ?>" <?= (int) $id === $selected ? 'selected' : '' ?>><?= e($name) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="table-search-actions">
+                        <button class="button button-primary" type="submit">Apply filters</button>
+                        <a class="button button-outline" href="?<?= e(http_build_query(['status' => $statusFilter])) ?>">Clear filters</a>
+                    </div>
+                </div>
+            </details>
         </div>
+    </form>
+    <p class="muted"><?= $total ?> matching applications</p>
 
+    <?php if ($applications): ?>
+        <div class="table-responsive">
+            <table class="portal-row-table">
+                <thead><tr><th scope="col">Applicant</th><th scope="col">Program</th><th scope="col">School Year</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+                <tbody>
+                <?php foreach ($applications as $application): ?>
+                    <tr>
+                        <td><?= e($application['last_name'] . ', ' . trim($application['first_name'] . ' ' . ($application['middle_name'] ?? ''))) ?></td>
+                        <td><?= e($application['program_name']) ?></td>
+                        <td><?= e($application['school_year']) ?></td>
+                        <td><?= e($application['application_status']) ?></td>
+                        <td><a class="button button-outline" href="?<?= e(http_build_query($filters + ['page' => $page, 'review' => $application['scholarship_application_id']])) ?>">Review application</a></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php if ($totalPages > 1): ?>
+            <nav class="portal-list-toolbar" aria-label="Scholarship application pages">
+                <?php if ($page > 1): ?><a class="button button-outline" href="?<?= e(http_build_query($filters + ['page' => $page - 1])) ?>">Previous</a><?php endif; ?>
+                <span>Page <?= $page ?> of <?= $totalPages ?></span>
+                <?php if ($page < $totalPages): ?><a class="button button-outline" href="?<?= e(http_build_query($filters + ['page' => $page + 1])) ?>">Next</a><?php endif; ?>
+            </nav>
+        <?php endif; ?>
     <?php else: ?>
+        <p>No applications match your search and filters.</p>
+    <?php endif; ?>
+    <?php elseif (!$applications): ?>
+        <p>Application not found.</p>
+    <?php endif; ?>
 
+    <?php if ($reviewId && $applications): ?>
         <style>
-            .scholarship-applications-heading {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                gap: 18px;
-                flex-wrap: wrap;
-            }
 
-            .scholarship-applications-heading > div:first-child {
-                flex: 1 1 360px;
-            }
 
-            .scholarship-applications-heading h1 {
-                margin-top: 0;
-            }
 
-            .scholarship-report-actions {
-                display: flex;
-                align-items: center;
-                justify-content: flex-end;
-                gap: 8px;
-                flex-wrap: wrap;
-                margin-top: 4px;
-            }
+
 
             .scholarship-icon-button {
                 width: 42px;
@@ -608,16 +454,10 @@ require_once __DIR__ . '/../includes/header.php';
                     grid-template-columns: 1fr;
                 }
 
-                .scholarship-report-actions {
-                    width: 100%;
-                    justify-content: flex-start;
-                }
             }
         </style>
 
         <div class="applicant-card-list">
-
-            <?php $counter = 1; ?>
 
             <?php foreach ($applications as $application): ?>
 
@@ -628,7 +468,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <div>
 
                             <span class="applicant-number">
-                                Applicant #<?= $counter ?>
+                                Application #<?= (int) $application['scholarship_application_id'] ?>
                             </span>
 
                             <h2>
@@ -818,15 +658,14 @@ require_once __DIR__ . '/../includes/header.php';
                             ><?= e($application['remarks'] ?? '') ?></textarea>
                         </label>
 
-                        <button type="submit" class="button button-primary">
-                            Save Review
-                        </button>
+                        <div class="scholarship-form-footer">
+                            <button type="submit" class="button button-primary">Save Review</button>
+                            <button type="submit" name="after_save" value="next" class="button button-outline">Save and Review Next</button>
+                        </div>
 
                     </form>
 
                 </article>
-
-                <?php $counter++; ?>
 
             <?php endforeach; ?>
 
@@ -856,4 +695,14 @@ require_once __DIR__ . '/../includes/header.php';
 
 </section>
 
+<?php if ($completedQueue): ?>
+    <dialog class="portal-delete-dialog" id="scholarshipQueueComplete" aria-labelledby="scholarshipQueueTitle">
+        <h2 id="scholarshipQueueTitle">Review queue complete</h2>
+        <p>Your review was saved. There are no more applications in this filtered list.</p>
+        <form method="dialog" class="portal-delete-actions">
+            <button class="button button-primary" autofocus>OK</button>
+        </form>
+    </dialog>
+    <script>document.getElementById('scholarshipQueueComplete').showModal();</script>
+<?php endif; ?>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

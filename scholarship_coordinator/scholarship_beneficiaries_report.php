@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_role('System Administrator', 'Scholarship Coordinator');
@@ -36,18 +35,9 @@ $allowedColumns = [
     'last_release' => 'Last Release Date',
 ];
 
-$selectedColumns = $_GET['columns'] ?? [
-    'lrn', 'student', 'contact', 'program', 'school_year',
-    'grade', 'section', 'participation', 'renewal'
+$selectedColumns = [
+    'lrn', 'student', 'program', 'school_year', 'grade', 'section', 'participation', 'renewal'
 ];
-
-if (!is_array($selectedColumns)) {
-    $selectedColumns = [];
-}
-
-$selectedColumns = array_values(
-    array_intersect(array_keys($allowedColumns), $selectedColumns)
-);
 
 $where = [
     "sa.application_status = 'Approved'",
@@ -238,10 +228,6 @@ try {
     $scholars = $recordsQuery->fetchAll();
 
     if (($_GET['export'] ?? '') === 'csv') {
-        if (!$selectedColumns) {
-            $selectedColumns = ['student', 'program', 'participation'];
-        }
-
         $filename = 'scholar-masterlist-' . date('Y-m-d') . '.csv';
 
         header('Content-Type: text/csv; charset=utf-8');
@@ -749,50 +735,12 @@ require_once __DIR__ . '/../includes/header.php';
         color: var(--muted);
     }
 
-    .masterlist-export {
-        display: grid;
-        gap: 14px;
-        padding: 18px;
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        background: #fff;
-    }
 
-    .masterlist-export h2 {
-        margin: 0;
-        font-size: 1.1rem;
-    }
 
-    .masterlist-export p {
-        margin: 4px 0 0;
-        color: var(--muted);
-        font-size: .88rem;
-    }
 
-    .masterlist-export-options {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 10px 16px;
-    }
 
-    .masterlist-export-options label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 0;
-        color: var(--text);
-        font-size: .86rem;
-    }
 
-    .masterlist-export-options input {
-        width: auto;
-        margin: 0;
-    }
 
-    .masterlist-export-actions {
-        display: flex;
-        justify-content: flex-end;
-    }
 
     @media (max-width: 900px) {
         .masterlist-stats {
@@ -803,9 +751,6 @@ require_once __DIR__ . '/../includes/header.php';
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .masterlist-export-options {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
     }
 
     @media (max-width: 600px) {
@@ -821,9 +766,6 @@ require_once __DIR__ . '/../includes/header.php';
             align-items: stretch;
         }
 
-        .masterlist-export-options {
-            grid-template-columns: 1fr;
-        }
 
         .masterlist-actions {
             width: auto;
@@ -1003,6 +945,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                 <div class="masterlist-actions">
 
+
                     <a
                         href="<?= e(BASE_URL) ?>/scholarship_coordinator/scholarship_beneficiaries_report.php?print=1<?= e($reportQuery) ?>"
                         class="button button-outline masterlist-icon-button"
@@ -1019,10 +962,10 @@ require_once __DIR__ . '/../includes/header.php';
                     </a>
 
                     <a
-                        href="<?= e(BASE_URL) ?>/scholarship_coordinator/scholarship_beneficiaries_report.php?download=1<?= e($reportQuery) ?>"
+                        href="<?= e(BASE_URL) ?>/scholarship_coordinator/scholarship_beneficiaries_report.php?export=csv<?= e($reportQuery) ?>"
                         class="button button-primary masterlist-icon-button"
-                        title="Download Scholar Masterlist"
-                        aria-label="Download Scholar Masterlist"
+                        title="Download Scholar Masterlist CSV"
+                        aria-label="Download Scholar Masterlist CSV"
                     >
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -1146,50 +1089,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     </div>
 
-    <form method="GET" class="masterlist-export">
 
-        <input type="hidden" name="school_year" value="<?= $schoolYearFilter !== null ? (int) $schoolYearFilter : '' ?>">
-        <input type="hidden" name="program" value="<?= $programFilter !== null ? (int) $programFilter : '' ?>">
-        <input type="hidden" name="grade" value="<?= $gradeFilter !== null ? (int) $gradeFilter : '' ?>">
-        <input type="hidden" name="section" value="<?= $sectionFilter !== null ? (int) $sectionFilter : '' ?>">
-        <input type="hidden" name="participation" value="<?= e($participationFilter) ?>">
-        <input type="hidden" name="search" value="<?= e($search) ?>">
-
-        <div>
-            <h2>Export to Excel (CSV)</h2>
-
-            <p>
-                Select which columns to include in the spreadsheet.
-                The Print and Download icons above generate the formatted masterlist report.
-            </p>
-        </div>
-
-        <div class="masterlist-export-options">
-
-            <?php foreach ($allowedColumns as $key => $label): ?>
-
-                <label>
-                    <input
-                        type="checkbox"
-                        name="columns[]"
-                        value="<?= e($key) ?>"
-                        <?= in_array($key, $selectedColumns, true) ? 'checked' : '' ?>
-                    >
-
-                    <?= e($label) ?>
-                </label>
-
-            <?php endforeach; ?>
-
-        </div>
-
-        <div class="masterlist-export-actions">
-            <button type="submit" name="export" value="csv" class="button button-primary">
-                Export to Excel (CSV)
-            </button>
-        </div>
-
-    </form>
 
 </section>
 

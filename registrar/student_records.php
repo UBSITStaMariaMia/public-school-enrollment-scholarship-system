@@ -1085,7 +1085,7 @@ require_once __DIR__ . '/../includes/header.php';
             <div class="table-search-toolbar">
                 <div class="table-search-field">
                     <label for="student_search">Student name or LRN</label>
-                    <input type="search" id="student_search" name="q" maxlength="150"
+                    <input type="search" id="student_search" name="q" maxlength="150" placeholder="Enter student name or LRN"
                            value="<?= e($search) ?>" autocomplete="off"
                            data-student-suggestions="registrar_records"
                            data-suggestion-url="<?= BASE_URL ?>/includes/student_suggestions.php">

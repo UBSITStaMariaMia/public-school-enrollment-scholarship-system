@@ -17,10 +17,11 @@ require_once __DIR__ . '/functions.php';
 if (!empty($_SESSION['user']['must_change_password'])) {
     $requestScript = realpath($_SERVER['SCRIPT_FILENAME'] ?? '');
     $projectRoot = dirname(__DIR__);
+    $passwordPath = $_SESSION['user']['role_name'] === 'Student' ? '/student/change_password.php' : '/change_password.php';
     if (!in_array($requestScript, [
-        realpath($projectRoot . '/student/change_password.php'),
+        realpath($projectRoot . $passwordPath),
         realpath($projectRoot . '/logout.php'),
     ], true)) {
-        redirect('/student/change_password.php');
+        redirect($passwordPath);
     }
 }

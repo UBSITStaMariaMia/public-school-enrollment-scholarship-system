@@ -5,85 +5,17 @@ require_role('System Administrator');
 
 $pageTitle = 'Teacher and Staff Records';
 
-$search = trim($_GET['search'] ?? '');
-$searchBy = $_GET['search_by'] ?? 'name';
+require __DIR__ . '/../includes/admin_staff_records_query.php';
 
-$allowedSearch = ['name', 'id', 'role', 'position', 'username'];
+$searchPrompts = [
+    'name' => 'Enter personnel name',
+    'id' => 'Enter employee ID',
+    'role' => 'Enter staff role',
+    'position' => 'Enter position or department',
+    'username' => 'Enter username',
+];
 
-if (!in_array($searchBy, $allowedSearch, true)) {
-    $searchBy = 'name';
-}
 
-$sql = "SELECT
-            u.user_id,
-            u.username,
-            u.email,
-            u.account_status,
-            r.role_name,
-            sp.employee_id,
-            sp.first_name,
-            sp.middle_name,
-            sp.last_name,
-            sp.position_title,
-            sp.department
-        FROM users u
-        INNER JOIN roles r ON r.role_id = u.role_id
-        LEFT JOIN staff_profiles sp ON sp.user_id = u.user_id
-        WHERE r.role_name IN (
-            'School Registrar',
-            'Teacher',
-            'Enrollment Committee',
-            'Scholarship Coordinator'
-        )";
-
-$params = [];
-
-if ($search !== '') {
-
-    $term = '%' . $search . '%';
-
-    if ($searchBy === 'name') {
-        $sql .= " AND CONCAT_WS(' ',
-                    sp.first_name,
-                    NULLIF(sp.middle_name, ''),
-                    sp.last_name
-                ) LIKE :search_name";
-
-        $params = ['search_name' => $term];
-
-    } elseif ($searchBy === 'id') {
-        $sql .= " AND sp.employee_id LIKE :search_id";
-
-        $params = ['search_id' => $term];
-
-    } elseif ($searchBy === 'role') {
-        $sql .= " AND r.role_name LIKE :search_role";
-
-        $params = ['search_role' => $term];
-
-    } elseif ($searchBy === 'position') {
-        $sql .= " AND (
-                    sp.position_title LIKE :search_position
-                    OR sp.department LIKE :search_department
-                )";
-
-        $params = [
-            'search_position' => $term,
-            'search_department' => $term
-        ];
-
-    } elseif ($searchBy === 'username') {
-        $sql .= " AND u.username LIKE :search_username";
-
-        $params = ['search_username' => $term];
-    }
-}
-
-$sql .= " ORDER BY r.role_name ASC, sp.last_name ASC, u.username ASC";
-
-$query = $pdo->prepare($sql);
-$query->execute($params);
-$staffMembers = $query->fetchAll(PDO::FETCH_ASSOC);
 
 require_once __DIR__ . '/../includes/header.php';
 ?>
@@ -93,7 +25,40 @@ require_once __DIR__ . '/../includes/header.php';
 
     <h1>Teacher and Staff Records</h1>
 
+    <nav class="application-status-links" aria-label="Filter personnel by role">
+        <?php foreach (array_merge([''], $staffRoles) as $role): ?>
+            <?php $roleParams = array_replace($recordFilters, ['role' => $role, 'grade' => $role === 'Teacher' ? $gradeFilter : '']); ?>
+            <a class="button <?= $roleFilter === $role ? 'button-primary' : 'button-outline' ?>"
+               href="?<?= e(http_build_query($roleParams)) ?>" <?= $roleFilter === $role ? 'aria-current="true"' : '' ?>>
+                <?= e($role !== '' ? $role : 'All roles') ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
+    <?php if ($roleFilter === 'Teacher'): ?>
+    <h2>Assigned grade</h2>
+    <nav class="application-status-links" aria-label="Filter teachers by assigned grade">
+        <?php foreach (['', '7', '8', '9', '10'] as $grade): ?>
+            <?php
+            $gradeParams = array_replace($recordFilters, ['grade' => $grade]);
+            if ($grade !== '') {
+                $gradeParams['role'] = 'Teacher';
+            }
+            ?>
+            <a class="button <?= $gradeFilter === $grade ? 'button-primary' : 'button-outline' ?>"
+               href="?<?= e(http_build_query($gradeParams)) ?>" <?= $gradeFilter === $grade ? 'aria-current="true"' : '' ?>>
+                <?= $grade === '' ? 'All grades' : 'Grade ' . e($grade) ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
+    <?php endif; ?>
+
     <form method="get" class="table-search-form student-search-form">
+        <?php if ($gradeFilter !== ''): ?>
+            <input type="hidden" name="grade" value="<?= e($gradeFilter) ?>">
+        <?php endif; ?>
+        <?php if ($roleFilter !== ''): ?>
+            <input type="hidden" name="role" value="<?= e($roleFilter) ?>">
+        <?php endif; ?>
         <div class="table-search-toolbar">
             <div class="table-search-field">
                 <label for="search">Search Personnel</label>
@@ -103,7 +68,7 @@ require_once __DIR__ . '/../includes/header.php';
                     id="search"
                     name="search"
                     value="<?= e($search) ?>"
-                    placeholder="Enter personnel name..."
+                    placeholder="<?= e($searchPrompts[$searchBy]) ?>"
                 >
             </div>
             <button type="submit" class="button button-primary">Search</button>
@@ -167,37 +132,28 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="section-heading staff-records-heading">
 
         <div>
-            <h2>School Personnel</h2>
+            <h2 id="records-heading">School Personnel</h2>
             <p><?= count($staffMembers) ?> record(s) found</p>
         </div>
 
         <?php if ($staffMembers): ?>
 
             <?php
-            $reportParameters = http_build_query([
-                'search' => $search,
-                'search_by' => $searchBy
-            ]);
+            $reportParameters = http_build_query($recordFilters);
             ?>
 
-            <div class="staff-record-actions">
-
-                <a
-                    href="<?= BASE_URL ?>/admin/staff_records_report.php?<?= e($reportParameters) ?>&print=1"
-                    class="button button-outline"
-                    data-print-report target="_blank"
-                    rel="noopener"
-                >
-                    Print Records
+            <div class="report-export-icons">
+                <a class="button button-outline report-export-icon"
+                   href="<?= BASE_URL ?>/admin/staff_records_report.php?<?= e($reportParameters) ?>&amp;print=1"
+                   data-print-report target="_blank" rel="noopener"
+                   title="Print staff records" aria-label="Print staff records">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v7H7z"/><path d="M17 11h.01"/></svg>
                 </a>
-
-                <a
-                    href="<?= BASE_URL ?>/admin/staff_records_report.php?<?= e($reportParameters) ?>&download=1"
-                    class="button button-primary"
-                >
-                    Download Records
+                <a class="button button-primary report-export-icon"
+                   href="<?= BASE_URL ?>/admin/staff_records_report.php?<?= e($reportParameters) ?>&amp;download=1"
+                   title="Download staff records" aria-label="Download staff records">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 17v4h16v-4"/></svg>
                 </a>
-
             </div>
 
         <?php endif; ?>
@@ -206,23 +162,23 @@ require_once __DIR__ . '/../includes/header.php';
 
     <?php if (!$staffMembers): ?>
 
-        <p>No teacher or staff accounts found.</p>
+        <p><?= $search !== '' || $roleFilter !== '' || $gradeFilter !== '' ? 'No personnel records match these filters.' : 'No teacher or staff accounts found.' ?></p>
 
     <?php else: ?>
 
         <div class="staff-table-container">
 
-            <table class="staff-records-table">
+            <table class="staff-records-table" aria-labelledby="records-heading">
 
                 <thead>
                     <tr>
-                        <th>Employee ID</th>
-                        <th>Name</th>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Position / Department</th>
-                        <th>Account Status</th>
+                        <th scope="col">Employee ID</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Username</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Role</th>
+                        <th scope="col">Position / Department</th>
+                        <th scope="col">Account Status</th>
                     </tr>
                 </thead>
 
@@ -294,4 +250,13 @@ require_once __DIR__ . '/../includes/header.php';
 
 </section>
 
+<script>
+const personnelSearch = document.getElementById('search');
+const personnelSearchPrompts = <?= json_encode($searchPrompts) ?>;
+document.querySelectorAll('input[name="search_by"]').forEach(function (option) {
+    option.addEventListener('change', function () {
+        personnelSearch.placeholder = personnelSearchPrompts[option.value];
+    });
+});
+</script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

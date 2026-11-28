@@ -54,6 +54,7 @@ function dashboard_path_for_role(string $role): string
 {
     return match ($role) {
         'Student' => '/student/dashboard.php',
+        'Teacher' => '/teacher/dashboard.php',
         'System Administrator' => '/admin/dashboard.php',
         'School Registrar' => '/registrar/dashboard.php',
         'Scholarship Coordinator' => '/scholarship_coordinator/dashboard.php',

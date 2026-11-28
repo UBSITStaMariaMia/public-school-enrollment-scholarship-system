@@ -3,77 +3,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 
 require_role('System Administrator');
 
-$search = trim($_GET['search'] ?? '');
-$searchBy = $_GET['search_by'] ?? 'name';
-
-$allowedSearch = ['name', 'lrn', 'username', 'section', 'grade'];
-
-if (!in_array($searchBy, $allowedSearch, true)) {
-    $searchBy = 'name';
-}
-
-$sql = "SELECT
-            s.student_id,
-            s.lrn,
-            s.first_name,
-            s.middle_name,
-            s.last_name,
-            u.username,
-            u.account_status,
-            g.grade_level,
-            sec.section_name,
-            scholarship.scholarship_info
-        FROM students s
-        INNER JOIN users u ON u.user_id = s.user_id
-        LEFT JOIN grade_levels g
-            ON g.grade_level_id = s.current_grade_level_id
-        LEFT JOIN sections sec
-            ON sec.section_id = s.current_section_id
-        LEFT JOIN (
-            SELECT
-                sa.student_id,
-                GROUP_CONCAT(
-                    CONCAT(sp.program_name, ' - ', sa.application_status)
-                    SEPARATOR ', '
-                ) AS scholarship_info
-            FROM scholarship_applications sa
-            INNER JOIN special_programs sp
-                ON sp.program_id = sa.program_id
-            GROUP BY sa.student_id
-        ) scholarship ON scholarship.student_id = s.student_id";
-
-$params = [];
-
-if ($search !== '') {
-    $term = '%' . $search . '%';
-
-    if ($searchBy === 'lrn') {
-        $sql .= " WHERE s.lrn LIKE :search";
-        $params = ['search' => $term];
-    } elseif ($searchBy === 'username') {
-        $sql .= " WHERE u.username LIKE :search";
-        $params = ['search' => $term];
-    } elseif ($searchBy === 'name') {
-        $sql .= " WHERE CONCAT_WS(' ',
-                    s.first_name,
-                    NULLIF(s.middle_name, ''),
-                    s.last_name
-                ) LIKE :search";
-        $params = ['search' => $term];
-    } elseif ($searchBy === 'section') {
-        $sql .= " WHERE sec.section_name = :search";
-        $params = ['search' => $search];
-    } elseif ($searchBy === 'grade') {
-        $sql .= " WHERE g.grade_level = :search";
-        $params = ['search' => $search];
-    }
-}
-
-$sql .= " ORDER BY s.last_name ASC, s.first_name ASC";
-
-$query = $pdo->prepare($sql);
-$query->execute($params);
-$students = $query->fetchAll(PDO::FETCH_ASSOC);
+require __DIR__ . '/../includes/admin_student_records_query.php';
 
 if (!$students) {
     http_response_code(404);
@@ -135,6 +65,10 @@ if ($download) {
         <h2 class="report-title">
             <?= e($reportTitle) ?>
         </h2>
+        <?php if ($gradeFilter !== ''): ?>
+            <p>Grade <?= e($gradeFilter) ?></p>
+        <?php endif; ?>
+
 
         <table class="report-details">
             <tr>

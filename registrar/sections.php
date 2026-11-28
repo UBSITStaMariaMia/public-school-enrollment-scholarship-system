@@ -311,7 +311,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="table-search-toolbar">
             <div class="table-search-field">
                 <label for="section-search">Search section name</label>
-                <input type="search" name="q" id="section-search" maxlength="100" value="<?= e($search) ?>">
+                <input type="search" name="q" id="section-search" maxlength="100" placeholder="Enter section name" value="<?= e($search) ?>">
             </div>
             <button class="button button-primary" type="submit">Search</button>
             <details class="table-search-disclosure">

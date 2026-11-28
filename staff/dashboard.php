@@ -11,9 +11,12 @@ require_role(
 
 $pageTitle = 'Staff Dashboard';
 $user = current_user();
+if ($user['role_name'] === 'Teacher') {
+    redirect('/teacher/dashboard.php');
+}
 $dashboardLinks = match ($user['role_name']) {
     'System Administrator' => [
-        ['User Management', '/staff/users.php', 'users', 'Manage portal accounts and role access.'],
+        ['User Management', '/admin/user_management.php', 'users', 'Manage portal accounts and role access.'],
         ['Subject Management', '/staff/subjects.php', 'subject', 'Manage subjects and student subject assignments.'],
         ['Student Records Management', '/staff/student_records.php', 'student-record', 'Review records for the students you can manage.'],
         ['Staff Records Management', '/staff/staff_records.php', 'staff-record', 'Manage school personnel information.'],

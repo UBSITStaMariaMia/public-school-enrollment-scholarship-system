@@ -93,15 +93,16 @@ if ($sidebarRole === 'System Administrator') {
     $sidebarAdd('Enrollment Review', '/registrar/enrollment_review.php', 'enrollment_review.php', 'enrollment');
     $sidebarAdd('Student Records', '/registrar/student_records.php', 'student_records.php', 'student-record');
     $sidebarAdd('Section Management', '/registrar/sections.php', 'sections.php', 'section');
+    $sidebarAdd('Teacher Assignments', '/registrar/teacher_assignments.php', 'teacher_assignments.php', 'classroom');
     $sidebarAdd('Enrollment Reports', '/registrar/enrollment_reports.php', 'enrollment_reports.php', 'report');
     $sidebarAdd('Announcements', '/registrar/announcements.php', 'announcements.php', 'announcement');
 
 } elseif ($sidebarRole === 'Teacher') {
     $sidebarHeading = $sidebarDisplayName;
-    $sidebarAdd('Dashboard', '/staff/dashboard.php', 'dashboard.php', 'dashboard');
-    $sidebarAdd('Subject Management', '/staff/subjects.php', 'subjects.php', 'subject');
-    $sidebarAdd('My Assigned Sections', '/staff/my_sections.php', 'my_sections.php', 'classroom');
-    $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
+    $sidebarAdd('Dashboard', '/teacher/dashboard.php', 'dashboard.php', 'dashboard');
+    foreach (require __DIR__ . '/teacher_navigation.php' as [$label, $path, $icon]) {
+        $sidebarAdd($label, $path, basename($path), $icon);
+    }
 
 } elseif ($sidebarRole === 'Student') {
     $sidebarHeading = $sidebarDisplayName;
@@ -124,20 +125,15 @@ if ($sidebarRole === 'System Administrator') {
     $sidebarAdd('Subject Management', '/staff/subjects.php', 'subjects.php', 'subject');
     $sidebarAdd('Student Records', '/staff/student_records.php', 'student_records.php', 'student-record');
     $sidebarAdd('Staff Records', '/staff/staff_records.php', 'staff_records.php', 'staff-record');
-    $sidebarAdd('Teacher Assignments', '/staff/teacher_assignments.php', 'teacher_assignments.php', 'classroom');
     $sidebarAdd('Reports', '/staff/reports.php', 'reports.php', 'report');
     $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
 
 } elseif ($sidebarRole === 'Scholarship Coordinator') {
     $sidebarHeading = $sidebarRole;
     $sidebarAdd('Dashboard', '/scholarship_coordinator/dashboard.php', 'dashboard.php', 'dashboard');
-    $sidebarAdd('Scholarship Programs', '/scholarship_coordinator/scholarship_programs.php', 'scholarship_programs.php', 'applications');
-    $sidebarAdd('Scholarship Applications', '/scholarship_coordinator/scholarship_applications.php', 'scholarship_applications.php', 'applications');
-    $sidebarAdd('Scholarship Monitoring', '/scholarship_coordinator/scholarship_monitoring.php', 'scholarship_monitoring.php', 'report');
-    $sidebarAdd('Stipend Records', '/scholarship_coordinator/stipend_records.php', 'stipend_records.php', 'report');
-    $sidebarAdd('Scholar Masterlist', '/scholarship_coordinator/scholarship_beneficiaries_report.php', 'scholarship_beneficiaries_report.php', 'student-record');
-    $sidebarAdd('Renewal Report', '/scholarship_coordinator/scholarship_renewal_report.php', 'scholarship_renewal_report.php', 'report');
-    $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
+    foreach (require __DIR__ . '/scholarship_navigation.php' as [$label, $path, $icon]) {
+        $sidebarAdd($label, $path, basename($path), $icon);
+    }
 } else {
     $sidebarAdd('Home', '/index.php', 'index.php', 'dashboard');
     $sidebarAdd('Announcements', '/announcements.php', 'announcements.php', 'announcement');
@@ -150,7 +146,7 @@ $sidebarRelatedPages = [
     'enrollment_review.php' => ['review_application.php'],
     'my_applications.php' => ['edit_enrollment.php', 'scholarship_status.php'],
     'scholarship_programs.php' => ['add_scholarship_program.php', 'edit_scholarship_program.php'],
-    'student_records.php' => ['student_records_report.php'],
+    'student_records.php' => ['student_records_report.php', 'student_view.php'],
     'staff_records.php' => ['staff_records_report.php'],
 ];
 ?>

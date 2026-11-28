@@ -77,12 +77,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'username' => $account['username'],
                         'email' => $account['email'],
                         'role_name' => $account['role_name'],
-                        'must_change_password' => $account['role_name'] === 'Student'
-                            && (bool) $account['must_change_password'],
+                        'must_change_password' => (bool) $account['must_change_password'],
                     ];
 
                     redirect($_SESSION['user']['must_change_password']
-                        ? '/student/change_password.php'
+                        ? ($account['role_name'] === 'Student' ? '/student/change_password.php' : '/change_password.php')
                         : dashboard_path_for_role($account['role_name']));
                 }
 

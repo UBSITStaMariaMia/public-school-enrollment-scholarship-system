@@ -4664,24 +4664,17 @@ body.sidebar-open {
     min-width: 0;
     table-layout: fixed;
     border-collapse: collapse;
-    border: 1px solid #e1dce0;
 }
 
 .staff-records-table th,
 .staff-records-table td {
     padding: 13px 10px;
     border-bottom: 1px solid #e1dce0;
-    border-right: 1px solid #e1dce0;
     text-align: left;
     vertical-align: middle;
     font-size: 13px;
     line-height: 1.5;
     overflow-wrap: anywhere;
-}
-
-.staff-records-table th:last-child,
-.staff-records-table td:last-child {
-    border-right: none;
 }
 
 .staff-records-table thead th {
@@ -4775,27 +4768,19 @@ body.sidebar-open {
 /* Student Records Table */
 .student-records-table {
     width: 100%;
-    min-width: 0 !important;
+    min-width: 780px;
     table-layout: fixed;
     border-collapse: collapse;
-    border: 1px solid #d9dce3;
 }
 
 .student-records-table th,
 .student-records-table td {
     padding: 12px 8px;
-    border-right: 1px solid #d9dce3;
     border-bottom: 1px solid #d9dce3;
     text-align: left;
     vertical-align: middle;
     overflow-wrap: anywhere;
     font-size: 14px;
-}
-
-/* Remove divider from the last column */
-.student-records-table th:last-child,
-.student-records-table td:last-child {
-    border-right: none;
 }
 
 /* Table Header */
@@ -4815,12 +4800,12 @@ body.sidebar-open {
 
 .student-records-table th:nth-child(2),
 .student-records-table td:nth-child(2) {
-    width: 15%;
+    width: 16%;
 }
 
 .student-records-table th:nth-child(3),
 .student-records-table td:nth-child(3) {
-    width: 7%;
+    width: 9%;
 }
 
 .student-records-table th:nth-child(4),
@@ -4845,7 +4830,7 @@ body.sidebar-open {
 
 .student-records-table th:nth-child(8),
 .student-records-table td:nth-child(8) {
-    width: 18%;
+    width: 15%;
 }
 
 /* Student Action Buttons */
@@ -5787,26 +5772,6 @@ body.sidebar-open {
     display: inline-block;
 }
 
-/* PROGRAM STATUS */
-
-.program-status {
-    display: inline-block;
-    padding: 5px 11px;
-    border-radius: 20px;
-    font-size: .85rem;
-    font-weight: 700;
-}
-
-.program-status-active {
-    background: #e8f7ed;
-    color: #17633a;
-}
-
-.program-status-inactive {
-    background: #fff0f0;
-    color: #9b1c1c;
-}
-
 /* SCHOLARSHIP PROGRAM TABLE DIVIDERS */
 
 .scholarship-program-table {
@@ -5818,7 +5783,6 @@ body.sidebar-open {
 .scholarship-program-table thead th {
     padding: 16px 15px;
     border-bottom: 1px solid #d8cdd3 !important;
-    border-right: 1px solid #e3dce0;
     text-align: left;
 }
 
@@ -5826,7 +5790,6 @@ body.sidebar-open {
 .scholarship-program-table tbody td {
     padding: 16px 15px;
     border-bottom: 1px solid #dce1e7 !important;
-    border-right: 1px solid #e3e6eb;
     vertical-align: middle;
 }
 
@@ -6740,7 +6703,8 @@ body.portal-layout {
     margin: 0;
 }
 
-.student-portal .student-status {
+.student-portal .student-status,
+.scholarship-status-label {
     display: inline-flex;
     align-items: center;
     gap: .55em;
@@ -6749,7 +6713,8 @@ body.portal-layout {
     font-weight: 500;
 }
 
-.student-portal .student-status::before {
+.student-portal .student-status::before,
+.scholarship-status-label::before {
     content: "";
     flex: 0 0 6px;
     height: 6px;
@@ -6779,7 +6744,7 @@ body.portal-layout {
     overflow-wrap: anywhere;
 }
 
-.student-portal .portal-dashboard-heading {
+.portal-dashboard-heading-with-intro {
     min-height: clamp(156px, 14vw, 184px);
 }
 
@@ -6882,4 +6847,132 @@ body.portal-layout {
     .student-application-summary dl > div {
         grid-template-columns: minmax(0, 1fr);
     }
+}
+
+.scholarship-status-label:is(.program-status-active, .claimed, .qualified) {
+    --student-status-dot: #35664d;
+}
+
+.scholarship-status-label:is(.pending, .review) {
+    --student-status-dot: #866024;
+}
+
+.scholarship-status-label:is(.unclaimed, .not-eligible, .removed) {
+    --student-status-dot: #a12622;
+}
+
+.portal-row-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.portal-row-table :is(th, td) {
+    padding: 12px 14px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+}
+
+.portal-row-table th {
+    color: var(--maroon-dark);
+    background: #f7edf1;
+}
+
+.scholarship-page-toolbar {
+    flex-wrap: wrap;
+    margin-block-end: 20px;
+}
+
+.scholarship-form-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-block-start: 16px;
+}
+
+.scholarship-filter-active {
+    margin-inline-start: 6px;
+    color: #166534;
+}
+
+.portal-skip-link {
+    position: fixed;
+    inset-block-start: 1rem;
+    inset-inline-start: 1rem;
+    z-index: 10000;
+    padding: .65rem 1rem;
+    background: white;
+    color: var(--maroon-dark);
+    border: 2px solid currentColor;
+}
+
+.portal-skip-link:not(:focus) {
+    clip-path: inset(50%);
+}
+
+.admin-account-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.admin-account-actions form {
+    margin: 0;
+}
+
+.student-record-delete {
+    margin-block-start: 20px;
+}
+
+.student-record-delete summary {
+    width: fit-content;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.first-login-page > .page-container {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    width: min(100% - 28px, 1160px);
+    padding-block: clamp(24px, 5vw, 60px);
+}
+
+.first-login-page .password-change-shell {
+    margin-inline: auto;
+}
+
+.first-login-page .password-change-shell > .form-card {
+    margin: 0;
+}
+
+.password-change-shell .password-change-form {
+    display: grid;
+    gap: 14px;
+}
+
+.password-change-form .form-actions {
+    margin-block-start: 4px;
+}
+
+.first-login-page .password-change-shell [data-logout-trigger] {
+    margin-block-start: 16px;
+}
+
+.staff-account-confirmation {
+    max-width: 720px;
+    margin-inline: auto;
+}
+
+.staff-account-credentials {
+    display: grid;
+    gap: 12px;
+    margin-block: 20px;
+}
+
+.staff-account-credentials dd {
+    margin: 3px 0 0;
+    font-weight: 700;
+    overflow-wrap: anywhere;
 }

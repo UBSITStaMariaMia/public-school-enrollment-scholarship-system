@@ -8,8 +8,9 @@ $pageTitle = 'System Administrator Dashboard';
 $dashboardLinks = [
     ['User Management', '/admin/user_management.php', 'users', 'Manage portal accounts and role access.'],
     ['Student Records', '/admin/student_records.php', 'student-record', 'Find student profiles, grades, and attendance records.'],
-    ['Staff Records', '/admin/staff_records.php', 'staff-record', 'Find school personnel and review their records.'],
+    ['Teacher and Staff Records', '/admin/staff_records.php', 'staff-record', 'Find school personnel and review their records.'],
 ];
+$dashboardIntro = 'Manage staff accounts and find student and personnel records.';
 $dashboardHeading = 'System Administrator Dashboard';
 
 require_once __DIR__ . '/../includes/header.php';

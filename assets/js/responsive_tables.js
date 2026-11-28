@@ -1,6 +1,6 @@
 const tableScrollContainers = Array.from(document.querySelectorAll(
     '.page-container :is(.table-container, .table-responsive, .table-scroll, .records-table-wrapper, ' +
-    '.announcement-table-wrapper, .masterlist-table-wrap, .renewal-table-wrap, .stipend-table-wrap)'
+    '.staff-table-container, .announcement-table-wrapper, .masterlist-table-wrap, .renewal-table-wrap, .stipend-table-wrap)'
 )).filter(function (container) {
     return container.querySelector(':scope > table');
 });

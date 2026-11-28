@@ -13,6 +13,7 @@ $dashboardLinks = [
     ['Enrollment Review', '/registrar/enrollment_review.php', 'enrollment', 'Review applications and verify supporting documents.'],
     ['Student Records', '/registrar/student_records.php', 'student-record', 'Find student profiles, grades, and attendance records.'],
     ['Section Management', '/registrar/sections.php', 'section', 'Create class sections and organize them by grade.'],
+    ['Teacher Assignments', '/registrar/teacher_assignments.php', 'classroom', 'Assign teachers to sections by school year.'],
     ['Enrollment Reports', '/registrar/enrollment_reports.php', 'report', 'View application totals by status, grade, and school year.'],
     ['Announcements', '/registrar/announcements.php', 'announcement', 'Publish and manage notices for the school community.'],
 ];

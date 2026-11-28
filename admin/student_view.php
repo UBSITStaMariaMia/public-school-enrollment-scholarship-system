@@ -157,8 +157,12 @@ $stipends = $query->fetchAll(PDO::FETCH_ASSOC);
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
+<?php
+$listParameters = array_filter(array_intersect_key($_GET, array_flip(['search', 'search_by', 'grade'])), 'is_string');
+$listUrl = BASE_URL . '/admin/student_records.php' . ($listParameters ? '?' . http_build_query($listParameters) : '');
+?>
 <div class="portal-back-row">
-    <a href="<?= BASE_URL ?>/admin/student_records.php"
+    <a href="<?= e($listUrl) ?>"
     class="portal-back-link">
     Back to Student Records
     </a>
@@ -175,6 +179,19 @@ require_once __DIR__ . '/../includes/header.php';
     </h2>
 
     <p>LRN: <?= e($student['lrn'] ?? '—') ?></p>
+    <details class="student-record-delete">
+        <summary>Manage record removal</summary>
+        <form method="post" action="<?= e(BASE_URL . '/admin/delete_student.php?' . http_build_query($listParameters)) ?>"
+              data-confirm-title="Permanently delete student record?"
+              data-confirm-label="Delete student record"
+              data-confirm-delete="This permanently deletes the student account and its connected records, including enrollment, grades, attendance, and scholarship data.">
+            <input type="hidden" name="student_id" value="<?= (int) $student['student_id'] ?>">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <div class="form-actions">
+                <button type="submit" class="button button-danger-outline portal-record-action">Delete student record</button>
+            </div>
+        </form>
+    </details>
 
 
 </section>

@@ -14,9 +14,13 @@ if (!$programId || $programId < 1) {
 }
 
 $findProgram = $pdo->prepare(
-    'SELECT program_id, program_name, description, available_slots, status
-     FROM special_programs
-     WHERE program_id = :id
+    'SELECT sp.*, (SELECT COUNT(*)
+         FROM scholarship_applications sa
+         JOIN school_years sy ON sy.school_year_id = sa.school_year_id
+         WHERE sa.program_id = sp.program_id AND sa.application_status = \'Approved\'
+           AND sy.status = \'Active\') AS current_scholar_count
+     FROM special_programs sp
+     WHERE sp.program_id = :id
      LIMIT 1'
 );
 $findProgram->execute(['id' => $programId]);
@@ -118,11 +122,19 @@ require_once __DIR__ . '/../includes/header.php';
         <p class="error-message"><?= e($error) ?></p>
     <?php endif; ?>
 
-    <form method="post" class="scholarship-program-form">
+    <form method="post" class="scholarship-program-form"
+        <?php if ($program['status'] === 'Active' && (int) $program['current_scholar_count'] > 0): ?>
+            data-confirm-delete="<?= e('This program has ' . $program['current_scholar_count'] . ' approved scholarship applications for the active school year. Deactivating it closes the program to new applications. Existing records will remain available.') ?>"
+            data-confirm-title="Deactivate scholarship program?"
+            data-confirm-label="Deactivate"
+            data-confirm-inactive-only
+        <?php endif; ?>
+    >
         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
+        <p class="muted"><span class="student-required" aria-hidden="true">*</span> Required fields</p>
         <label>
-            Program name
+            <span><span class="student-required" aria-hidden="true">*</span> Program name</span>
             <input
                 type="text"
                 name="program_name"

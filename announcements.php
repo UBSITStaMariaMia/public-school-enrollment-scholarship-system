@@ -4,6 +4,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/bootstrap.php';
 
 $pageTitle = 'Announcements';
+$announcementUser = current_user();
+$announcementBack = $announcementUser ? dashboard_path_for_role($announcementUser['role_name']) : '/index.php';
 
 /*
  * Show all published announcements, including future-dated posts.
@@ -189,14 +191,14 @@ require_once __DIR__ . '/includes/header.php';
 
 <div class="public-announcements-page">
     <div class="portal-back-row">
-    <a class="portal-back-link" href="<?= BASE_URL ?>/index.php">
-        Back to Login
-    </a>
+        <a class="portal-back-link" href="<?= e(BASE_URL . $announcementBack) ?>">
+            <?= $announcementUser ? 'Back to Dashboard' : 'Back to Login' ?>
+        </a>
     </div>
 
     <section class="public-announcements-card" aria-labelledby="publicAnnouncementsTitle">
         <h1 class="public-announcements-title" id="publicAnnouncementsTitle">
-            Public Announcements
+            <?= $announcementUser ? 'Announcements' : 'Public Announcements' ?>
         </h1>
 
         <?php if (!empty($announcements)): ?>

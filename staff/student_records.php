@@ -8,6 +8,9 @@ $pageTitle = 'Student Records Management';
 
 $user = current_user();
 $isAdmin = $user['role_name'] === 'System Administrator';
+$recordsPath = $isAdmin ? '/staff/student_records.php' : '/teacher/student_records.php';
+$sectionFilter = $isAdmin ? 0 : (int) filter_var($_GET['section'] ?? 0, FILTER_VALIDATE_INT);
+$sectionQuery = $sectionFilter > 0 ? 'section=' . $sectionFilter . '&' : '';
 
 $success = $_SESSION['records_success'] ?? '';
 unset($_SESSION['records_success']);
@@ -34,11 +37,7 @@ $activeSchoolYear = $pdo->query(
      LIMIT 1"
 )->fetch();
 
-$selectedStudentId = filter_input(
-    INPUT_GET,
-    'student_id',
-    FILTER_VALIDATE_INT
-);
+$selectedStudentId = filter_var($_GET['student_id'] ?? null, FILTER_VALIDATE_INT);
 
 /*
 |--------------------------------------------------------------------------
@@ -50,7 +49,8 @@ $getAccessibleStudent = function (int $studentId) use (
     $pdo,
     $user,
     $isAdmin,
-    $activeSchoolYear
+    $activeSchoolYear,
+    $sectionFilter
 ): ?array {
     if (!$activeSchoolYear) {
         return null;
@@ -114,7 +114,11 @@ $getAccessibleStudent = function (int $studentId) use (
 
     $student = $query->fetch();
 
-    return $student ?: null;
+    if (!$student || ($sectionFilter > 0 && (int) $student['current_section_id'] !== $sectionFilter)) {
+        return null;
+    }
+
+    return $student;
 };
 
 /*
@@ -133,6 +137,7 @@ if ($activeSchoolYear) {
                 s.first_name,
                 s.middle_name,
                 s.last_name,
+                s.current_section_id,
                 g.grade_level,
                 sec.section_name
              FROM students s
@@ -151,6 +156,7 @@ if ($activeSchoolYear) {
                 s.first_name,
                 s.middle_name,
                 s.last_name,
+                s.current_section_id,
                 g.grade_level,
                 sec.section_name
              FROM students s
@@ -174,6 +180,9 @@ if ($activeSchoolYear) {
     }
 
     $students = $studentQuery->fetchAll();
+    if ($sectionFilter > 0) {
+        $students = array_values(array_filter($students, static fn (array $student): bool => (int) $student['current_section_id'] === $sectionFilter));
+    }
 }
 
 /*
@@ -350,7 +359,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $_SESSION['records_success'] = 'Grade saved successfully.';
 
-                    redirect('/staff/student_records.php?student_id=' . $postedStudentId);
+                    redirect($recordsPath . '?' . $sectionQuery . 'student_id=' . $postedStudentId);
 
                 } elseif ($action === 'save_attendance') {
                     $attendanceDate = $_POST['attendance_date'] ?? '';
@@ -447,7 +456,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $_SESSION['records_success'] = 'Attendance saved successfully.';
 
-                    redirect('/staff/student_records.php?student_id=' . $postedStudentId);
+                    redirect($recordsPath . '?' . $sectionQuery . 'student_id=' . $postedStudentId);
 
                 } else {
                     throw new RuntimeException('Invalid action.');
@@ -566,8 +575,13 @@ if ($selectedStudentId && $activeSchoolYear) {
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
+<?php if ($sectionFilter > 0): ?>
+    <div class="portal-back-row">
+        <a class="portal-back-link" href="<?= BASE_URL ?>/teacher/my_sections.php">Back to assigned sections</a>
+    </div>
+<?php endif; ?>
 <section class="form-card">
-    <h1>Student Records Management</h1>
+    <h1><?= $sectionFilter > 0 ? 'Class Roster' : ($isAdmin ? 'Student Records Management' : 'Grades and Attendance') ?></h1>
 
     <?php if ($activeSchoolYear): ?>
         <p>
@@ -581,11 +595,11 @@ require_once __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 
     <?php if ($success): ?>
-        <p class="alert alert-success"><?= e($success) ?></p>
+        <p class="alert alert-success" role="status"><?= e($success) ?></p>
     <?php endif; ?>
 
     <?php if ($error): ?>
-        <p class="alert alert-error"><?= e($error) ?></p>
+        <p class="alert alert-error" role="alert"><?= e($error) ?></p>
     <?php endif; ?>
 
     <?php if (!$isAdmin): ?>
@@ -598,6 +612,33 @@ require_once __DIR__ . '/../includes/header.php';
         </p>
     <?php endif; ?>
 
+    <?php if (!$students): ?>
+        <p>No students are available in this view.</p>
+    <?php elseif ($sectionFilter > 0): ?>
+        <h2><?= e($students[0]['section_name']) ?></h2>
+        <div class="table-responsive">
+            <table class="portal-row-table" aria-label="Class roster">
+                <thead>
+                    <tr>
+                        <th scope="col">Student</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($students as $student): ?>
+                        <tr>
+                            <td><?= e($student['last_name'] . ', ' . trim($student['first_name'] . ' ' . ($student['middle_name'] ?? ''))) ?></td>
+                            <td>
+                                <a class="button button-outline" href="?section=<?= $sectionFilter ?>&amp;student_id=<?= (int) $student['student_id'] ?>#student-record">
+                                    View grades and attendance
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php else: ?>
     <form method="GET">
         <div class="form-group">
             <label for="student_id">Select Student</label>
@@ -624,11 +665,12 @@ require_once __DIR__ . '/../includes/header.php';
             </button>
         </div>
     </form>
+    <?php endif; ?>
 </section>
 
 <?php if ($selectedStudent): ?>
 
-    <section class="form-card">
+    <section class="form-card" id="student-record">
         <h2>Student Information</h2>
 
         <div class="form-grid">

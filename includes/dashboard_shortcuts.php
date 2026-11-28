@@ -1,12 +1,12 @@
 <div class="portal-dashboard">
-    <header class="portal-dashboard-heading">
+    <header class="portal-dashboard-heading<?= !empty($dashboardIntro) ? ' portal-dashboard-heading-with-intro' : '' ?>">
         <div>
             <h1><?= e($dashboardHeading) ?></h1>
             <?php if (!empty($dashboardIntro)): ?>
                 <p><?= e($dashboardIntro) ?></p>
             <?php endif; ?>
         </div>
-        <?php if ($sidebarRoleIcon && !in_array($sidebarRole, ['School Registrar', 'Student'], true)): ?>
+        <?php if ($sidebarRoleIcon && !in_array($sidebarRole, ['School Registrar', 'Student', 'Scholarship Coordinator', 'System Administrator', 'Teacher'], true)): ?>
             <span class="sidebar-nav-icon portal-dashboard-role-mark" aria-hidden="true"><?= $sidebarIcons[$sidebarRoleIcon] ?></span>
         <?php endif; ?>
     </header>

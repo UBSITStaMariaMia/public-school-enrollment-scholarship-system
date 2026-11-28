@@ -95,8 +95,9 @@ require_once __DIR__ . '/../includes/header.php';
     <form method="post" class="scholarship-program-form">
         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
+        <p class="muted"><span class="student-required" aria-hidden="true">*</span> Required fields</p>
         <label>
-            Program name
+            <span><span class="student-required" aria-hidden="true">*</span> Program name</span>
             <input
                 type="text"
                 name="program_name"

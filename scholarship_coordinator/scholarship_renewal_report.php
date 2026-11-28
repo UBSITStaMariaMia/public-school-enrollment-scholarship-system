@@ -86,11 +86,8 @@ try {
 require_once __DIR__ . '/../includes/header.php';
 ?>
 <style>
-    .renewal-page { display:grid; gap:24px; }
-    .renewal-hero { padding:26px 30px; border-radius:16px; color:#fff; background:linear-gradient(120deg,#55152d,#79213f); }
-    .renewal-hero .eyebrow { margin:0 0 8px; color:#f3dce5; font-size:.76rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
-    .renewal-hero h1 { margin:0 0 8px; color:#fff; font-size:1.8rem; }
-    .renewal-hero p { margin:0; color:#f8eaf0; max-width:760px; }
+    .renewal-page { display:grid; grid-template-columns:minmax(0, 1fr); gap:24px; }
+    .renewal-page > * { min-width:0; }
     .renewal-overview { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; }
     .renewal-stat { min-width:0; padding:17px 16px; border:1px solid var(--line); border-top:4px solid #9b6a7b; border-radius:10px; background:#fff; }
     .renewal-stat.eligible { border-top-color:#278451; }
@@ -113,13 +110,13 @@ require_once __DIR__ . '/../includes/header.php';
     .renewal-records-head h2 { margin:0 0 4px; color:var(--text); }
     .renewal-records-head p { margin:0; color:var(--muted); font-size:.86rem; }
     .renewal-approved-tag { padding:6px 11px; border-radius:20px; background:#f6edf1; color:var(--maroon); font-size:.76rem; font-weight:700; white-space:nowrap; }
-    .renewal-table-wrap { width:100%; overflow-x:auto; }
+    .renewal-table-wrap { width:100%; max-width:100%; overflow-x:auto; }
     .renewal-table { width:100%; min-width:980px; border-collapse:collapse; }
     .renewal-table th,.renewal-table td { padding:13px 12px; text-align:left; vertical-align:middle; border-bottom:1px solid var(--line); }
-    .renewal-table th { color:#fff; background:#67203a; font-size:.82rem; white-space:nowrap; }
+    .renewal-table th { color:var(--maroon-dark); background:#f7edf1; font-size:.9rem; white-space:normal; }
     .renewal-table tbody tr:nth-child(even) { background:#faf8f9; }
     .renewal-table tbody tr:hover { background:#f7eef2; }
-    .renewal-student-name { display:block; color:var(--text); font-weight:700; }
+    .renewal-student-name { display:block; color:var(--text); font-weight:700; min-width: 13rem; overflow-wrap: normal; word-break: normal; }
     .renewal-subtext { display:block; margin-top:4px; color:var(--muted); font-size:.77rem; }
     .renewal-program { display:inline-block; padding:5px 9px; border-radius:20px; background:#f6edf1; color:var(--maroon); font-size:.77rem; font-weight:700; }
     .renewal-status { display:inline-block; padding:5px 9px; border-radius:20px; font-size:.76rem; font-weight:700; white-space:nowrap; }
@@ -133,13 +130,11 @@ require_once __DIR__ . '/../includes/header.php';
     .renewal-note { margin:0; padding:14px 17px; border-left:4px solid #9b6a7b; border-radius:6px; background:#faf7f8; color:var(--muted); font-size:.86rem; }
     @media(max-width:1100px){.renewal-overview{grid-template-columns:repeat(3,minmax(0,1fr));}}
     @media(max-width:850px){.renewal-filters{grid-template-columns:repeat(2,minmax(0,1fr));}.renewal-search{grid-column:auto;}}
-    @media(max-width:600px){.renewal-hero{padding:22px 18px;}.renewal-overview{grid-template-columns:repeat(2,minmax(0,1fr));}.renewal-filters{grid-template-columns:1fr;}.renewal-records{padding:14px;}.renewal-records-head{align-items:flex-start;flex-direction:column;}}
+    @media(max-width:600px){.renewal-overview{grid-template-columns:repeat(2,minmax(0,1fr));}.renewal-filters{grid-template-columns:1fr;}.renewal-records{padding:14px;}.renewal-records-head{align-items:flex-start;flex-direction:column;}}
 </style>
 
 <section class="form-card form-card-wide renewal-page">
-    <div class="renewal-hero">
-        <h1>Scholarship Renewal Report</h1>
-    </div>
+    <h1>Scholarship Renewal Report</h1>
 
     <?php if (!empty($error)): ?><p class="error-message"><?= e($error) ?></p><?php endif; ?>
 
@@ -223,7 +218,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <p><?= (!$schoolYear && !$program && !$grade && !$section && $status === '' && $participation === '' && $search === '') ? 'Approved scholarship applications will appear here after the Scholarship Coordinator approves them.' : 'Try adjusting your filters or clearing them to view all approved scholars.' ?></p>
             </div>
         <?php else: ?>
-            <div class="renewal-table-wrap">
+            <div class="renewal-table-wrap table-responsive">
                 <table class="renewal-table">
                     <thead><tr><th>Student</th><th>Program</th><th>Grade Level</th><th>Section</th><th>Academic Performance</th><th>Behavior Remarks</th><th>Participation</th><th>Renewal Eligibility</th><th>Last Monitoring</th></tr></thead>
                     <tbody>

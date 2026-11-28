@@ -7,7 +7,9 @@ require_role('System Administrator', 'Teacher');
 $pageTitle = 'Subject Management';
 $user = current_user();
 
-$success = '';
+$success = $_SESSION['subject_management_success'] ?? '';
+unset($_SESSION['subject_management_success']);
+$subjectPath = $user['role_name'] === 'Teacher' ? '/teacher/subjects.php' : '/staff/subjects.php';
 $error = '';
 
 $activeSchoolYear = $pdo->query(
@@ -17,7 +19,22 @@ $activeSchoolYear = $pdo->query(
      LIMIT 1"
 )->fetch();
 
-$students = $pdo->query(
+$assignmentSql = '';
+$assignmentParams = [];
+if ($user['role_name'] === 'Teacher') {
+    $assignmentSql = " AND EXISTS (
+        SELECT 1 FROM teacher_section_assignments a
+        JOIN sections sec ON sec.section_id = a.section_id AND sec.school_year_id = a.school_year_id
+        WHERE a.section_id = s.current_section_id AND a.teacher_user_id = :teacher
+            AND a.school_year_id = :assignment_year
+    )";
+    $assignmentParams = [
+        'teacher' => $user['user_id'],
+        'assignment_year' => $activeSchoolYear['school_year_id'] ?? 0,
+    ];
+}
+
+$studentList = $pdo->prepare(
     "SELECT
         s.student_id,
         s.lrn,
@@ -28,14 +45,12 @@ $students = $pdo->query(
      FROM students s
      INNER JOIN grade_levels g
         ON s.current_grade_level_id = g.grade_level_id
-     ORDER BY s.last_name, s.first_name"
-)->fetchAll();
-
-$selectedStudentId = filter_input(
-    INPUT_GET,
-    'student_id',
-    FILTER_VALIDATE_INT
+     WHERE 1 = 1" . $assignmentSql . " ORDER BY s.last_name, s.first_name"
 );
+$studentList->execute($assignmentParams);
+$students = $studentList->fetchAll();
+
+$selectedStudentId = filter_var($_GET['student_id'] ?? null, FILTER_VALIDATE_INT);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -57,12 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } else {
         $studentCheck = $pdo->prepare(
-            "SELECT student_id, current_grade_level_id
-             FROM students
-             WHERE student_id = :student_id"
+            "SELECT s.student_id, s.current_grade_level_id
+             FROM students s
+             WHERE s.student_id = :student_id" . $assignmentSql
         );
 
-        $studentCheck->execute([
+        $studentCheck->execute($assignmentParams + [
             'student_id' => $postedStudentId
         ]);
 
@@ -174,8 +189,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $pdo->commit();
 
-                    $success = 'Selected subjects were assigned successfully.';
-                    $selectedStudentId = $postedStudentId;
+                    $_SESSION['subject_management_success'] = 'Selected subjects were assigned successfully.';
+                    redirect($subjectPath . '?student_id=' . $postedStudentId);
 
                 } elseif ($action === 'update_status') {
                     $assignmentId = filter_var(
@@ -215,19 +230,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'school_year_id' => $activeSchoolYear['school_year_id']
                     ]);
 
-                    $success = 'Subject assignment status updated.';
-                    $selectedStudentId = $postedStudentId;
+                    $_SESSION['subject_management_success'] = 'Subject assignment status updated.';
+                    redirect($subjectPath . '?student_id=' . $postedStudentId);
 
                 } else {
                     throw new RuntimeException('Invalid action.');
                 }
-
-            } catch (RuntimeException $exception) {
-                if ($pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-
-                $error = $exception->getMessage();
 
             } catch (PDOException $exception) {
                 if ($pdo->inTransaction()) {
@@ -239,6 +247,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
 
                 $error = 'Unable to process the subject assignment. Please try again.';
+            } catch (RuntimeException $exception) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+
+                $error = $exception->getMessage();
             }
         }
     }
@@ -265,10 +279,10 @@ if ($selectedStudentId) {
          FROM students s
          LEFT JOIN grade_levels g
             ON s.current_grade_level_id = g.grade_level_id
-         WHERE s.student_id = :student_id"
+         WHERE s.student_id = :student_id" . $assignmentSql
     );
 
-    $studentQuery->execute([
+    $studentQuery->execute($assignmentParams + [
         'student_id' => $selectedStudentId
     ]);
 
@@ -340,11 +354,11 @@ require_once __DIR__ . '/../includes/header.php';
     <h1>Subject Management</h1>
 
     <?php if ($success): ?>
-        <p class="alert alert-success"><?= e($success) ?></p>
+        <p class="alert alert-success" role="status"><?= e($success) ?></p>
     <?php endif; ?>
 
     <?php if ($error): ?>
-        <p class="alert alert-error"><?= e($error) ?></p>
+        <p class="alert alert-error" role="alert"><?= e($error) ?></p>
     <?php endif; ?>
 
     <?php if (!$activeSchoolYear): ?>
@@ -358,6 +372,9 @@ require_once __DIR__ . '/../includes/header.php';
         </p>
     <?php endif; ?>
 
+    <?php if (!$students): ?>
+        <p>No students are available for subject management.</p>
+    <?php else: ?>
     <form method="GET" class="student-selection-form">
         <div class="form-group">
             <label for="student_id">Select Student</label>
@@ -376,10 +393,11 @@ require_once __DIR__ . '/../includes/header.php';
             </select>
         </div>
 
-        <button type="submit" class="subject-primary-button">
+        <button type="submit" class="button button-primary">
             View Student Subjects
         </button>
     </form>
+    <?php endif; ?>
 </section>
 
 <?php if ($selectedStudent): ?>
@@ -456,9 +474,9 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php endforeach; ?>
                     </div>
 
-                    <button type="submit" class="subject-primary-button">
-                        Assign Selected Subjects
-                    </button>
+                    <div class="form-actions">
+                        <button type="submit" class="button button-primary">Assign Selected Subjects</button>
+                    </div>
                 </form>
             <?php else: ?>
                 <p class="subject-empty-message">

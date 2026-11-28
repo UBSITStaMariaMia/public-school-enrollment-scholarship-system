@@ -3,9 +3,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/bootstrap.php';
 
-require_role('Student');
-
+require_login();
 $user = current_user();
+$isStudentPasswordPage = $user['role_name'] === 'Student';
+if (!$isStudentPasswordPage && empty($user['must_change_password'])) {
+    redirect(dashboard_path_for_role($user['role_name']));
+}
 $userId = (int) ($user['user_id'] ?? 0);
 $firstLogin = !empty($user['must_change_password']);
 
@@ -14,7 +17,7 @@ $success = '';
 
 if ($userId <= 0) {
     http_response_code(403);
-    exit('Unable to identify the authenticated student account.');
+    exit('Unable to identify the authenticated account.');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -97,13 +100,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     session_regenerate_id(true);
                     $_SESSION['user']['must_change_password'] = false;
                     if ($firstLogin) {
-                        redirect('/student/dashboard.php');
+                        redirect(dashboard_path_for_role($user['role_name']));
                     }
                     $success = 'Your password has been changed successfully.';
                 }
             }
         } catch (PDOException $exception) {
-            error_log('Student password update error: ' . $exception->getMessage());
+            error_log('Password update error: ' . $exception->getMessage());
             $errors[] = 'Your password could not be changed. Please try again.';
         }
     }
@@ -117,7 +120,7 @@ $pageTitle = 'Change Password';
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="student-account-shell student-account-shell-narrow">
+<div class="student-account-shell student-account-shell-narrow password-change-shell">
     <?php if (!$firstLogin): ?>
     <div class="portal-back-row">
         <a class="portal-back-link" href="<?= BASE_URL ?>/student/settings.php">Back to Settings</a>
@@ -128,7 +131,7 @@ require_once __DIR__ . '/../includes/header.php';
 
         <p class="muted">
             <?= $firstLogin
-                ? 'Choose a new password to continue to the student portal.'
+                ? 'Choose a new password to continue to the portal.'
                 : 'Enter your current password before choosing a new one.' ?>
         </p>
 
@@ -139,12 +142,12 @@ require_once __DIR__ . '/../includes/header.php';
         <?php endif; ?>
 
         <?php foreach ($errors as $message): ?>
-            <div class="alert alert-error">
+            <div class="alert alert-error" role="alert">
                 <?= e($message) ?>
             </div>
         <?php endforeach; ?>
 
-        <form method="POST" class="form-grid" autocomplete="off">
+        <form method="POST" class="form-grid password-change-form">
             <input
                 type="hidden"
                 name="csrf_token"
@@ -171,10 +174,12 @@ require_once __DIR__ . '/../includes/header.php';
                 <input
                     type="password"
                     name="new_password"
+                    aria-describedby="new-password-hint"
                     minlength="8"
                     autocomplete="new-password"
                     required
                 >
+                <small id="new-password-hint" class="muted">Use at least 8 characters.</small>
             </label>
 
             <label>
@@ -188,15 +193,14 @@ require_once __DIR__ . '/../includes/header.php';
                 >
             </label>
 
-            <p class="muted">
-                Your new password must contain at least 8 characters.
-            </p>
-
             <div class="form-actions">
                 <button type="submit" class="button button-primary button-full">
                     Update Password
                 </button>
             </div>
         </form>
+        <?php if ($firstLogin): ?>
+            <button type="button" class="button button-outline" data-logout-trigger>Log Out</button>
+        <?php endif; ?>
     </section>
 </div>

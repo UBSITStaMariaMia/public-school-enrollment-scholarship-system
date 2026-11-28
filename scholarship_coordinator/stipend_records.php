@@ -6,10 +6,11 @@ require_role('System Administrator', 'Scholarship Coordinator');
 
 $pageTitle = 'Stipend Records';
 $error = '';
-$success = '';
+$success = ($_GET['saved'] ?? '') === '1' ? 'Stipend record saved successfully.' : '';
 $programFilter = filter_var($_GET['program'] ?? '', FILTER_VALIDATE_INT) ?: null;
 $statusFilter = trim((string) ($_GET['status'] ?? ''));
 $search = trim((string) ($_GET['search'] ?? ''));
+$releaseToday = (new DateTimeImmutable('today', new DateTimeZone('Asia/Manila')))->format('Y-m-d');
 $validStatuses = ['Pending Claim', 'Claimed', 'Unclaimed'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -29,8 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new RuntimeException('Please enter a valid scholar, amount, recipient, and claiming status.');
         }
 
-        if ($releaseDate !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $releaseDate)) {
-            throw new RuntimeException('Please enter a valid release date.');
+        if ($releaseDate !== '') {
+            $parsedRelease = DateTimeImmutable::createFromFormat('!Y-m-d', $releaseDate);
+            if (!$parsedRelease || $parsedRelease->format('Y-m-d') !== $releaseDate || $releaseDate < $releaseToday) {
+                throw new RuntimeException('Choose a release date that is today or later.');
+            }
         }
 
         $check = $pdo->prepare("SELECT scholarship_application_id FROM scholarship_applications WHERE scholarship_application_id = :id AND application_status = 'Approved'");
@@ -49,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'remarks' => $remarks !== '' ? $remarks : null,
             'recorded_by' => current_user()['user_id'],
         ]);
-        $success = 'Stipend record saved successfully.';
+        redirect('/scholarship_coordinator/stipend_records.php?saved=1');
     } catch (PDOException $ex) {
         error_log('Stipend records: ' . $ex->getMessage());
         $error = 'Unable to save the stipend record. Please try again.';
@@ -105,18 +109,28 @@ require_once __DIR__ . '/../includes/header.php';
 .stipend-stat span{display:block;color:#667085;font-size:.9rem}.stipend-stat strong{display:block;margin-top:8px;color:#56172f;font-size:1.55rem}
 .stipend-panel{padding:22px;margin:22px 0;border:1px solid #e1e5ec;border-radius:14px;background:#fafbfc}.stipend-panel h2{margin:0 0 16px;color:#56172f;font-size:1.25rem}
 .stipend-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.stipend-form-grid label,.stipend-filter-grid label{display:flex;flex-direction:column;gap:7px;font-weight:600;color:#344054}.stipend-page input,.stipend-page select,.stipend-page textarea{width:100%;min-height:42px;padding:9px 11px;border:1px solid #cfd5df;border-radius:8px;background:#fff;font:inherit}.stipend-page textarea{min-height:74px}.stipend-wide{grid-column:span 2}.stipend-actions{display:flex;justify-content:flex-end;align-items:end}.stipend-page button{padding:11px 20px;border:0;border-radius:9px;background:#681b39;color:#fff;font-weight:700;cursor:pointer}.stipend-filter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:end}.stipend-filter-actions{display:flex;gap:10px}.stipend-reset{display:inline-flex;align-items:center;justify-content:center;padding:10px 17px;border:1px solid #681b39;border-radius:9px;color:#681b39;text-decoration:none;font-weight:700;background:#fff}
-.stipend-table-wrap{width:100%;overflow-x:auto;border:1px solid #e1e5ec;border-radius:12px}.stipend-page table{width:100%;min-width:920px;border-collapse:collapse}.stipend-page th{padding:14px;text-align:left;background:#f7edf1;color:#56172f;white-space:nowrap}.stipend-page td{padding:13px 14px;border-top:1px solid #edf0f4;vertical-align:top}.stipend-page tbody tr:hover{background:#fcf8fa}.stipend-muted{display:block;color:#667085;font-size:.86rem;margin-top:3px}.stipend-status{display:inline-block;padding:5px 10px;border-radius:20px;background:#f1f3f5;color:#475467;font-size:.82rem;font-weight:700;white-space:nowrap}.stipend-status.claimed{background:#e8f5ee;color:#167348}.stipend-status.pending{background:#fff4df;color:#946200}.stipend-status.unclaimed{background:#fcebea;color:#a3332b}.stipend-empty{padding:30px!important;text-align:center;color:#667085}
+.stipend-table-wrap{width:100%;overflow-x:auto;border:1px solid #e1e5ec;border-radius:12px}.stipend-page table{width:100%;min-width:920px;border-collapse:collapse}.stipend-page th{padding:14px;text-align:left;background:#f7edf1;color:#56172f;white-space:nowrap}.stipend-page td{padding:13px 14px;border-top:1px solid #edf0f4;vertical-align:top}.stipend-page tbody tr:hover{background:#fcf8fa}.stipend-muted{display:block;color:#667085;font-size:.86rem;margin-top:3px}.stipend-empty{padding:30px!important;text-align:center;color:#667085}
 .stipend-alert{padding:12px 15px;margin:14px 0;border-radius:9px}.stipend-alert.success{background:#eaf6ef;color:#176b42}.stipend-alert.error{background:#fff0ef;color:#a12e28}.stipend-note{margin:0 0 18px;color:#667085;font-size:.92rem}
 @media(max-width:900px){.stipend-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stipend-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stipend-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.stipend-page{margin:16px 10px;padding:20px 14px}.stipend-summary,.stipend-form-grid,.stipend-filter-grid{grid-template-columns:1fr}.stipend-wide{grid-column:auto}.stipend-actions{justify-content:stretch}.stipend-actions button{width:100%}}
 </style>
 
-<main class="stipend-page">
-    <h1>Stipend Records</h1>
+<?php $showStipendForm = ($_GET['add'] ?? '') === '1' || ($_SERVER['REQUEST_METHOD'] === 'POST' && $error); ?>
+<?php if ($showStipendForm): ?>
+    <div class="portal-back-row"><a class="portal-back-link" href="?">Back to stipend records</a></div>
+<?php endif; ?>
+<div class="stipend-page">
+    <div class="portal-page-actions scholarship-page-toolbar">
+        <h1><?= $showStipendForm ? 'New Stipend Record' : 'Stipend Records' ?></h1>
+        <?php if (!$showStipendForm): ?>
+        <a class="button button-primary portal-add-action" href="?add=1"><span class="portal-add-icon" aria-hidden="true">+</span> New Stipend Record</a>
+        <?php endif; ?>
+    </div>
 
     <?php if ($success): ?><div class="stipend-alert success"><?= e($success) ?></div><?php endif; ?>
     <?php if ($error): ?><div class="stipend-alert error"><?= e($error) ?></div><?php endif; ?>
 
+    <?php if (!$showStipendForm): ?>
     <section class="stipend-summary" aria-label="Stipend summary">
         <div class="stipend-stat"><span>Total Stipend Recorded</span><strong>₱<?= number_format((float) ($summary['total_amount'] ?? 0), 2) ?></strong></div>
         <div class="stipend-stat"><span>Claimed</span><strong>₱<?= number_format((float) ($summary['claimed_amount'] ?? 0), 2) ?></strong></div>
@@ -124,13 +138,15 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="stipend-stat"><span>Unclaimed</span><strong>₱<?= number_format((float) ($summary['unclaimed_amount'] ?? 0), 2) ?></strong></div>
     </section>
 
+    <?php else: ?>
     <section class="stipend-panel">
         <h2>Record a Stipend Release</h2>
         <p class="stipend-note">Enter a stipend once the release information is provided by the Finance Officer. A release date may be left blank if it has not yet been scheduled.</p>
         <form method="post">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <p class="muted"><span class="student-required" aria-hidden="true">*</span> Required fields</p>
             <div class="stipend-form-grid">
-                <label class="stipend-wide">Approved Scholar
+                <label class="stipend-wide"><span><span class="student-required" aria-hidden="true">*</span> Approved Scholar</span>
                     <select name="scholarship_application_id" required>
                         <option value="">Select scholar</option>
                         <?php foreach ($approved as $scholar): ?>
@@ -138,9 +154,9 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </label>
-                <label>Amount (₱)<input type="number" name="amount" min="0.01" step="0.01" required></label>
-                <label>Release Date<input type="date" name="release_date"></label>
-                <label>Recipient Name<input type="text" name="recipient_name" maxlength="150" required></label>
+                <label><span><span class="student-required" aria-hidden="true">*</span> Amount (₱)</span><input type="number" name="amount" min="0.01" step="0.01" required></label>
+                <label>Release Date<input type="date" name="release_date" min="<?= e($releaseToday) ?>"></label>
+                <label><span><span class="student-required" aria-hidden="true">*</span> Recipient Name</span><input type="text" name="recipient_name" maxlength="150" required></label>
                 <label>Claiming Status
                     <select name="claiming_status"><option>Pending Claim</option><option>Claimed</option><option>Unclaimed</option></select>
                 </label>
@@ -149,13 +165,15 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         </form>
     </section>
+    <?php endif; ?>
 
+    <?php if (!$showStipendForm): ?>
     <section>
         <h2 style="color:#56172f;margin-bottom:14px">Stipend History</h2>
         <form method="get" class="table-search-form">
         <div class="table-search-toolbar">
             <div class="table-search-field">
-                <label>Search Recipient / Student<input type="search" data-student-suggestions="stipends" data-suggestion-url="<?= BASE_URL ?>/includes/student_suggestions.php" name="search" value="<?= e($search) ?>" placeholder="Name or LRN"></label>
+                <label>Search Recipient / Student<input type="search" data-student-suggestions="stipends" data-suggestion-url="<?= BASE_URL ?>/includes/student_suggestions.php" name="search" value="<?= e($search) ?>" placeholder="Enter recipient name, student name, or LRN"></label>
             </div>
             <button type="submit" class="button button-primary">Search</button>
             <details class="table-search-disclosure">
@@ -183,7 +201,7 @@ require_once __DIR__ . '/../includes/header.php';
 
         <div class="stipend-table-wrap">
             <table>
-                <thead><tr><th>Recipient</th><th>Scholar</th><th>Program</th><th>School Year</th><th>Amount</th><th>Release Date</th><th>Claiming Status</th><th>Remarks</th></tr></thead>
+                <thead><tr><th scope="col">Recipient</th><th scope="col">Scholar</th><th scope="col">Program</th><th scope="col">School Year</th><th scope="col">Amount</th><th scope="col">Release Date</th><th scope="col">Claiming Status</th><th scope="col">Remarks</th></tr></thead>
                 <tbody>
                 <?php foreach ($records as $record): ?>
                     <?php $statusClass = $record['claiming_status'] === 'Claimed' ? 'claimed' : ($record['claiming_status'] === 'Unclaimed' ? 'unclaimed' : 'pending'); ?>
@@ -194,7 +212,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <td><?= e($record['school_year']) ?></td>
                         <td>₱<?= number_format((float) $record['amount'], 2) ?></td>
                         <td><?= e($record['release_date'] ?: 'Not scheduled') ?></td>
-                        <td><span class="stipend-status <?= e($statusClass) ?>"><?= e($record['claiming_status']) ?></span></td>
+                        <td><span class="scholarship-status-label <?= e($statusClass) ?>"><?= e($record['claiming_status']) ?></span></td>
                         <td><?= e($record['remarks'] ?: '—') ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -203,7 +221,8 @@ require_once __DIR__ . '/../includes/header.php';
             </table>
         </div>
     </section>
-</main>
+    <?php endif; ?>
+</div>
 
 <script src="<?= BASE_URL ?>/assets/js/student_suggestions.js" defer></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
